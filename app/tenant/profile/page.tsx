@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PushToggle } from '@/components/push-toggle';
 import { revalidatePath } from 'next/cache';
 
 export default async function ProfilePage() {
@@ -77,6 +79,19 @@ export default async function ProfilePage() {
           Save profile
         </Button>
       </form>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Push notifications</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Get a tap on your phone when your landlord replies to a work order or when rent
+            payments clear.
+          </p>
+          <PushToggle vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

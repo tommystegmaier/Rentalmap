@@ -49,8 +49,8 @@ export default async function PaymentsPage() {
             expected_date: string;
           }) => (
             <Card key={p.id}>
-              <CardContent className="flex items-center justify-between p-3 text-sm">
-                <div>
+              <CardContent className="flex items-center justify-between gap-2 p-3 text-sm">
+                <div className="min-w-0">
                   <p className="font-medium">{formatCents(p.amount_cents)}</p>
                   <p className="text-xs text-muted-foreground">
                     {p.received_date
@@ -59,7 +59,15 @@ export default async function PaymentsPage() {
                     {p.method ? ` · ${p.method}` : ''}
                   </p>
                 </div>
-                <Badge className="border-transparent bg-secondary">{p.status}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className="border-transparent bg-secondary">{p.status}</Badge>
+                  <a
+                    href={`/api/payments/${p.id}/receipt`}
+                    className="text-xs text-primary underline-offset-4 hover:underline"
+                  >
+                    Receipt
+                  </a>
+                </div>
               </CardContent>
             </Card>
           ))}

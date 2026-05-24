@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { PushToggle } from '@/components/push-toggle';
 import { StripeConnectButton } from './connect-button';
 
 export default async function SettingsPage({
@@ -75,10 +76,24 @@ export default async function SettingsPage({
 
       <Card>
         <CardHeader>
+          <CardTitle>Push notifications</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Get a tap on your phone when a tenant submits a work order, pays rent, or when a
+            reminder fires (lease renewal, inspections, HVAC service).
+          </p>
+          <PushToggle vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Reminders</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Default lead times: rent due 3 days before, lease renewal 60 days before.
+          Default lead times: rent due 3 days before, lease renewal 60 days before. The
+          reminders engine syncs nightly and fires push notifications on each trigger date.
         </CardContent>
       </Card>
     </div>

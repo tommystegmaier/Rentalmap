@@ -52,8 +52,8 @@ export default async function RentPage() {
             const addr = propObj?.address;
             return (
               <Card key={p.id}>
-                <CardContent className="flex items-center justify-between p-3">
-                  <div>
+                <CardContent className="flex items-center justify-between gap-2 p-3">
+                  <div className="min-w-0">
                     <p className="text-sm font-medium">{formatCents(p.amount_cents)}</p>
                     <p className="text-xs text-muted-foreground">
                       {addr ?? '—'} · expected{' '}
@@ -66,7 +66,15 @@ export default async function RentPage() {
                       </p>
                     ) : null}
                   </div>
-                  <StatusBadge status={p.status} />
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={p.status} />
+                    <a
+                      href={`/api/payments/${p.id}/receipt`}
+                      className="text-xs text-primary underline-offset-4 hover:underline"
+                    >
+                      PDF
+                    </a>
+                  </div>
                 </CardContent>
               </Card>
             );

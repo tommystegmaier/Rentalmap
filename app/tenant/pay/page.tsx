@@ -4,8 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCents } from '@/lib/utils';
 import { addMonths, format, setDate } from 'date-fns';
 import { PayButton } from './pay-button';
+import { AutopayControls } from './autopay-controls';
 
-export default async function PayRentPage() {
+export default async function PayRentPage({
+  searchParams,
+}: {
+  searchParams: { autopay?: string };
+}) {
   const supabase = createClient();
   const {
     data: { user },
@@ -50,6 +55,18 @@ export default async function PayRentPage() {
     landlordConnected = !!landlord?.stripe_connect_account_id;
   }
 
+  let autopay: { id: string; status: string } | null = null;
+  if (lease) {
+    const { data } = await supabase
+      .from('autopay_subscriptions')
+      .select('id, status')
+      .eq('lease_id', lease.id)
+      .eq('tenant_user_id', user!.id)
+      .eq('status', 'active')
+      .maybeSingle();
+    autopay = data as { id: string; status: string } | null;
+  }
+
   const today = new Date();
   let nextDue = lease ? setDate(today, lease.due_day) : today;
   if (lease && nextDue < today) nextDue = addMonths(nextDue, 1);
@@ -58,6 +75,12 @@ export default async function PayRentPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Pay rent" description={prop?.address ?? ''} />
+
+      {searchParams.autopay === 'on' ? (
+        <div className="rounded-lg border border-success/30 bg-success/5 p-3 text-sm">
+          Auto-pay is set up. You&apos;ll be charged automatically each month.
+        </div>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -86,6 +109,24 @@ export default async function PayRentPage() {
             <PayButton
               leaseId={lease.id}
               expectedDate={expectedDate}
+              landlordConnected={landlordConnected}
+            />
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Auto-pay</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Authorize Stripe to charge rent automatically each month. Cancel any time.
+          </p>
+          {lease ? (
+            <AutopayControls
+              leaseId={lease.id}
+              autopay={autopay}
               landlordConnected={landlordConnected}
             />
           ) : null}

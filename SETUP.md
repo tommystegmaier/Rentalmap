@@ -79,7 +79,8 @@ database.
    Cmd/Ctrl + Return). You'll see "Success. No rows returned" — that's good.
 5. Click **New query** again. Repeat with `supabase/migrations/0002_rls_policies.sql`.
 6. Click **New query** again. Repeat with `supabase/migrations/0003_storage.sql`.
-7. Click **New query** one more time. Repeat with `supabase/migrations/0004_accept_invitation.sql`.
+7. Click **New query** again. Repeat with `supabase/migrations/0004_accept_invitation.sql`.
+8. Click **New query** one more time. Repeat with `supabase/migrations/0005_push_autopay_reminders.sql`.
 
 You should now have 11 tables. To check: in the left sidebar click the **Table
 Editor** icon. You'll see `users`, `properties`, `leases`, etc. — all empty for now.
@@ -176,6 +177,9 @@ Scroll to **Environment Variables**. Click **Add another** for each row:
 | `STRIPE_SECRET_KEY`                 | (from Stripe, Part 2.3)                        |
 | `STRIPE_WEBHOOK_SECRET`             | leave blank for now — we'll add it in Part 3.5 |
 | `NEXT_PUBLIC_SITE_URL`              | leave blank for now — we'll add it in Part 3.5 |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`      | leave blank for now — we'll add it in Part 3.7 |
+| `VAPID_PRIVATE_KEY`                 | leave blank for now — we'll add it in Part 3.7 |
+| `VAPID_SUBJECT`                     | `mailto:tommy.stegmaier@life.church`           |
 
 ### 3.4 Deploy
 
@@ -193,7 +197,9 @@ Scroll to **Environment Variables**. Click **Add another** for each row:
    (e.g., `https://rentalmap-abc123.vercel.app`).
 4. We'll come back for `STRIPE_WEBHOOK_SECRET` in just a moment.
 
-### 3.6 Register the Stripe webhook
+### 3.6 Add Stripe webhook events
+
+The Stripe webhook needs **four** events, not three (we added one for auto-pay):
 
 Webhooks are how Stripe tells your app "the payment went through." Without this
 your rent payments won't be marked as settled.
@@ -203,17 +209,41 @@ your rent payments won't be marked as settled.
 3. **Endpoint URL**: `https://YOUR-VERCEL-URL.vercel.app/api/stripe/webhook`
    (paste your real URL, not the placeholder).
 4. **Listen to**: leave on **Events on your account**.
-5. **Select events**: click **+ Select events** and check these three:
+5. **Select events**: click **+ Select events** and check these four:
    - `checkout.session.completed`
    - `payment_intent.succeeded`
    - `payment_intent.payment_failed`
+   - `invoice.payment_succeeded`  (this one is for auto-pay)
 6. Click **Add endpoint**.
 7. On the webhook detail page, find the **Signing secret** section. Click
    **Reveal** and copy the value (starts with `whsec_`).
 8. Back in **Vercel → Settings → Environment Variables**, **edit**
    `STRIPE_WEBHOOK_SECRET` and paste the signing secret.
 
-### 3.7 Redeploy so the new env vars take effect
+### 3.7 Generate push-notification keys (VAPID)
+
+Push notifications need a one-time generated key pair. The simplest way:
+
+1. On your **laptop** open a terminal (Mac: open Spotlight, type "Terminal").
+2. Run:
+
+   ```
+   npx web-push generate-vapid-keys
+   ```
+
+3. It prints two values:
+   ```
+   Public Key:  BCx...
+   Private Key: K8y...
+   ```
+4. In Vercel → Settings → Environment Variables:
+   - **Edit** `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and paste the Public Key
+   - **Edit** `VAPID_PRIVATE_KEY` and paste the Private Key
+
+> Don't share the private key. It's the secret that proves notifications come
+> from your app.
+
+### 3.8 Redeploy so the new env vars take effect
 
 1. In Vercel, click **Deployments** (top tab).
 2. Click the **…** (three dots) next to the most recent deployment.
@@ -310,6 +340,21 @@ Store, no review process, no installation fee.
 The Rentalmap icon will appear on your home screen. Tap it to launch — it opens
 full-screen like a real app, no Safari URL bar.
 
+### Turn on push notifications (do this AFTER installing to home screen)
+
+iOS only delivers push notifications to PWAs that are launched from the home
+screen icon — not from Safari. So:
+
+1. Tap the **Rentalmap home-screen icon** to open the app.
+2. Go to **More → Settings** (landlord) or **More → Profile** (tenant).
+3. Scroll to **Push notifications** and tap **Enable notifications**.
+4. iOS will ask permission — tap **Allow**.
+
+From here on you'll get a push for:
+- New work orders (landlord)
+- Rent payments that clear or fail (both sides)
+- Reminders firing (rent due, lease renewal, inspections, HVAC, smoke/CO)
+
 ### For Matthew and Brittany
 
 In the invitation email, give them this 30-second instruction (you can copy/paste
@@ -353,8 +398,19 @@ After Part 5 you have:
   in amount + date + method, save. Takes about 10 seconds.
 - **You photograph a receipt**: **More → Expenses → Add**, snap the photo, pick
   a category (Repairs, Insurance, etc.), save. About 20 seconds.
-- **Tax season**: **More → Reports** shows a Schedule E preview matching the IRS
-  line items. **More → Backup / restore** downloads everything as JSON.
+- **A tenant sets up auto-pay**: in their app, **Pay Rent → Set up auto-pay**.
+  They authorize Stripe to charge monthly; they get a confirmation each time it
+  runs; you get a push notification when funds clear. They can cancel from the
+  same screen any time.
+- **A tenant or you need a payment receipt**: in any payment list (Rent
+  ledger for you, Payment history for them), tap the **PDF** / **Receipt**
+  link. A PDF receipt downloads.
+- **Tax season**: **More → Reports** shows a Schedule E preview, and the
+  **Tax export** button in the header downloads a zip with the Schedule E PDF,
+  expense and rent CSVs, and every receipt photo from the year.
+- **A reminder fires**: lease renewal, quarterly inspection, HVAC service,
+  smoke/CO check — you get a push on the trigger date and see the item in
+  **More → Reminders**.
 
 ## Troubleshooting
 
@@ -372,16 +428,15 @@ After Part 5 you have:
 - **You moved or restarted the project**: redeploy in Vercel (Deployments → …
   → Redeploy). Env vars persist; deployments don't auto-restart.
 
-## What's coming next
+## What's still on the list
 
-Things I haven't built yet but can add once you're up and running:
+The big features (push, auto-pay, reminders, receipts, tax export) are all live
+as of this guide. Remaining nice-to-haves:
 
-- **Push notifications** when a work order arrives or rent settles
-- **Auto-pay subscriptions** (tenant authorizes monthly ACH, no manual action
-  needed each month)
-- **Lease renewal & inspection reminders** with custom lead times
-- **PDF receipts** emailed to tenants after each payment
-- **Tax export zip** (Schedule E PDF + receipts + CSVs in one download)
-- **Document vault UI** (upload lease PDF, share with tenant)
+- **Documents vault upload UI** (storage policies and table are ready, but the
+  upload screen is still a placeholder)
+- **JSON restore + CSV expense import** (backup export already works)
+- **Dark mode toggle** (CSS variables are in place, just needs a switch)
+- **OCR receipt scanning** to auto-fill amount and vendor
 
 Ping me with what's blocking you and we'll prioritize.

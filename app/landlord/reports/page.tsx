@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { formatCents } from '@/lib/utils';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 
@@ -39,7 +40,17 @@ export default async function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Reports" description={`Schedule E preview · tax year ${year}`} />
+      <PageHeader
+        title="Reports"
+        description={`Schedule E preview · tax year ${year}`}
+        action={
+          <Button asChild size="sm">
+            <a href={`/api/tax-export?year=${year}`} download>
+              Tax export
+            </a>
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-3 gap-2">
         <Card>
