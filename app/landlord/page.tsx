@@ -1,0 +1,187 @@
+import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { formatCents } from '@/lib/utils';
+import { differenceInDays, parseISO } from 'date-fns';
+import { Wrench, ReceiptText, Send, Home as HomeIcon } from 'lucide-react';
+
+export default async function LandlordDashboard() {
+  const supabase = createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const yearStart = `${new Date().getFullYear()}-01-01`;
+
+  const [{ data: properties }, { data: leases }, { data: openWorkOrders }, { data: ytdPayments }, { data: ytdExpenses }] =
+    await Promise.all([
+      supabase.from('properties').select('*').order('created_at'),
+      supabase
+        .from('leases')
+        .select('*, lease_tenants(user_id), properties(address)')
+        .eq('status', 'active'),
+      supabase.from('work_orders').select('id, urgency').neq('status', 'closed'),
+      supabase
+        .from('rent_payments')
+        .select('amount_cents, status, received_date')
+        .gte('received_date', yearStart),
+      supabase.from('expenses').select('amount_cents').gte('date', yearStart),
+    ]);
+
+  const ytdIncomeCents = (ytdPayments ?? [])
+    .filter((p: { status: string }) => p.status === 'settled' || p.status === 'manual')
+    .reduce((s: number, p: { amount_cents: number | null }) => s + (p.amount_cents ?? 0), 0);
+  const ytdExpenseCents = (ytdExpenses ?? []).reduce(
+    (s: number, e: { amount_cents: number | null }) => s + (e.amount_cents ?? 0),
+    0,
+  );
+  const ytdNet = ytdIncomeCents - ytdExpenseCents;
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Dashboard" description="Your portfolio at a glance" />
+
+      <div className="grid grid-cols-3 gap-2">
+        <StatTile label="YTD Income" value={formatCents(ytdIncomeCents)} />
+        <StatTile label="YTD Expenses" value={formatCents(ytdExpenseCents)} />
+        <StatTile
+          label="Net Cash Flow"
+          value={formatCents(ytdNet)}
+          accent={ytdNet >= 0 ? 'success' : 'destructive'}
+        />
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <QuickAction href="/landlord/expenses/new" icon={<ReceiptText size={20} />} label="Add expense" />
+        <QuickAction href="/landlord/maintenance" icon={<Wrench size={20} />} label="Work orders" />
+        <QuickAction href="/landlord/invite" icon={<Send size={20} />} label="Invite tenant" />
+      </div>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-medium text-muted-foreground">Properties</h2>
+        {properties && properties.length > 0 ? (
+          properties.map((p: { id: string; address: string }) => {
+            const lease = leases?.find(
+              (l: { property_id: string }) => l.property_id === p.id,
+            ) as
+              | { monthly_rent_cents: number; end_date: string }
+              | undefined;
+            const daysToEnd = lease
+              ? differenceInDays(parseISO(lease.end_date), new Date())
+              : null;
+            return (
+              <Link key={p.id} href={`/landlord/properties/${p.id}`}>
+                <Card className="transition hover:bg-muted/30">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <HomeIcon size={16} className="text-primary" />
+                      {p.address}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Monthly rent</p>
+                      <p className="font-medium">
+                        {lease ? formatCents(lease.monthly_rent_cents) : '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Lease ends</p>
+                      <p className="font-medium">
+                        {lease ? `${daysToEnd} days` : 'No active lease'}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })
+        ) : (
+          <EmptyState
+            icon={<HomeIcon size={32} />}
+            title="No properties yet"
+            description="Run the seed script with your auth user id to create your first property."
+            action={
+              <Button asChild variant="outline">
+                <Link href="/landlord/properties">Manage properties</Link>
+              </Button>
+            }
+          />
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-muted-foreground">Open work orders</h2>
+          <Badge className="border-transparent bg-muted text-muted-foreground">
+            {openWorkOrders?.length ?? 0}
+          </Badge>
+        </div>
+        {openWorkOrders && openWorkOrders.length > 0 ? (
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/landlord/maintenance">View work orders</Link>
+          </Button>
+        ) : (
+          <p className="text-sm text-muted-foreground">No open work orders.</p>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function StatTile({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: 'success' | 'destructive';
+}) {
+  return (
+    <Card>
+      <CardContent className="p-3">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p
+          className={`mt-1 text-base font-semibold ${
+            accent === 'success'
+              ? 'text-success'
+              : accent === 'destructive'
+                ? 'text-destructive'
+                : ''
+          }`}
+        >
+          {value}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function QuickAction({
+  href,
+  icon,
+  label,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-col items-center gap-1 rounded-2xl border bg-card p-3 text-center text-xs hover:bg-muted/30 tap-44"
+    >
+      <span className="text-primary" aria-hidden>
+        {icon}
+      </span>
+      <span className="font-medium">{label}</span>
+    </Link>
+  );
+}

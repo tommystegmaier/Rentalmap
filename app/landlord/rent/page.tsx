@@ -1,0 +1,99 @@
+import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
+import { PageHeader } from '@/components/page-header';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { formatCents } from '@/lib/utils';
+import { format, parseISO } from 'date-fns';
+import { Wallet } from 'lucide-react';
+
+export default async function RentPage() {
+  const supabase = createClient();
+  const { data: payments } = await supabase
+    .from('rent_payments')
+    .select('*, leases:lease_id(properties:property_id(address))')
+    .order('expected_date', { ascending: false })
+    .limit(50);
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Rent"
+        description="Payments across all properties"
+        action={
+          <Button asChild size="sm">
+            <Link href="/landlord/rent/new">Log payment</Link>
+          </Button>
+        }
+      />
+
+      {payments && payments.length > 0 ? (
+        <div className="space-y-2">
+          {payments.map((p: {
+            id: string;
+            amount_cents: number;
+            status: string;
+            method: string | null;
+            received_date: string | null;
+            expected_date: string;
+            leases:
+              | { properties: { address: string } | { address: string }[] | null }
+              | { properties: { address: string } | { address: string }[] | null }[]
+              | null;
+          }) => {
+            const leaseObj = Array.isArray(p.leases) ? p.leases[0] : p.leases;
+            const propObj = leaseObj
+              ? Array.isArray(leaseObj.properties)
+                ? leaseObj.properties[0]
+                : leaseObj.properties
+              : null;
+            const addr = propObj?.address;
+            return (
+              <Card key={p.id}>
+                <CardContent className="flex items-center justify-between p-3">
+                  <div>
+                    <p className="text-sm font-medium">{formatCents(p.amount_cents)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {addr ?? '—'} · expected{' '}
+                      {format(parseISO(p.expected_date), 'MMM d, yyyy')}
+                    </p>
+                    {p.received_date ? (
+                      <p className="text-xs text-muted-foreground">
+                        Received {format(parseISO(p.received_date), 'MMM d, yyyy')}
+                        {p.method ? ` · ${p.method}` : ''}
+                      </p>
+                    ) : null}
+                  </div>
+                  <StatusBadge status={p.status} />
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <EmptyState
+          icon={<Wallet size={32} />}
+          title="No payments yet"
+          description="Log your first rent payment to start the ledger."
+          action={
+            <Button asChild>
+              <Link href="/landlord/rent/new">Log payment</Link>
+            </Button>
+          }
+        />
+      )}
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    settled: 'bg-success/10 text-success border-transparent',
+    manual: 'bg-success/10 text-success border-transparent',
+    pending: 'bg-warning/10 text-warning border-transparent',
+    failed: 'bg-destructive/10 text-destructive border-transparent',
+  };
+  return <Badge className={styles[status] ?? ''}>{status}</Badge>;
+}

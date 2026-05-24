@@ -1,0 +1,150 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { PageHeader } from '@/components/page-header';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { formatCents } from '@/lib/utils';
+import { format, parseISO } from 'date-fns';
+
+export default async function PropertyDetail({ params }: { params: { id: string } }) {
+  const supabase = createClient();
+  const { data: property } = await supabase
+    .from('properties')
+    .select('*')
+    .eq('id', params.id)
+    .maybeSingle();
+
+  if (!property) notFound();
+
+  const [{ data: leases }, { data: appliances }] = await Promise.all([
+    supabase
+      .from('leases')
+      .select('*, lease_tenants(user_id, users:user_id(name, email))')
+      .eq('property_id', params.id)
+      .order('start_date', { ascending: false }),
+    supabase.from('appliances').select('*').eq('property_id', params.id),
+  ]);
+
+  type LeaseTenantJoined = {
+    user_id: string;
+    users:
+      | { name: string | null; email: string }
+      | { name: string | null; email: string }[]
+      | null;
+  };
+  const activeLease = leases?.find((l: { status: string }) => l.status === 'active') as
+    | (Record<string, unknown> & {
+        start_date: string;
+        end_date: string;
+        monthly_rent_cents: number;
+        due_day: number;
+        late_after_day: number;
+        late_fee_cents: number;
+        security_deposit_cents: number;
+        terms_notes: string | null;
+        lease_tenants: LeaseTenantJoined[];
+      })
+    | undefined;
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title={property.address} description="Property details" />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Purchase & depreciation</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-3 text-sm">
+          <Field label="Purchase price" value={formatCents(property.purchase_price_cents)} />
+          <Field
+            label="Placed in service"
+            value={property.placed_in_service ? format(parseISO(property.placed_in_service), 'PP') : '—'}
+          />
+          <Field label="Depreciable basis" value={formatCents(property.depreciable_basis_cents)} />
+          <Field label="Annual depreciation" value={formatCents(property.annual_depreciation_cents)} />
+        </CardContent>
+      </Card>
+
+      {activeLease ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Current lease</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-3">
+              <Field
+                label="Term"
+                value={`${format(parseISO(activeLease.start_date), 'PP')} → ${format(parseISO(activeLease.end_date), 'PP')}`}
+              />
+              <Field label="Monthly rent" value={formatCents(activeLease.monthly_rent_cents)} />
+              <Field label="Due day" value={`${activeLease.due_day} of month`} />
+              <Field label="Late after" value={`Day ${activeLease.late_after_day}`} />
+              <Field label="Late fee" value={formatCents(activeLease.late_fee_cents)} />
+              <Field label="Security deposit" value={formatCents(activeLease.security_deposit_cents)} />
+            </div>
+
+            <div>
+              <p className="text-muted-foreground">Tenants</p>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {activeLease.lease_tenants?.length ? (
+                  activeLease.lease_tenants.map((lt) => {
+                    const u = Array.isArray(lt.users) ? lt.users[0] : lt.users;
+                    return (
+                      <Badge key={lt.user_id} className="border-transparent bg-secondary">
+                        {u?.name ?? u?.email ?? '—'}
+                      </Badge>
+                    );
+                  })
+                ) : (
+                  <Button asChild size="sm" variant="outline">
+                    <Link href="/landlord/invite">Invite tenant</Link>
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {activeLease.terms_notes ? (
+              <div>
+                <p className="text-muted-foreground">Terms</p>
+                <p className="mt-1 whitespace-pre-wrap">{activeLease.terms_notes}</p>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Appliance registry</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          {appliances && appliances.length > 0 ? (
+            appliances.map((a: { id: string; name: string; next_service_due: string | null }) => (
+              <div key={a.id} className="flex items-center justify-between border-b pb-2 last:border-0">
+                <span className="font-medium">{a.name}</span>
+                <span className="text-muted-foreground">
+                  {a.next_service_due
+                    ? `Next service ${format(parseISO(a.next_service_due), 'PP')}`
+                    : 'No service date'}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="text-muted-foreground">No appliances tracked yet.</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-muted-foreground">{label}</p>
+      <p className="font-medium">{value}</p>
+    </div>
+  );
+}
