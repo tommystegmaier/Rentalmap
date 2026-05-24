@@ -1,8 +1,9 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { formatCents } from '@/lib/utils';
+import { addMonths, format, setDate } from 'date-fns';
+import { PayButton } from './pay-button';
 
 export default async function PayRentPage() {
   const supabase = createClient();
@@ -12,28 +13,51 @@ export default async function PayRentPage() {
 
   const { data: leaseLinks } = await supabase
     .from('lease_tenants')
-    .select('leases:lease_id(monthly_rent_cents, due_day, properties:property_id(address))')
+    .select(
+      'lease_id, leases:lease_id(id, monthly_rent_cents, due_day, properties:property_id(address, owner_id))',
+    )
     .eq('user_id', user!.id);
 
   const rawLease = leaseLinks?.[0]?.leases;
   const leaseRow = Array.isArray(rawLease) ? rawLease[0] : rawLease;
   const lease = leaseRow as
     | {
+        id: string;
         monthly_rent_cents: number;
         due_day: number;
-        properties: { address: string } | { address: string }[] | null;
+        properties:
+          | { address: string; owner_id: string }
+          | { address: string; owner_id: string }[]
+          | null;
       }
     | null
     | undefined;
-  const propAddr = lease
+  const prop = lease
     ? Array.isArray(lease.properties)
-      ? lease.properties[0]?.address
-      : lease.properties?.address
+      ? lease.properties[0]
+      : lease.properties
     : null;
+
+  // Look up landlord's Stripe connect status (service role — tenant can't read landlord row).
+  let landlordConnected = false;
+  if (prop) {
+    const admin = createServiceRoleClient();
+    const { data: landlord } = await admin
+      .from('users')
+      .select('stripe_connect_account_id')
+      .eq('id', prop.owner_id)
+      .maybeSingle();
+    landlordConnected = !!landlord?.stripe_connect_account_id;
+  }
+
+  const today = new Date();
+  let nextDue = lease ? setDate(today, lease.due_day) : today;
+  if (lease && nextDue < today) nextDue = addMonths(nextDue, 1);
+  const expectedDate = format(nextDue, 'yyyy-MM-dd');
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Pay rent" description={propAddr ?? ''} />
+      <PageHeader title="Pay rent" description={prop?.address ?? ''} />
 
       <Card>
         <CardHeader>
@@ -44,43 +68,33 @@ export default async function PayRentPage() {
             {lease ? formatCents(lease.monthly_rent_cents) : '—'}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Due day {lease?.due_day ?? '—'} of each month
+            Next due {format(nextDue, 'MMMM d, yyyy')}
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Pay with ACH (recommended)</CardTitle>
+          <CardTitle>Pay securely with Stripe</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p className="text-muted-foreground">
-            Low fee ($0.80 capped at $5), absorbed by your landlord. Funds settle in 1–3 business
-            days.
+            You can pay by bank transfer (ACH) or debit/credit card. ACH usually clears in 1–3
+            business days; cards clear immediately.
           </p>
-          <Button disabled className="w-full">
-            Connect bank account (coming next)
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Pay with debit / credit card</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <p className="text-muted-foreground">
-            Card processing fee (2.9% + $0.30) added to your total.
-          </p>
-          <Button variant="outline" disabled className="w-full">
-            Pay with card (coming next)
-          </Button>
+          {lease ? (
+            <PayButton
+              leaseId={lease.id}
+              expectedDate={expectedDate}
+              landlordConnected={landlordConnected}
+            />
+          ) : null}
         </CardContent>
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        Until Stripe is connected, please continue paying via Zelle, Venmo, or check. Your
-        landlord will log payments here.
+        Payments are processed by Stripe. Rentalmap never sees or stores your card or bank
+        details.
       </p>
     </div>
   );

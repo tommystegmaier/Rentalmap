@@ -25,6 +25,49 @@ export async function POST(request: Request) {
   const supabase = createServiceRoleClient();
 
   switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object;
+      if (session.metadata?.type !== 'rent') break;
+
+      const leaseId = session.metadata.lease_id;
+      const expectedDate =
+        session.metadata.expected_date ?? new Date().toISOString().slice(0, 10);
+      const tenantUserId = session.metadata.tenant_user_id ?? null;
+      const amount = session.amount_total ?? 0;
+      const paymentIntentId =
+        typeof session.payment_intent === 'string'
+          ? session.payment_intent
+          : session.payment_intent?.id ?? null;
+
+      const method = session.payment_method_types?.includes('us_bank_account')
+        ? 'ach'
+        : 'card';
+
+      // Avoid duplicates if Stripe retries the webhook.
+      const { data: existing } = paymentIntentId
+        ? await supabase
+            .from('rent_payments')
+            .select('id')
+            .eq('stripe_payment_intent_id', paymentIntentId)
+            .maybeSingle()
+        : { data: null };
+
+      if (!existing) {
+        await supabase.from('rent_payments').insert({
+          lease_id: leaseId,
+          expected_date: expectedDate,
+          received_date: null,
+          amount_cents: amount,
+          method,
+          stripe_payment_intent_id: paymentIntentId,
+          status: 'pending',
+          recorded_by: tenantUserId,
+          notes: 'Submitted via Stripe Checkout',
+        });
+      }
+      break;
+    }
+
     case 'payment_intent.succeeded': {
       const pi = event.data.object;
       await supabase
@@ -36,6 +79,7 @@ export async function POST(request: Request) {
         .eq('stripe_payment_intent_id', pi.id);
       break;
     }
+
     case 'payment_intent.payment_failed': {
       const pi = event.data.object;
       await supabase
@@ -44,8 +88,9 @@ export async function POST(request: Request) {
         .eq('stripe_payment_intent_id', pi.id);
       break;
     }
+
     default:
-      // Other events ignored for now.
+      // Other events ignored.
       break;
   }
 

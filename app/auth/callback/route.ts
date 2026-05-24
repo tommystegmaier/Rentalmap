@@ -8,7 +8,12 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = createClient();
-    await supabase.auth.exchangeCodeForSession(code);
+    const { data } = await supabase.auth.exchangeCodeForSession(code);
+
+    // Auto-link any pending invitation that matches this user's email.
+    if (data.user) {
+      await supabase.rpc('accept_pending_invitations', { uid: data.user.id });
+    }
   }
 
   return NextResponse.redirect(`${origin}${next}`);
