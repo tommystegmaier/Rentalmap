@@ -23,6 +23,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
+  // Guard against inviting yourself — creates a confusing dual-role state and
+  // is almost always a testing mistake.
+  if (user.email && user.email.toLowerCase() === email) {
+    return NextResponse.json(
+      {
+        error:
+          "You can't invite your own landlord email as a tenant. For testing, use a different inbox (a Gmail alias like you+test@gmail.com works).",
+      },
+      { status: 400 },
+    );
+  }
+
   // Caller must own the property on the lease. Pull the property address so
   // we can pass it to the invite email template.
   const { data: lease, error: leaseErr } = await supabase
@@ -94,15 +106,30 @@ export async function POST(request: Request) {
         options: { emailRedirectTo, data: inviteData },
       });
       if (linkErr) {
-        return NextResponse.json({ error: linkErr.message }, { status: 500 });
+        return NextResponse.json(
+          { error: friendlyInviteError(linkErr.message) },
+          { status: 500 },
+        );
       }
     }
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to send invitation' },
-      { status: 500 },
-    );
+    const raw = err instanceof Error ? err.message : 'Failed to send invitation';
+    return NextResponse.json({ error: friendlyInviteError(raw) }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });
+}
+
+function friendlyInviteError(raw: string): string {
+  if (/sending magic link|email rate limit|rate limit exceeded/i.test(raw)) {
+    return (
+      "Supabase's default email sender is rate-limited (about 3 emails per hour). " +
+      'Set up custom SMTP via Resend to remove the limit (see ' +
+      'supabase/email-templates/README.md), or wait ~1 hour and try again.'
+    );
+  }
+  if (/smtp/i.test(raw)) {
+    return `Email send failed (${raw}). Check Supabase → Authentication → Emails → SMTP Settings.`;
+  }
+  return raw;
 }
