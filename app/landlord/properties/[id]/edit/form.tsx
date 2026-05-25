@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { parseDollarsToCents } from '@/lib/utils';
+import { deleteProperty } from '../actions';
 
 interface Property {
   id: string;
@@ -218,6 +219,57 @@ export function EditPropertyForm({ property }: { property: Property }) {
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? 'Saving…' : 'Save changes'}
       </Button>
+
+      <DangerZone propertyId={property.id} address={property.address} />
     </form>
+  );
+}
+
+function DangerZone({ propertyId, address }: { propertyId: string; address: string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleDelete() {
+    const confirmation = window.prompt(
+      `This will permanently delete ${address} and EVERYTHING tied to it:\n\n` +
+        '• Leases and tenant links\n' +
+        '• Rent payments and auto-pay subscriptions (will be canceled in Stripe)\n' +
+        '• Expenses and receipt photos\n' +
+        '• Work orders and photos\n' +
+        '• Documents and the property photo\n' +
+        '• Appliances and reminders\n\n' +
+        "If you need records for taxes, download the Tax export from Reports FIRST.\n\n" +
+        'To confirm, type DELETE below.',
+    );
+    if (confirmation !== 'DELETE') return;
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteProperty(propertyId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete property');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-8 rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
+      <p className="text-sm font-semibold text-destructive">Delete property</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Permanently removes this property and all leases, payments, expenses, work orders,
+        documents, and photos attached to it. This can&apos;t be undone — download a tax export
+        first if you need records.
+      </p>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={handleDelete}
+        disabled={busy}
+        className="mt-3 w-full text-destructive hover:bg-destructive/10"
+      >
+        {busy ? 'Deleting…' : 'Delete property'}
+      </Button>
+      {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
+    </div>
   );
 }
