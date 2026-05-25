@@ -169,20 +169,25 @@ basically zero-config.
 
 This is where you paste all those keys from Parts 1 and 2.
 
-Scroll to **Environment Variables**. Click **Add another** for each row:
+> **Vercel quirk**: the "Add" form won't accept empty values. For any row marked
+> "skip for now" below, **don't add the row at all** during this first deploy.
+> You'll add them later via Settings → Environment Variables once you have the
+> real value.
 
-| Name                                | Value                                          |
-| ----------------------------------- | ---------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`          | (from Supabase, Part 1.3)                      |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`     | (from Supabase, Part 1.3)                      |
-| `SUPABASE_SERVICE_ROLE_KEY`         | (from Supabase, Part 1.3)                      |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`| (from Stripe, Part 2.3)                        |
-| `STRIPE_SECRET_KEY`                 | (from Stripe, Part 2.3)                        |
-| `STRIPE_WEBHOOK_SECRET`             | leave blank for now — we'll add it in Part 3.5 |
-| `NEXT_PUBLIC_SITE_URL`              | leave blank for now — we'll add it in Part 3.5 |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`      | leave blank for now — we'll add it in Part 3.7 |
-| `VAPID_PRIVATE_KEY`                 | leave blank for now — we'll add it in Part 3.7 |
-| `VAPID_SUBJECT`                     | `mailto:tommy.stegmaier@life.church`           |
+Scroll to **Environment Variables**. Click **Add another** for each row marked ✅:
+
+| Name                                | Value                                                  |
+| ----------------------------------- | ------------------------------------------------------ |
+| ✅ `NEXT_PUBLIC_SUPABASE_URL`       | (from Supabase, Part 1.3)                              |
+| ✅ `NEXT_PUBLIC_SUPABASE_ANON_KEY`  | (from Supabase, Part 1.3)                              |
+| ✅ `SUPABASE_SERVICE_ROLE_KEY`      | (from Supabase, Part 1.3)                              |
+| ✅ `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | (from Stripe, Part 2.3 — test key is fine for now) |
+| ✅ `STRIPE_SECRET_KEY`              | (from Stripe, Part 2.3 — test key is fine for now)     |
+| ✅ `VAPID_SUBJECT`                  | `mailto:tommy.stegmaier@life.church`                   |
+| ⏳ `STRIPE_WEBHOOK_SECRET`          | skip for now — you'll add it in Part 3.6               |
+| ⏳ `NEXT_PUBLIC_SITE_URL`           | skip for now — you'll add it in Part 3.5               |
+| ⏳ `NEXT_PUBLIC_VAPID_PUBLIC_KEY`   | skip for now — you'll add it in Part 3.7               |
+| ⏳ `VAPID_PRIVATE_KEY`              | skip for now — you'll add it in Part 3.7               |
 
 ### 3.4 Deploy
 
@@ -196,9 +201,9 @@ Scroll to **Environment Variables**. Click **Add another** for each row:
 
 1. Copy your live URL (without the trailing slash).
 2. In Vercel, go to **Settings → Environment Variables**.
-3. Find `NEXT_PUBLIC_SITE_URL` and **edit** it. Set the value to your live URL
-   (e.g., `https://rentalmap-abc123.vercel.app`).
-4. We'll come back for `STRIPE_WEBHOOK_SECRET` in just a moment.
+3. Click **Add New** and add `NEXT_PUBLIC_SITE_URL` with the value of your live
+   URL (e.g., `https://rentalmap-abc123.vercel.app`).
+4. We'll come back for `STRIPE_WEBHOOK_SECRET` and the VAPID keys in a moment.
 
 ### 3.6 Add Stripe webhook events
 
