@@ -121,10 +121,22 @@ export async function POST(request: Request) {
 }
 
 function friendlyInviteError(raw: string): string {
+  // Per-user 60-second cool-down (the 'Minimum interval per user' setting in
+  // Supabase Authentication → Emails → SMTP Settings). Still applies even
+  // with custom SMTP configured.
+  if (
+    /for security purposes.*after \d+ second|seconds before|too many requests/i.test(
+      raw,
+    )
+  ) {
+    return (
+      "Supabase enforces a per-recipient cool-down (60 seconds by default). " +
+      'Wait a minute, or use a fresh email address. ' +
+      "You can adjust the interval in Supabase → Authentication → Emails → SMTP Settings."
+    );
+  }
   // Supabase surfaces several different wordings for the same underlying
-  // outbound-email failure: 'Error sending magic link email', 'Error sending
-  // confirmation email', 'Error sending invite email', 'email rate limit
-  // exceeded', and a few SMTP-layer variants. Catch all of them.
+  // outbound-email failure. Catch all of them.
   if (
     /sending (magic link|confirmation|invite|signup|recovery|email_change) email/i.test(
       raw,
@@ -132,9 +144,10 @@ function friendlyInviteError(raw: string): string {
     /email rate limit|over.*email.*limit|rate limit exceeded/i.test(raw)
   ) {
     return (
-      "Supabase's default email sender is rate-limited (about 3 emails per hour). " +
-      'Set up custom SMTP via Resend to remove the limit (see ' +
-      'supabase/email-templates/README.md), or wait ~1 hour and try again.'
+      "Email send failed. Possible causes: Supabase's per-recipient cool-down (60 seconds), " +
+      'a misconfigured SMTP provider (check Authentication → Emails → SMTP Settings), or ' +
+      'Supabase\'s default rate-limit (3/hour) if custom SMTP is off. Raw error: ' +
+      raw
     );
   }
   if (/smtp/i.test(raw)) {
