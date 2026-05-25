@@ -6,7 +6,7 @@ import { Home, Wallet, Wrench, MoreHorizontal } from 'lucide-react';
 const tabs: TabItem[] = [
   { href: '/tenant', label: 'Home', icon: <Home size={22} /> },
   { href: '/tenant/pay', label: 'Pay Rent', icon: <Wallet size={22} /> },
-  { href: '/tenant/maintenance', label: 'Maint', icon: <Wrench size={22} /> },
+  { href: '/tenant/maintenance', label: 'Maintenance', icon: <Wrench size={22} /> },
   { href: '/tenant/more', label: 'More', icon: <MoreHorizontal size={22} /> },
 ];
 

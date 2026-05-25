@@ -95,8 +95,16 @@ export default async function LeasePage() {
         <CardContent className="space-y-2 text-sm">
           {docs && docs.length > 0 ? (
             docs.map((d: { id: string; filename: string; type: string }) => (
-              <div key={d.id} className="flex items-center justify-between border-b py-2 last:border-0">
-                <span>{d.filename}</span>
+              <div
+                key={d.id}
+                className="flex items-center justify-between gap-2 border-b py-2 last:border-0"
+              >
+                <a
+                  href={`/api/documents/${d.id}/download`}
+                  className="min-w-0 truncate text-primary underline-offset-4 hover:underline"
+                >
+                  {d.filename}
+                </a>
                 <Badge className="border-transparent bg-secondary">{d.type}</Badge>
               </div>
             ))

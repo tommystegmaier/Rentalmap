@@ -5,8 +5,10 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
+import { FileText, FileSignature, Plus } from 'lucide-react';
 
 export default async function PropertyDetail({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -18,13 +20,18 @@ export default async function PropertyDetail({ params }: { params: { id: string 
 
   if (!property) notFound();
 
-  const [{ data: leases }, { data: appliances }] = await Promise.all([
+  const [{ data: leases }, { data: appliances }, { data: documents }] = await Promise.all([
     supabase
       .from('leases')
       .select('*, lease_tenants(user_id, users:user_id(name, email))')
       .eq('property_id', params.id)
       .order('start_date', { ascending: false }),
     supabase.from('appliances').select('*').eq('property_id', params.id),
+    supabase
+      .from('documents')
+      .select('*')
+      .eq('property_id', params.id)
+      .order('date_added', { ascending: false }),
   ]);
 
   type LeaseTenantJoined = {
@@ -113,7 +120,73 @@ export default async function PropertyDetail({ params }: { params: { id: string 
             ) : null}
           </CardContent>
         </Card>
-      ) : null}
+      ) : (
+        <EmptyState
+          icon={<FileSignature size={32} />}
+          title="No active lease"
+          description="Create one to start tracking rent and inviting tenants."
+          action={
+            <Button asChild>
+              <Link href={`/landlord/properties/${params.id}/leases/new`}>Create lease</Link>
+            </Button>
+          }
+        />
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Documents</span>
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/landlord/properties/${params.id}/documents/new`}>
+                <Plus size={14} /> Upload
+              </Link>
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          {documents && documents.length > 0 ? (
+            documents.map((d: {
+              id: string;
+              filename: string;
+              type: string;
+              visible_to_tenant: boolean;
+              date_added: string;
+            }) => (
+              <div
+                key={d.id}
+                className="flex items-center justify-between gap-2 border-b py-2 last:border-0"
+              >
+                <div className="min-w-0">
+                  <a
+                    href={`/api/documents/${d.id}/download`}
+                    className="block truncate font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    {d.filename}
+                  </a>
+                  <p className="text-xs text-muted-foreground">
+                    {d.type} · added {format(parseISO(d.date_added), 'PP')}
+                  </p>
+                </div>
+                <Badge
+                  className={
+                    d.visible_to_tenant
+                      ? 'border-transparent bg-success/10 text-success'
+                      : 'border-transparent bg-muted text-muted-foreground'
+                  }
+                >
+                  {d.visible_to_tenant ? 'Shared' : 'Landlord only'}
+                </Badge>
+              </div>
+            ))
+          ) : (
+            <p className="text-muted-foreground">
+              <FileText size={16} className="mr-1 inline" />
+              Nothing here yet. Upload the signed lease, insurance, or addendums.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

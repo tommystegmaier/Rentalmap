@@ -32,7 +32,7 @@ export function TabBar({ items }: { items: TabItem[] }) {
                 )}
               >
                 <span aria-hidden>{item.icon}</span>
-                <span>{item.label}</span>
+                <span className="max-w-full truncate">{item.label}</span>
               </Link>
             </li>
           );

@@ -7,7 +7,7 @@ const tabs: TabItem[] = [
   { href: '/landlord', label: 'Home', icon: <Home size={22} /> },
   { href: '/landlord/properties', label: 'Properties', icon: <Building2 size={22} /> },
   { href: '/landlord/rent', label: 'Rent', icon: <Wallet size={22} /> },
-  { href: '/landlord/maintenance', label: 'Maint', icon: <Wrench size={22} /> },
+  { href: '/landlord/maintenance', label: 'Maintenance', icon: <Wrench size={22} /> },
   { href: '/landlord/more', label: 'More', icon: <MoreHorizontal size={22} /> },
 ];
 

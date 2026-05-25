@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { Building2 } from 'lucide-react';
@@ -15,7 +16,14 @@ export default async function PropertiesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Properties" />
+      <PageHeader
+        title="Properties"
+        action={
+          <Button asChild size="sm">
+            <Link href="/landlord/properties/new">Add</Link>
+          </Button>
+        }
+      />
 
       {properties && properties.length > 0 ? (
         properties.map((p: {
@@ -51,7 +59,12 @@ export default async function PropertiesPage() {
         <EmptyState
           icon={<Building2 size={32} />}
           title="No properties yet"
-          description="Run supabase/seed.sql with your auth user id."
+          description="Add your first property to start tracking rent, expenses, and maintenance."
+          action={
+            <Button asChild>
+              <Link href="/landlord/properties/new">Add property</Link>
+            </Button>
+          }
         />
       )}
     </div>

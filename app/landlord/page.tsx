@@ -106,10 +106,10 @@ export default async function LandlordDashboard() {
           <EmptyState
             icon={<HomeIcon size={32} />}
             title="No properties yet"
-            description="Run the seed script with your auth user id to create your first property."
+            description="Add your first property to start tracking rent, expenses, and maintenance."
             action={
-              <Button asChild variant="outline">
-                <Link href="/landlord/properties">Manage properties</Link>
+              <Button asChild>
+                <Link href="/landlord/properties/new">Add property</Link>
               </Button>
             }
           />
