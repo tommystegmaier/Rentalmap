@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 import { parseDollarsToCents } from '@/lib/utils';
+import { isIsoDate, resizeForUpload } from '@/lib/image';
 
 interface ExpenseFormProps {
   properties: { id: string; address: string }[];
@@ -39,25 +40,46 @@ export function ExpenseForm({ properties }: ExpenseFormProps) {
     setError(null);
     setScanMessage(null);
     try {
+      // Resize before sending — iPhone photos are way bigger than the OCR
+      // needs and routinely exceed Anthropic's 5MB API limit.
+      let blob: Blob = receipt;
+      try {
+        blob = await resizeForUpload(receipt);
+      } catch {
+        // Fall back to original on any resize failure.
+      }
+
       const fd = new FormData();
-      fd.append('file', receipt);
+      fd.append('file', blob, 'receipt.jpg');
       const res = await fetch('/api/expenses/scan', { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Scan failed');
-      setAmount(typeof json.amount === 'number' ? json.amount.toFixed(2) : '');
-      setVendor(json.vendor ?? '');
-      if (json.date) setDate(json.date);
-      if (json.category && (EXPENSE_CATEGORIES as readonly string[]).includes(json.category)) {
+
+      if (typeof json.amount === 'number' && Number.isFinite(json.amount)) {
+        setAmount(json.amount.toFixed(2));
+      }
+      if (typeof json.vendor === 'string' && json.vendor.trim()) {
+        setVendor(json.vendor.trim());
+      }
+      if (isIsoDate(json.date)) {
+        setDate(json.date);
+      }
+      if (
+        typeof json.category === 'string' &&
+        (EXPENSE_CATEGORIES as readonly string[]).includes(json.category)
+      ) {
         setCategory(json.category);
       }
-      if (json.description) {
-        setNotes((prev) => (prev ? `${prev}\n${json.description}` : json.description));
+      if (typeof json.description === 'string' && json.description.trim()) {
+        setNotes((prev) =>
+          prev ? `${prev}\n${json.description.trim()}` : json.description.trim(),
+        );
       }
       setScanMessage(
         'Fields filled in from the photo. Review and tweak anything that looks off before saving.',
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Scan failed');
+      setError(friendlyScanError(err));
     } finally {
       setScanning(false);
     }
@@ -125,6 +147,7 @@ export function ExpenseForm({ properties }: ExpenseFormProps) {
           onChange={(e) => {
             setReceipt(e.target.files?.[0] ?? null);
             setScanMessage(null);
+            setError(null);
           }}
         />
         <p className="text-xs text-muted-foreground">
@@ -225,4 +248,18 @@ export function ExpenseForm({ properties }: ExpenseFormProps) {
       </Button>
     </form>
   );
+}
+
+function friendlyScanError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  if (/exceeds 5 ?MB/i.test(raw) || /too large/i.test(raw)) {
+    return 'That photo is too large even after compression. Try cropping or retaking it at a lower zoom.';
+  }
+  if (/ANTHROPIC_API_KEY/i.test(raw) || /not set up/i.test(raw) || /not configured/i.test(raw)) {
+    return "Receipt scanning isn't configured yet. Add ANTHROPIC_API_KEY in Vercel, redeploy, and try again.";
+  }
+  if (/string did not match/i.test(raw)) {
+    return "We couldn't read part of the receipt. Tap Save expense and fill the fields in by hand.";
+  }
+  return raw || 'Scan failed';
 }

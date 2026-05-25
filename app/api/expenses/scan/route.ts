@@ -5,7 +5,9 @@ import { scanReceipt } from '@/lib/scan-receipt';
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
-const MAX_BYTES = 5 * 1024 * 1024; // 5MB
+// Anthropic caps incoming image content at 5MB. Base64 encoding inflates the
+// payload by ~33%, so a raw 5MB image won't fit. Cap raw uploads at ~3.7MB.
+const MAX_RAW_BYTES = Math.floor((5 * 1024 * 1024) / 1.34);
 
 export async function POST(request: Request) {
   const supabase = createClient();
@@ -36,9 +38,12 @@ export async function POST(request: Request) {
   if (!file) {
     return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
   }
-  if (file.size > MAX_BYTES) {
+  if (file.size > MAX_RAW_BYTES) {
     return NextResponse.json(
-      { error: 'Receipt photo is too large (5MB max).' },
+      {
+        error:
+          'Photo too large — try a smaller photo or crop in tighter on the receipt.',
+      },
       { status: 413 },
     );
   }

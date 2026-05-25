@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EXPENSE_CATEGORIES, type ExpenseCategory } from '@/lib/constants';
 import { parseDollarsToCents } from '@/lib/utils';
+import { isIsoDate, resizeForUpload } from '@/lib/image';
 import { deleteExpense, updateExpense } from './actions';
 
 interface EditExpenseFormProps {
@@ -60,23 +61,41 @@ export function EditExpenseForm({
     setError(null);
     setScanMessage(null);
     try {
+      let blob: Blob = newReceipt;
+      try {
+        blob = await resizeForUpload(newReceipt);
+      } catch {
+        // Fall back to the original on resize failure.
+      }
       const fd = new FormData();
-      fd.append('file', newReceipt);
+      fd.append('file', blob, 'receipt.jpg');
       const res = await fetch('/api/expenses/scan', { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Scan failed');
-      setAmount(typeof json.amount === 'number' ? json.amount.toFixed(2) : amount);
-      if (json.vendor) setVendor(json.vendor);
-      if (json.date) setDate(json.date);
-      if (json.category && (EXPENSE_CATEGORIES as readonly string[]).includes(json.category)) {
+
+      if (typeof json.amount === 'number' && Number.isFinite(json.amount)) {
+        setAmount(json.amount.toFixed(2));
+      }
+      if (typeof json.vendor === 'string' && json.vendor.trim()) {
+        setVendor(json.vendor.trim());
+      }
+      if (isIsoDate(json.date)) {
+        setDate(json.date);
+      }
+      if (
+        typeof json.category === 'string' &&
+        (EXPENSE_CATEGORIES as readonly string[]).includes(json.category)
+      ) {
         setCategory(json.category as ExpenseCategory);
       }
-      if (json.description) {
-        setNotes((prev) => (prev ? `${prev}\n${json.description}` : json.description));
+      if (typeof json.description === 'string' && json.description.trim()) {
+        setNotes((prev) =>
+          prev ? `${prev}\n${json.description.trim()}` : json.description.trim(),
+        );
       }
       setScanMessage('Fields updated from the new photo. Review and tweak before saving.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Scan failed');
+      setError(friendlyScanError(err));
     } finally {
       setScanning(false);
     }
@@ -189,6 +208,7 @@ export function EditExpenseForm({
           onChange={(e) => {
             setNewReceipt(e.target.files?.[0] ?? null);
             setScanMessage(null);
+            setError(null);
           }}
         />
         {newReceipt ? (
@@ -286,4 +306,18 @@ export function EditExpenseForm({
       </Button>
     </form>
   );
+}
+
+function friendlyScanError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  if (/exceeds 5 ?MB/i.test(raw) || /too large/i.test(raw)) {
+    return 'That photo is too large even after compression. Try cropping or retaking it at a lower zoom.';
+  }
+  if (/ANTHROPIC_API_KEY/i.test(raw) || /not set up/i.test(raw) || /not configured/i.test(raw)) {
+    return "Receipt scanning isn't configured yet. Add ANTHROPIC_API_KEY in Vercel, redeploy, and try again.";
+  }
+  if (/string did not match/i.test(raw)) {
+    return "We couldn't read part of the receipt. Fill the fields in by hand instead.";
+  }
+  return raw || 'Scan failed';
 }
