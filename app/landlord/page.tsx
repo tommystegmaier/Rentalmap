@@ -66,7 +66,7 @@ export default async function LandlordDashboard() {
       <section className="space-y-3">
         <h2 className="text-sm font-medium text-muted-foreground">Properties</h2>
         {properties && properties.length > 0 ? (
-          properties.map((p: { id: string; address: string }) => {
+          properties.map((p: { id: string; address: string; photo_url: string | null }) => {
             const lease = leases?.find(
               (l: { property_id: string }) => l.property_id === p.id,
             ) as
@@ -75,29 +75,43 @@ export default async function LandlordDashboard() {
             const daysToEnd = lease
               ? differenceInDays(parseISO(lease.end_date), new Date())
               : null;
+            const photoUrl = p.photo_url
+              ? supabase.storage.from('property-photos').getPublicUrl(p.photo_url).data.publicUrl
+              : null;
             return (
               <Link key={p.id} href={`/landlord/properties/${p.id}`}>
-                <Card className="transition hover:bg-muted/30">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <HomeIcon size={16} className="text-primary" />
-                      {p.address}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Monthly rent</p>
-                      <p className="font-medium">
-                        {lease ? formatCents(lease.monthly_rent_cents) : '—'}
-                      </p>
+                <Card className="overflow-hidden transition hover:bg-muted/30">
+                  <div className="flex items-stretch gap-3">
+                    {photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={photoUrl}
+                        alt=""
+                        className="h-24 w-24 shrink-0 object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-24 w-24 shrink-0 items-center justify-center bg-muted text-muted-foreground">
+                        <HomeIcon size={28} />
+                      </div>
+                    )}
+                    <div className="flex-1 py-3 pr-4">
+                      <p className="line-clamp-2 text-sm font-medium">{p.address}</p>
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <p className="text-muted-foreground">Rent</p>
+                          <p className="font-medium">
+                            {lease ? formatCents(lease.monthly_rent_cents) : '—'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Lease ends</p>
+                          <p className="font-medium">
+                            {lease ? `${daysToEnd} days` : 'No lease'}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground">Lease ends</p>
-                      <p className="font-medium">
-                        {lease ? `${daysToEnd} days` : 'No active lease'}
-                      </p>
-                    </div>
-                  </CardContent>
+                  </div>
                 </Card>
               </Link>
             );

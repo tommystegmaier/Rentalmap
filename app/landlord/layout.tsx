@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { TabBar, type TabItem } from '@/components/tab-bar';
+import { Logo } from '@/components/logo';
 import { Home, Building2, Wallet, Wrench, MoreHorizontal } from 'lucide-react';
 
 const tabs: TabItem[] = [
@@ -30,6 +31,12 @@ export default async function LandlordLayout({ children }: { children: React.Rea
 
   return (
     <div className="mx-auto min-h-screen max-w-md pb-20">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 px-4 py-3 backdrop-blur">
+        <Logo size={28} showWordmark />
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Landlord
+        </span>
+      </header>
       <div className="p-4">{children}</div>
       <TabBar items={tabs} />
     </div>
