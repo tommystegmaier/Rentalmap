@@ -283,6 +283,29 @@ Push notifications need a one-time generated key pair. The simplest way:
 2. Click the **…** (three dots) next to the most recent deployment.
 3. Click **Redeploy** → **Redeploy** again. Wait 1–2 minutes.
 
+### 3.9 Tell Supabase about your live URL
+
+Supabase Auth blocks any sign-in or email-confirmation link that redirects to
+a URL not on its allowlist. By default that allowlist is just `localhost`, so
+we need to add your Vercel URL.
+
+1. Supabase dashboard → your **Rentalmap** project.
+2. Left sidebar → **Authentication** → **URL Configuration**.
+3. **Site URL**: set to your Vercel URL (no trailing slash):
+   ```
+   https://YOUR-VERCEL-URL.vercel.app
+   ```
+4. **Redirect URLs**: click **Add URL** and add this wildcard:
+   ```
+   https://YOUR-VERCEL-URL.vercel.app/**
+   ```
+   (The `/**` is a wildcard — it whitelists every path under your domain so
+   `/auth/callback`, `/landlord`, etc. all work.)
+5. Click **Save**.
+
+> If you skip this, signup looks broken: you'll see "invalid path specified in
+> request URL" or the confirmation email link will land on an error page.
+
 Vercel is now configured. Your app is live!
 
 ---
@@ -451,6 +474,8 @@ After Part 5 you have:
 - **"Your project's URL and Key are required" error**: the env vars in Vercel
   aren't saved. Go to Settings → Environment Variables, double-check the three
   Supabase vars, then redeploy.
+- **"Invalid path specified in request URL" on signup**: Supabase Auth doesn't
+  have your Vercel URL on its allowlist. Do Part 3.9.
 - **The Pay Rent button shows "Your landlord hasn't finished connecting"**:
   finish the Stripe Connect onboarding in Settings.
 - **Stripe webhook says "no signing secret"**: you skipped Part 3.6. Go back and
