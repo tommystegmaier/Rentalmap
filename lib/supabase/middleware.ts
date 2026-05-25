@@ -43,6 +43,7 @@ export async function updateSession(request: NextRequest) {
     path.startsWith('/signup') ||
     path.startsWith('/forgot-password') ||
     path.startsWith('/reset-password') ||
+    path.startsWith('/welcome') ||
     path.startsWith('/invite') ||
     path.startsWith('/auth');
   const isPublic = path === '/' || path.startsWith('/_next') || path.startsWith('/icons');

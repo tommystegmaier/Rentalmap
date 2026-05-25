@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 // Whitelist of paths we'll redirect to after auth. `to` is just the last
 // segment (no slashes) — this keeps the redirect URL Supabase-friendly and
 // avoids the "Invalid path" auth error from unencoded slashes.
-const TO_PATHS = new Set(['reset-password', 'landlord', 'tenant']);
+const TO_PATHS = new Set(['reset-password', 'landlord', 'tenant', 'welcome']);
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);

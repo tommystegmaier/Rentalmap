@@ -20,7 +20,7 @@ export default function NewPropertyPage() {
           <Input
             id="address"
             name="address"
-            placeholder="16303 Holmes St, Omaha, NE 68135"
+            placeholder="Street, city, state, ZIP"
             required
           />
         </div>
@@ -42,7 +42,6 @@ export default function NewPropertyPage() {
             id="asking_rent"
             name="asking_rent"
             inputMode="decimal"
-            placeholder="2700"
           />
           <p className="text-xs text-muted-foreground">
             Default monthly rent when you create a lease for this property.
@@ -55,7 +54,6 @@ export default function NewPropertyPage() {
             id="purchase_price"
             name="purchase_price"
             inputMode="decimal"
-            placeholder="248000"
           />
         </div>
 
@@ -73,7 +71,6 @@ export default function NewPropertyPage() {
             id="depreciable_basis"
             name="depreciable_basis"
             inputMode="decimal"
-            placeholder="218984"
           />
           <p className="text-xs text-muted-foreground">
             Purchase price minus land value. Ask your accountant if unsure.
@@ -86,7 +83,6 @@ export default function NewPropertyPage() {
             id="annual_depreciation"
             name="annual_depreciation"
             inputMode="decimal"
-            placeholder="7963"
           />
           <p className="text-xs text-muted-foreground">
             27.5-year straight-line for residential rental: basis ÷ 27.5.

@@ -56,7 +56,6 @@ export default async function NewLeasePage({ params }: { params: { id: string } 
             name="monthly_rent"
             inputMode="decimal"
             required
-            placeholder="2700"
             defaultValue={defaultRent}
           />
         </div>

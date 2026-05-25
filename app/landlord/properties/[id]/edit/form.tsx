@@ -162,7 +162,6 @@ export function EditPropertyForm({ property }: { property: Property }) {
           inputMode="decimal"
           value={askingRent}
           onChange={(e) => setAskingRent(e.target.value)}
-          placeholder="2700"
         />
         <p className="text-xs text-muted-foreground">
           Used as the default when you create a new lease for this property.

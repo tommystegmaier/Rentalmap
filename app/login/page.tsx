@@ -115,12 +115,18 @@ function LoginForm() {
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-muted-foreground">
-        New landlord?{' '}
-        <Link href="/signup" className="text-primary underline-offset-4 hover:underline">
-          Create an account
-        </Link>
-      </p>
+      <div className="mt-6 space-y-2 text-center text-sm text-muted-foreground">
+        <p>
+          New landlord?{' '}
+          <Link href="/signup" className="text-primary underline-offset-4 hover:underline">
+            Create an account
+          </Link>
+        </p>
+        <p className="text-xs">
+          Tenants: you don&apos;t need a password — just enter your email and tap{' '}
+          <strong>Email me a magic link</strong>.
+        </p>
+      </div>
     </>
   );
 }
