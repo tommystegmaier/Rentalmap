@@ -205,28 +205,54 @@ Scroll to **Environment Variables**. Click **Add another** for each row marked �
    URL (e.g., `https://rentalmap-abc123.vercel.app`).
 4. We'll come back for `STRIPE_WEBHOOK_SECRET` and the VAPID keys in a moment.
 
-### 3.6 Add Stripe webhook events
-
-The Stripe webhook needs **four** events, not three (we added one for auto-pay):
+### 3.6 Register the Stripe webhook (event destination)
 
 Webhooks are how Stripe tells your app "the payment went through." Without this
 your rent payments won't be marked as settled.
 
-1. Go back to the **Stripe dashboard** → **Developers** → **Webhooks**.
-2. Click **Add endpoint**.
-3. **Endpoint URL**: `https://YOUR-VERCEL-URL.vercel.app/api/stripe/webhook`
-   (paste your real URL, not the placeholder).
-4. **Listen to**: leave on **Events on your account**.
-5. **Select events**: click **+ Select events** and check these four:
+> Stripe recently renamed **Webhooks** to **Event destinations**. The flow has
+> a few more screens than before — same endpoint, same events, just split
+> across three wizard steps.
+
+1. Stripe dashboard → **Developers → Event destinations** (formerly **Webhooks**).
+2. Click **+ Add destination** (or **Create destination**).
+
+**Wizard step 1 — Select events:**
+
+3. **Event destination scope**: pick **Your account** — NOT "Connected
+   accounts." Our app uses destination charges, so payment events fire on the
+   platform (your account), not on the landlord's connected account.
+4. **API version**: leave the default.
+5. **Events**: click **+ Select events** and check all four:
    - `checkout.session.completed`
    - `payment_intent.succeeded`
    - `payment_intent.payment_failed`
-   - `invoice.payment_succeeded`  (this one is for auto-pay)
-6. Click **Add endpoint**.
-7. On the webhook detail page, find the **Signing secret** section. Click
-   **Reveal** and copy the value (starts with `whsec_`).
-8. Back in **Vercel → Settings → Environment Variables**, **edit**
-   `STRIPE_WEBHOOK_SECRET` and paste the signing secret.
+   - `invoice.payment_succeeded` (this one is for auto-pay)
+6. Click **Continue**.
+
+**Wizard step 2 — Choose destination type:**
+
+7. Pick **Webhook endpoint** (sometimes labeled **HTTPS endpoint**).
+
+**Wizard step 3 — Configure your destination:**
+
+8. **Endpoint URL**: `https://YOUR-VERCEL-URL.vercel.app/api/stripe/webhook`
+   (paste your real Vercel URL).
+9. Click **Create destination**.
+
+**After creation:**
+
+10. On the destination detail page, find the **Signing secret** section. Click
+    **Reveal** and copy the value (starts with `whsec_`).
+11. In **Vercel → Settings → Environment Variables**, click **Add New**:
+    - Name: `STRIPE_WEBHOOK_SECRET`
+    - Value: paste the `whsec_...` secret
+
+> **You'll do this twice eventually.** What you just set up is the **sandbox
+> (test mode)** webhook. Once Stripe activates your account and you switch
+> Vercel to live keys (`sk_live_` / `pk_live_`), redo this flow in **Live
+> mode** (toggle top-right of the Stripe dashboard) and replace
+> `STRIPE_WEBHOOK_SECRET` in Vercel with the new live signing secret.
 
 ### 3.7 Generate push-notification keys (VAPID)
 
