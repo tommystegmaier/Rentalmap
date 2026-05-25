@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PushToggle } from '@/components/push-toggle';
 import { StripeConnectButton } from './connect-button';
+import { NotificationSettings } from './notification-settings';
 
 export default async function SettingsPage({
   searchParams,
@@ -17,11 +18,15 @@ export default async function SettingsPage({
 
   const { data: profile } = await supabase
     .from('users')
-    .select('stripe_connect_account_id')
+    .select(
+      'stripe_connect_account_id, tenant_rent_reminder_enabled, tenant_rent_reminder_days_before',
+    )
     .eq('id', user!.id)
     .maybeSingle();
 
   const connected = !!profile?.stripe_connect_account_id;
+  const reminderEnabled = profile?.tenant_rent_reminder_enabled ?? true;
+  const reminderDays = profile?.tenant_rent_reminder_days_before ?? 3;
 
   return (
     <div className="space-y-6">
@@ -66,17 +71,24 @@ export default async function SettingsPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Payment fees</CardTitle>
+          <CardTitle>Tenant rent reminders</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>ACH ($0.80, capped at $5): absorbed by landlord</p>
-          <p>Card (2.9% + $0.30): currently absorbed by landlord (configurable later)</p>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Send each tenant a push notification a few days before rent is due. They need to
+            enable push on their device (Tenant → Profile → Push notifications) for the
+            reminder to reach them. Reminders run nightly.
+          </p>
+          <NotificationSettings
+            initialEnabled={reminderEnabled}
+            initialDays={reminderDays}
+          />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Push notifications</CardTitle>
+          <CardTitle>Your push notifications</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p className="text-muted-foreground">
@@ -89,11 +101,11 @@ export default async function SettingsPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Reminders</CardTitle>
+          <CardTitle>Payment fees</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Default lead times: rent due 3 days before, lease renewal 60 days before. The
-          reminders engine syncs nightly and fires push notifications on each trigger date.
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>ACH ($0.80, capped at $5): absorbed by landlord</p>
+          <p>Card (2.9% + $0.30): currently absorbed by landlord (configurable later)</p>
         </CardContent>
       </Card>
     </div>

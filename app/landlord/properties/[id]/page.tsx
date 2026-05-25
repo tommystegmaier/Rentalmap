@@ -190,19 +190,30 @@ export default async function PropertyDetail({ params }: { params: { id: string 
 
       <Card>
         <CardHeader>
-          <CardTitle>Appliance registry</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>Appliance registry</span>
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/landlord/properties/${params.id}/appliances/new`}>
+                <Plus size={14} /> Add
+              </Link>
+            </Button>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           {appliances && appliances.length > 0 ? (
             appliances.map((a: { id: string; name: string; next_service_due: string | null }) => (
-              <div key={a.id} className="flex items-center justify-between border-b pb-2 last:border-0">
+              <Link
+                key={a.id}
+                href={`/landlord/properties/${params.id}/appliances/${a.id}`}
+                className="flex items-center justify-between rounded-md border-b py-2 last:border-0 hover:bg-muted/30"
+              >
                 <span className="font-medium">{a.name}</span>
                 <span className="text-muted-foreground">
                   {a.next_service_due
                     ? `Next service ${format(parseISO(a.next_service_due), 'PP')}`
                     : 'No service date'}
                 </span>
-              </div>
+              </Link>
             ))
           ) : (
             <p className="text-muted-foreground">No appliances tracked yet.</p>

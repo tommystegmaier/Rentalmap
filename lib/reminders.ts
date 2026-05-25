@@ -8,9 +8,11 @@ import {
   parseISO,
   setDate,
 } from 'date-fns';
+import { formatCents } from '@/lib/utils';
 
 export type ReminderType =
   | 'rent_due'
+  | 'tenant_rent_due'
   | 'lease_renewal'
   | 'quarterly_inspection'
   | 'hvac_annual'
@@ -154,5 +156,59 @@ export function computeLandlordReminders(p: PortfolioForReminders): ReminderSeed
     });
   }
 
+  return out;
+}
+
+export interface LandlordReminderSettings {
+  tenant_rent_reminder_enabled: boolean;
+  tenant_rent_reminder_days_before: number;
+}
+
+export interface LeaseWithTenants {
+  id: string;
+  property_id: string;
+  due_day: number;
+  monthly_rent_cents: number;
+  status: 'active' | 'ended' | 'pending';
+  tenant_ids: string[];
+  address: string;
+}
+
+/**
+ * Reminders we send to each *tenant* before rent is due. Driven by the
+ * landlord's preference (enabled + lead days). One reminder per (tenant, lease).
+ */
+export function computeTenantRentReminders(
+  settings: LandlordReminderSettings,
+  leases: LeaseWithTenants[],
+  today = new Date(),
+): ReminderSeed[] {
+  if (!settings.tenant_rent_reminder_enabled) return [];
+  const out: ReminderSeed[] = [];
+
+  for (const lease of leases.filter((l) => l.status === 'active')) {
+    if (lease.tenant_ids.length === 0) continue;
+
+    const trigger = nextRentReminder(
+      lease.due_day,
+      settings.tenant_rent_reminder_days_before,
+      today,
+    );
+    const rent = formatCents(lease.monthly_rent_cents);
+    const days = settings.tenant_rent_reminder_days_before;
+    const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`;
+    const message = `Rent due ${when} · ${rent} · ${lease.address}`;
+
+    for (const tenantId of lease.tenant_ids) {
+      out.push({
+        user_id: tenantId,
+        property_id: lease.property_id,
+        type: 'tenant_rent_due',
+        trigger_date: format(trigger, 'yyyy-MM-dd'),
+        message,
+        recurrence: 'monthly',
+      });
+    }
+  }
   return out;
 }

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
@@ -29,7 +30,15 @@ export default async function MaintenancePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Work orders" description="Inbox across all properties" />
+      <PageHeader
+        title="Work orders"
+        description="Inbox across all properties"
+        action={
+          <Button asChild size="sm">
+            <Link href="/landlord/maintenance/new">Add</Link>
+          </Button>
+        }
+      />
 
       {orders && orders.length > 0 ? (
         <div className="space-y-2">
@@ -65,7 +74,12 @@ export default async function MaintenancePage() {
         <EmptyState
           icon={<Wrench size={32} />}
           title="No work orders yet"
-          description="Tenants can submit requests from their portal."
+          description="Tenants can submit from their portal, or log one yourself."
+          action={
+            <Button asChild>
+              <Link href="/landlord/maintenance/new">Add work order</Link>
+            </Button>
+          }
         />
       )}
     </div>
