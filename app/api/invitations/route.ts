@@ -121,7 +121,16 @@ export async function POST(request: Request) {
 }
 
 function friendlyInviteError(raw: string): string {
-  if (/sending magic link|email rate limit|rate limit exceeded/i.test(raw)) {
+  // Supabase surfaces several different wordings for the same underlying
+  // outbound-email failure: 'Error sending magic link email', 'Error sending
+  // confirmation email', 'Error sending invite email', 'email rate limit
+  // exceeded', and a few SMTP-layer variants. Catch all of them.
+  if (
+    /sending (magic link|confirmation|invite|signup|recovery|email_change) email/i.test(
+      raw,
+    ) ||
+    /email rate limit|over.*email.*limit|rate limit exceeded/i.test(raw)
+  ) {
     return (
       "Supabase's default email sender is rate-limited (about 3 emails per hour). " +
       'Set up custom SMTP via Resend to remove the limit (see ' +
