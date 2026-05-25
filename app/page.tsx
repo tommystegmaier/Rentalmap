@@ -2,9 +2,9 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/logo';
 import { APP_NAME } from '@/lib/constants';
 import {
-  Home as HomeIcon,
   Wallet,
   Wrench,
   FileText,
@@ -47,12 +47,7 @@ export default async function Home() {
       <div className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 py-10">
         {/* Top bar */}
         <header className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <HomeIcon size={18} strokeWidth={2.4} />
-            </span>
-            <span className="text-base font-semibold tracking-tight">{APP_NAME}</span>
-          </div>
+          <Logo size={36} showWordmark />
           <Link
             href="/login"
             className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline tap-44"
@@ -62,7 +57,8 @@ export default async function Home() {
         </header>
 
         {/* Hero */}
-        <section className="mt-16 sm:mt-24">
+        <section className="mt-12 sm:mt-20">
+          <Logo size={72} className="mb-6" />
           <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
             <Sparkles size={12} className="text-primary" />
             For renters and their landlords

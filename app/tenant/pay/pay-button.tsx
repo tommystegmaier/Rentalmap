@@ -6,10 +6,18 @@ import { Button } from '@/components/ui/button';
 interface PayButtonProps {
   leaseId: string;
   expectedDate: string;
-  landlordConnected: boolean;
+  method: 'ach' | 'card';
+  label: string;
+  variant?: 'default' | 'outline';
 }
 
-export function PayButton({ leaseId, expectedDate, landlordConnected }: PayButtonProps) {
+export function PayButton({
+  leaseId,
+  expectedDate,
+  method,
+  label,
+  variant = 'default',
+}: PayButtonProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +28,7 @@ export function PayButton({ leaseId, expectedDate, landlordConnected }: PayButto
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lease_id: leaseId, expected_date: expectedDate }),
+        body: JSON.stringify({ lease_id: leaseId, expected_date: expectedDate, method }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Failed to start payment');
@@ -31,19 +39,10 @@ export function PayButton({ leaseId, expectedDate, landlordConnected }: PayButto
     }
   }
 
-  if (!landlordConnected) {
-    return (
-      <p className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-        Your landlord hasn&apos;t finished connecting their bank yet. Please continue paying via
-        Zelle, Venmo, or check; payments will be logged here.
-      </p>
-    );
-  }
-
   return (
     <div className="space-y-2">
-      <Button onClick={handlePay} disabled={busy} className="w-full">
-        {busy ? 'Opening secure checkout…' : 'Pay rent'}
+      <Button onClick={handlePay} disabled={busy} variant={variant} className="w-full">
+        {busy ? 'Opening secure checkout…' : label}
       </Button>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>

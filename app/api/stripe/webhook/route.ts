@@ -65,15 +65,18 @@ export async function POST(request: Request) {
       const expectedDate =
         session.metadata.expected_date ?? new Date().toISOString().slice(0, 10);
       const tenantUserId = session.metadata.tenant_user_id ?? null;
-      const amount = session.amount_total ?? 0;
+      // Record the rent amount specifically, not the total charge (which may
+      // include the tenant-paid card fee).
+      const rentMeta = Number(session.metadata.rent_cents);
+      const amount = Number.isFinite(rentMeta) && rentMeta > 0
+        ? rentMeta
+        : session.amount_total ?? 0;
       const paymentIntentId =
         typeof session.payment_intent === 'string'
           ? session.payment_intent
           : session.payment_intent?.id ?? null;
 
-      const method = session.payment_method_types?.includes('us_bank_account')
-        ? 'ach'
-        : 'card';
+      const method = session.metadata.method === 'card' ? 'card' : 'ach';
 
       // Avoid duplicates if Stripe retries the webhook.
       const { data: existing } = paymentIntentId

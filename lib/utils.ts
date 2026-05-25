@@ -36,3 +36,11 @@ export function parseDollarsToCents(input: string): number | null {
   if (!Number.isFinite(n)) return null;
   return Math.round(n * 100);
 }
+
+/**
+ * Card charge so that after Stripe's 2.9% + $0.30 fee, the landlord nets the
+ * full rent amount. X * 0.971 - 30 ≥ rentCents → X ≥ (rentCents + 30) / 0.971.
+ */
+export function cardChargeCents(rentCents: number): number {
+  return Math.ceil((rentCents + 30) / 0.971);
+}

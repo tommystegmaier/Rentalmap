@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { getStripe } from '@/lib/stripe';
+import { cardChargeCents } from '@/lib/utils';
 import { z } from 'zod';
 
 const BodySchema = z.object({
   lease_id: z.string().uuid(),
   expected_date: z.string(),
+  method: z.enum(['ach', 'card']).default('ach'),
 });
 
 export async function POST(request: Request) {
@@ -14,7 +16,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   }
-  const { lease_id, expected_date } = parsed.data;
+  const { lease_id, expected_date, method } = parsed.data;
 
   const supabase = createClient();
   const {
@@ -22,7 +24,6 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  // Tenant must be linked to this lease.
   const { data: link } = await supabase
     .from('lease_tenants')
     .select('lease_id')
@@ -31,7 +32,6 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (!link) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  // Look up lease + landlord's Stripe Connect account via service role.
   const admin = createServiceRoleClient();
   const { data: lease, error: leaseErr } = await admin
     .from('leases')
@@ -62,6 +62,39 @@ export async function POST(request: Request) {
     );
   }
 
+  const isCard = method === 'card';
+  const rentCents = lease.monthly_rent_cents;
+  const totalCharge = isCard ? cardChargeCents(rentCents) : rentCents;
+  const feeCents = isCard ? totalCharge - rentCents : 0;
+
+  const lineItems: Array<{
+    price_data: {
+      currency: 'usd';
+      product_data: { name: string };
+      unit_amount: number;
+    };
+    quantity: 1;
+  }> = [
+    {
+      price_data: {
+        currency: 'usd',
+        product_data: { name: `Rent — ${props.address}` },
+        unit_amount: rentCents,
+      },
+      quantity: 1,
+    },
+  ];
+  if (feeCents > 0) {
+    lineItems.push({
+      price_data: {
+        currency: 'usd',
+        product_data: { name: 'Card processing fee (2.9% + $0.30)' },
+        unit_amount: feeCents,
+      },
+      quantity: 1,
+    });
+  }
+
   try {
     const stripe = getStripe();
     const origin =
@@ -69,18 +102,9 @@ export async function POST(request: Request) {
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
-      payment_method_types: ['card', 'us_bank_account'],
+      payment_method_types: isCard ? ['card'] : ['us_bank_account'],
       customer_email: user.email ?? undefined,
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: { name: `Rent — ${props.address}` },
-            unit_amount: lease.monthly_rent_cents,
-          },
-          quantity: 1,
-        },
-      ],
+      line_items: lineItems,
       payment_intent_data: {
         description: `Rent for ${props.address}`,
         transfer_data: { destination },
@@ -91,9 +115,12 @@ export async function POST(request: Request) {
         lease_id,
         expected_date,
         tenant_user_id: user.id,
+        rent_cents: rentCents.toString(),
+        fee_cents: feeCents.toString(),
+        method,
       },
       success_url: `${origin}/tenant/pay/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/tenant/pay/cancel`,
+      cancel_url: `${origin}/tenant/pay`,
     });
 
     return NextResponse.json({ url: session.url });

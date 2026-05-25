@@ -1,7 +1,7 @@
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCents } from '@/lib/utils';
+import { cardChargeCents, formatCents } from '@/lib/utils';
 import { addMonths, format, setDate } from 'date-fns';
 import { PayButton } from './pay-button';
 import { AutopayControls } from './autopay-controls';
@@ -96,24 +96,62 @@ export default async function PayRentPage({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Pay securely with Stripe</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <p className="text-muted-foreground">
-            You can pay by bank transfer (ACH) or debit/credit card. ACH usually clears in 1–3
-            business days; cards clear immediately.
-          </p>
-          {lease ? (
-            <PayButton
-              leaseId={lease.id}
-              expectedDate={expectedDate}
-              landlordConnected={landlordConnected}
-            />
-          ) : null}
-        </CardContent>
-      </Card>
+      {lease ? (
+        landlordConnected ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Pay securely with Stripe</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              <div className="rounded-xl border bg-card p-4 space-y-2">
+                <div className="flex items-baseline justify-between">
+                  <p className="font-medium">Pay with bank (ACH)</p>
+                  <p className="text-lg font-semibold">{formatCents(lease.monthly_rent_cents)}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  No fee for you. Settles in 1–3 business days.
+                </p>
+                <PayButton
+                  leaseId={lease.id}
+                  expectedDate={expectedDate}
+                  method="ach"
+                  label={`Pay ${formatCents(lease.monthly_rent_cents)} by bank`}
+                />
+              </div>
+
+              <div className="rounded-xl border bg-card p-4 space-y-2">
+                <div className="flex items-baseline justify-between">
+                  <p className="font-medium">Pay with debit / credit card</p>
+                  <p className="text-lg font-semibold">
+                    {formatCents(cardChargeCents(lease.monthly_rent_cents))}
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Includes a 2.9% + $0.30 card processing fee (
+                  {formatCents(cardChargeCents(lease.monthly_rent_cents) - lease.monthly_rent_cents)}
+                  ). Clears immediately.
+                </p>
+                <PayButton
+                  leaseId={lease.id}
+                  expectedDate={expectedDate}
+                  method="card"
+                  variant="outline"
+                  label={`Pay ${formatCents(cardChargeCents(lease.monthly_rent_cents))} by card`}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-4 text-sm">
+              <p className="text-muted-foreground">
+                Your landlord hasn&apos;t finished connecting their bank yet. Please continue
+                paying via Zelle, Venmo, or check; payments will be logged here.
+              </p>
+            </CardContent>
+          </Card>
+        )
+      ) : null}
 
       <Card>
         <CardHeader>
