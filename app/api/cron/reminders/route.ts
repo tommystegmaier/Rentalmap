@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import {
+  computeApplianceServiceReminders,
   computeLandlordReminders,
   computeTenantRentReminders,
+  type ApplianceForReminders,
   type LeaseWithTenants,
 } from '@/lib/reminders';
 import { sendPushToUser } from '@/lib/push';
@@ -61,7 +63,9 @@ export async function GET(request: Request) {
         .in('property_id', propIds),
       supabase
         .from('appliances')
-        .select('property_id, name, last_service_date, install_date')
+        .select(
+          'id, property_id, name, service_interval_months, last_service_date, next_service_due, install_date',
+        )
         .in('property_id', propIds),
     ]);
 
@@ -88,13 +92,13 @@ export async function GET(request: Request) {
         due_day: l.due_day,
         status: l.status,
       })),
-      appliances: (appliances ?? []) as Array<{
-        property_id: string;
-        name: string;
-        last_service_date: string | null;
-        install_date: string | null;
-      }>,
     });
+
+    const applianceSeeds = computeApplianceServiceReminders(
+      ownerId,
+      (appliances ?? []) as ApplianceForReminders[],
+      addressById as Map<string, string>,
+    );
 
     const leasesWithTenants: LeaseWithTenants[] = leaseRows.map((l) => {
       const lts = Array.isArray(l.lease_tenants) ? l.lease_tenants : [l.lease_tenants];
@@ -117,16 +121,22 @@ export async function GET(request: Request) {
       leasesWithTenants,
     );
 
-    for (const seed of [...landlordSeeds, ...tenantSeeds]) {
+    for (const seed of [...landlordSeeds, ...applianceSeeds, ...tenantSeeds]) {
       let del = supabase
         .from('reminders')
         .delete()
         .eq('user_id', seed.user_id)
         .eq('type', seed.type)
         .eq('dismissed', false);
-      del = seed.property_id
-        ? del.eq('property_id', seed.property_id)
-        : del.is('property_id', null);
+      // Appliance reminders dedupe per-appliance; everything else dedupes
+      // per-property (or globally when no property is attached).
+      if (seed.appliance_id) {
+        del = del.eq('appliance_id', seed.appliance_id);
+      } else if (seed.property_id) {
+        del = del.eq('property_id', seed.property_id).is('appliance_id', null);
+      } else {
+        del = del.is('property_id', null).is('appliance_id', null);
+      }
       await del;
 
       const { error } = await supabase.from('reminders').insert(seed);

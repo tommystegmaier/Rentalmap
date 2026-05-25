@@ -15,8 +15,7 @@ export type ReminderType =
   | 'tenant_rent_due'
   | 'lease_renewal'
   | 'quarterly_inspection'
-  | 'hvac_annual'
-  | 'smoke_co_battery'
+  | 'appliance_service'
   | 'custom';
 
 export interface ReminderSeed {
@@ -26,6 +25,7 @@ export interface ReminderSeed {
   trigger_date: string;
   message: string;
   recurrence: string | null;
+  appliance_id?: string | null;
 }
 
 /** Find the next "trigger" date for a fixed-day-of-month reminder. */
@@ -60,8 +60,7 @@ export function nextAnnualDate(reference: Date, today = new Date()): Date {
 
 /**
  * Compute a fresh set of reminder seeds for a landlord based on their portfolio.
- * Intended to be called by the cron route; existing un-dismissed rows of the same
- * (user_id, type, property_id) are replaced on each run.
+ * Lease-driven only — appliance reminders come from computeApplianceServiceReminders.
  */
 export interface PortfolioForReminders {
   ownerId: string;
@@ -72,12 +71,6 @@ export interface PortfolioForReminders {
     end_date: string;
     due_day: number;
     status: 'active' | 'ended' | 'pending';
-  }>;
-  appliances: Array<{
-    property_id: string;
-    name: string;
-    last_service_date: string | null;
-    install_date: string | null;
   }>;
 }
 
@@ -122,37 +115,85 @@ export function computeLandlordReminders(p: PortfolioForReminders): ReminderSeed
     });
   }
 
-  // Annual HVAC service & smoke/CO check — one per property based on appliance install/service.
-  const propertyIds = new Set(p.leases.map((l) => l.property_id));
-  for (const propertyId of propertyIds) {
-    const hvac = p.appliances.find(
-      (a) => a.property_id === propertyId && /hvac/i.test(a.name),
-    );
-    const ref =
-      hvac?.last_service_date ?? hvac?.install_date ?? format(today, 'yyyy-MM-dd');
-    const next = nextAnnualDate(parseISO(ref), today);
-    out.push({
-      user_id: p.ownerId,
-      property_id: propertyId,
-      type: 'hvac_annual',
-      trigger_date: format(next, 'yyyy-MM-dd'),
-      message: 'Annual HVAC service due',
-      recurrence: 'annual',
-    });
+  return out;
+}
 
-    const smoke = p.appliances.find(
-      (a) => a.property_id === propertyId && /smoke|co\b/i.test(a.name),
-    );
-    const smokeRef =
-      smoke?.last_service_date ?? smoke?.install_date ?? format(today, 'yyyy-MM-dd');
-    const nextSmoke = nextAnnualDate(parseISO(smokeRef), today);
+/**
+ * Reminders driven by per-appliance service intervals. One reminder per
+ * appliance with service_interval_months set. The reminder fires 7 days
+ * before the next_service_due date.
+ */
+export interface ApplianceForReminders {
+  id: string;
+  property_id: string;
+  name: string;
+  service_interval_months: number | null;
+  last_service_date: string | null;
+  next_service_due: string | null;
+  install_date: string | null;
+}
+
+const APPLIANCE_LEAD_DAYS = 7;
+
+export function nextServiceDate(
+  appliance: ApplianceForReminders,
+  today = new Date(),
+): Date | null {
+  if (!appliance.service_interval_months) return null;
+  if (appliance.next_service_due) {
+    return parseISO(appliance.next_service_due);
+  }
+  // Fall back to last_service_date + interval, then install_date + interval.
+  const reference = appliance.last_service_date ?? appliance.install_date;
+  if (!reference) return null;
+  let d = addMonths(parseISO(reference), appliance.service_interval_months);
+  // Roll forward in interval steps if it's already in the past.
+  while (isBefore(d, today)) {
+    d = addMonths(d, appliance.service_interval_months);
+  }
+  return d;
+}
+
+export function computeApplianceServiceReminders(
+  ownerId: string,
+  appliances: ApplianceForReminders[],
+  addressById: Map<string, string>,
+  today = new Date(),
+): ReminderSeed[] {
+  const out: ReminderSeed[] = [];
+
+  for (const a of appliances) {
+    if (!a.service_interval_months) continue;
+    const nextDue = nextServiceDate(a, today);
+    if (!nextDue) continue;
+
+    // Only queue items that are at most ~30 days into the future — keeps the
+    // active list short. Overdue items always queue.
+    const daysToDue = differenceInDays(nextDue, today);
+    if (daysToDue > 30) continue;
+
+    const trigger = addDays(nextDue, -APPLIANCE_LEAD_DAYS);
+    const addr = addressById.get(a.property_id) ?? '';
+    const message =
+      daysToDue < 0
+        ? `${a.name} service is ${Math.abs(daysToDue)} day${Math.abs(daysToDue) === 1 ? '' : 's'} overdue${addr ? ` · ${addr}` : ''}`
+        : daysToDue === 0
+          ? `${a.name} service due today${addr ? ` · ${addr}` : ''}`
+          : `${a.name} service due in ${daysToDue} day${daysToDue === 1 ? '' : 's'}${addr ? ` · ${addr}` : ''}`;
+
     out.push({
-      user_id: p.ownerId,
-      property_id: propertyId,
-      type: 'smoke_co_battery',
-      trigger_date: format(nextSmoke, 'yyyy-MM-dd'),
-      message: 'Smoke / CO detector battery check',
-      recurrence: 'annual',
+      user_id: ownerId,
+      property_id: a.property_id,
+      type: 'appliance_service',
+      trigger_date: format(trigger, 'yyyy-MM-dd'),
+      message,
+      recurrence:
+        a.service_interval_months === 12
+          ? 'annual'
+          : a.service_interval_months >= 24
+            ? 'multi_year'
+            : 'monthly',
+      appliance_id: a.id,
     });
   }
 

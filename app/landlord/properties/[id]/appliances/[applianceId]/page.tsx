@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { ApplianceForm } from '../_form';
-import { deleteAppliance, upsertAppliance } from '../actions';
+import { deleteAppliance, markApplianceServiced, upsertAppliance } from '../actions';
 
 export default async function EditAppliancePage({
   params,
@@ -30,12 +30,18 @@ export default async function EditAppliancePage({
     await deleteAppliance(params.id, params.applianceId);
   }
 
+  async function markServiced() {
+    'use server';
+    await markApplianceServiced(params.id, params.applianceId);
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader title={appliance.name} description={property.address} />
       <ApplianceForm
         action={action}
         deleteAction={del}
+        markServicedAction={appliance.service_interval_months ? markServiced : undefined}
         initial={{
           name: appliance.name,
           install_date: appliance.install_date,
@@ -44,6 +50,7 @@ export default async function EditAppliancePage({
           model: appliance.model,
           last_service_date: appliance.last_service_date,
           next_service_due: appliance.next_service_due,
+          service_interval_months: appliance.service_interval_months,
           notes: appliance.notes,
         }}
         submitLabel="Save changes"

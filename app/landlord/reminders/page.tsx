@@ -12,6 +12,8 @@ const TYPE_LABELS: Record<string, string> = {
   rent_due: 'Rent due',
   lease_renewal: 'Lease renewal',
   quarterly_inspection: 'Quarterly inspection',
+  appliance_service: 'Appliance service',
+  // Legacy types — kept here so any pre-0010 rows still display nicely.
   hvac_annual: 'HVAC annual service',
   smoke_co_battery: 'Smoke / CO check',
   custom: 'Custom',
