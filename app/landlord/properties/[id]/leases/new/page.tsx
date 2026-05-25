@@ -12,10 +12,15 @@ export default async function NewLeasePage({ params }: { params: { id: string } 
   const supabase = createClient();
   const { data: property } = await supabase
     .from('properties')
-    .select('id, address')
+    .select('id, address, asking_rent_cents')
     .eq('id', params.id)
     .maybeSingle();
   if (!property) notFound();
+
+  const defaultRent =
+    property.asking_rent_cents != null
+      ? (property.asking_rent_cents / 100).toFixed(0)
+      : '';
 
   async function action(formData: FormData) {
     'use server';
@@ -46,6 +51,7 @@ export default async function NewLeasePage({ params }: { params: { id: string } 
             inputMode="decimal"
             required
             placeholder="2700"
+            defaultValue={defaultRent}
           />
         </div>
 

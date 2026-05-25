@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
-import { FileText, FileSignature, Plus } from 'lucide-react';
+import { FileText, FileSignature, Plus, Pencil, ChevronRight, Image as ImageIcon } from 'lucide-react';
 
 export default async function PropertyDetail({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -55,15 +55,53 @@ export default async function PropertyDetail({ params }: { params: { id: string 
       })
     | undefined;
 
+  const photoUrl = property.photo_url
+    ? supabase.storage.from('property-photos').getPublicUrl(property.photo_url).data.publicUrl
+    : null;
+
   return (
     <div className="space-y-6">
-      <PageHeader title={property.address} description="Property details" />
+      <PageHeader
+        title={property.address}
+        description="Property details"
+        action={
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/landlord/properties/${params.id}/edit`}>
+              <Pencil size={14} /> Edit
+            </Link>
+          </Button>
+        }
+      />
+
+      {photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={photoUrl}
+          alt={property.address}
+          className="aspect-video w-full rounded-2xl border object-cover"
+        />
+      ) : (
+        <Link
+          href={`/landlord/properties/${params.id}/edit`}
+          className="flex aspect-video w-full items-center justify-center gap-2 rounded-2xl border border-dashed text-sm text-muted-foreground hover:bg-muted/30"
+        >
+          <ImageIcon size={18} /> Add a property photo
+        </Link>
+      )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Purchase & depreciation</CardTitle>
+          <CardTitle>Rent & purchase</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-3 text-sm">
+          <Field
+            label="Asking rent"
+            value={
+              property.asking_rent_cents != null
+                ? `${formatCents(property.asking_rent_cents)}/mo`
+                : '—'
+            }
+          />
           <Field label="Purchase price" value={formatCents(property.purchase_price_cents)} />
           <Field
             label="Placed in service"
@@ -205,14 +243,17 @@ export default async function PropertyDetail({ params }: { params: { id: string 
               <Link
                 key={a.id}
                 href={`/landlord/properties/${params.id}/appliances/${a.id}`}
-                className="flex items-center justify-between rounded-md border-b py-2 last:border-0 hover:bg-muted/30"
+                className="flex items-center justify-between gap-2 border-b py-3 last:border-0 hover:bg-muted/30 tap-44"
               >
-                <span className="font-medium">{a.name}</span>
-                <span className="text-muted-foreground">
-                  {a.next_service_due
-                    ? `Next service ${format(parseISO(a.next_service_due), 'PP')}`
-                    : 'No service date'}
-                </span>
+                <div className="min-w-0">
+                  <p className="font-medium">{a.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {a.next_service_due
+                      ? `Next service ${format(parseISO(a.next_service_due), 'PP')}`
+                      : 'Tap to set service dates'}
+                  </p>
+                </div>
+                <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
               </Link>
             ))
           ) : (

@@ -37,6 +37,19 @@ export default function NewPropertyPage() {
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="asking_rent">Asking rent ($/mo)</Label>
+          <Input
+            id="asking_rent"
+            name="asking_rent"
+            inputMode="decimal"
+            placeholder="2700"
+          />
+          <p className="text-xs text-muted-foreground">
+            Default monthly rent when you create a lease for this property.
+          </p>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="purchase_price">Purchase price ($)</Label>
           <Input
             id="purchase_price"

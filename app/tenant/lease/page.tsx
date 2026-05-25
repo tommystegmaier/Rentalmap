@@ -15,7 +15,7 @@ export default async function LeasePage() {
 
   const { data: leaseLinks } = await supabase
     .from('lease_tenants')
-    .select('leases:lease_id(*, properties:property_id(address, id))')
+    .select('leases:lease_id(*, properties:property_id(address, id, photo_url))')
     .eq('user_id', user!.id);
 
   const rawLease = leaseLinks?.[0]?.leases;
@@ -32,8 +32,8 @@ export default async function LeasePage() {
         pets_allowed: boolean;
         terms_notes: string | null;
         properties:
-          | { address: string; id: string }
-          | { address: string; id: string }[]
+          | { address: string; id: string; photo_url: string | null }
+          | { address: string; id: string; photo_url: string | null }[]
           | null;
       }
     | null
@@ -57,9 +57,22 @@ export default async function LeasePage() {
         .eq('property_id', prop.id)
     : { data: [] as Array<{ id: string; filename: string; type: string }> };
 
+  const photoUrl = prop?.photo_url
+    ? supabase.storage.from('property-photos').getPublicUrl(prop.photo_url).data.publicUrl
+    : null;
+
   return (
     <div className="space-y-6">
       <PageHeader title="Lease summary" description={prop?.address ?? ''} />
+
+      {photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={photoUrl}
+          alt={prop?.address ?? 'Property'}
+          className="aspect-video w-full rounded-2xl border object-cover"
+        />
+      ) : null}
 
       <Card>
         <CardHeader>

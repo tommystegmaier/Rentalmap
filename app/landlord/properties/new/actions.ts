@@ -16,6 +16,7 @@ export async function createProperty(formData: FormData) {
   if (!address) throw new Error('Address is required');
 
   const type = String(formData.get('type') ?? 'single_family');
+  const asking_rent_cents = parseDollarsToCents(String(formData.get('asking_rent') ?? ''));
   const purchase_price_cents = parseDollarsToCents(String(formData.get('purchase_price') ?? ''));
   const placed_in_service = (formData.get('placed_in_service') as string) || null;
   const depreciable_basis_cents = parseDollarsToCents(
@@ -32,6 +33,7 @@ export async function createProperty(formData: FormData) {
       owner_id: user.id,
       address,
       type,
+      asking_rent_cents,
       purchase_price_cents,
       placed_in_service,
       depreciable_basis_cents,
