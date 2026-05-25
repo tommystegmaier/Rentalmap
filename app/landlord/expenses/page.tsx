@@ -40,19 +40,23 @@ export default async function ExpensesPage() {
             const propObj = Array.isArray(e.properties) ? e.properties[0] : e.properties;
             const addr = propObj?.address ?? '—';
             return (
-              <Card key={e.id}>
-                <CardContent className="flex items-center justify-between p-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">
-                      {e.vendor ?? e.category}
+              <Link key={e.id} href={`/landlord/expenses/${e.id}`}>
+                <Card className="transition hover:bg-muted/30">
+                  <CardContent className="flex items-center justify-between gap-2 p-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">
+                        {e.vendor ?? e.category}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {e.category} · {format(parseISO(e.date), 'MMM d, yyyy')} · {addr}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-sm font-semibold">
+                      {formatCents(e.amount_cents)}
                     </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {e.category} · {format(parseISO(e.date), 'MMM d, yyyy')} · {addr}
-                    </p>
-                  </div>
-                  <p className="text-sm font-semibold">{formatCents(e.amount_cents)}</p>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </Link>
             );
           })}
         </div>
