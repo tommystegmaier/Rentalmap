@@ -64,7 +64,7 @@ export async function GET(request: Request) {
       supabase
         .from('appliances')
         .select(
-          'id, property_id, name, service_interval_months, last_service_date, next_service_due, install_date',
+          'id, property_id, name, appliance_type, service_interval_months, last_service_date, next_service_due, install_date, spring_startup_date, winterize_date',
         )
         .in('property_id', propIds),
     ]);

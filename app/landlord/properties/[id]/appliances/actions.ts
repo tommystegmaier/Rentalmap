@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { addMonths, format, parseISO } from 'date-fns';
 import { createClient } from '@/lib/supabase/server';
 
+type ApplianceType = 'general' | 'hvac_filter' | 'sprinkler';
+
 function nonEmpty(v: FormDataEntryValue | null): string | null {
   const s = (v as string | null)?.toString().trim();
   return s ? s : null;
@@ -18,6 +20,12 @@ function parseIntervalMonths(v: FormDataEntryValue | null): number | null {
   return Math.round(n);
 }
 
+function parseType(v: FormDataEntryValue | null): ApplianceType {
+  const s = (v as string | null)?.toString();
+  if (s === 'hvac_filter' || s === 'sprinkler') return s;
+  return 'general';
+}
+
 export async function upsertAppliance(
   propertyId: string,
   applianceId: string | null,
@@ -25,11 +33,17 @@ export async function upsertAppliance(
 ) {
   const supabase = createClient();
 
-  const intervalMonths = parseIntervalMonths(formData.get('service_interval_months'));
-  const lastService = nonEmpty(formData.get('last_service_date'));
-  let nextServiceDue = nonEmpty(formData.get('next_service_due'));
+  const applianceType = parseType(formData.get('appliance_type'));
+  const intervalMonths =
+    applianceType === 'sprinkler'
+      ? null
+      : parseIntervalMonths(formData.get('service_interval_months'));
+  const lastService =
+    applianceType === 'sprinkler' ? null : nonEmpty(formData.get('last_service_date'));
+  let nextServiceDue =
+    applianceType === 'sprinkler' ? null : nonEmpty(formData.get('next_service_due'));
 
-  // Auto-fill next service date if the user gave us an interval + a last
+  // Auto-fill next service date when the user gave us an interval + last
   // service date but didn't supply next_service_due themselves.
   if (intervalMonths && lastService && !nextServiceDue) {
     nextServiceDue = format(
@@ -41,13 +55,22 @@ export async function upsertAppliance(
   const payload = {
     property_id: propertyId,
     name: String(formData.get('name') ?? '').trim(),
+    appliance_type: applianceType,
     install_date: nonEmpty(formData.get('install_date')),
-    warranty_end: nonEmpty(formData.get('warranty_end')),
-    serial: nonEmpty(formData.get('serial')),
-    model: nonEmpty(formData.get('model')),
+    warranty_end: applianceType === 'general' ? nonEmpty(formData.get('warranty_end')) : null,
+    serial: applianceType === 'general' ? nonEmpty(formData.get('serial')) : null,
+    model: applianceType === 'general' ? nonEmpty(formData.get('model')) : null,
+    dimensions:
+      applianceType === 'hvac_filter' ? nonEmpty(formData.get('dimensions')) : null,
     last_service_date: lastService,
     next_service_due: nextServiceDue,
     service_interval_months: intervalMonths,
+    spring_startup_date:
+      applianceType === 'sprinkler'
+        ? nonEmpty(formData.get('spring_startup_date'))
+        : null,
+    winterize_date:
+      applianceType === 'sprinkler' ? nonEmpty(formData.get('winterize_date')) : null,
     notes: nonEmpty(formData.get('notes')),
   };
 

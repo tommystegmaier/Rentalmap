@@ -127,10 +127,13 @@ export interface ApplianceForReminders {
   id: string;
   property_id: string;
   name: string;
+  appliance_type?: 'general' | 'hvac_filter' | 'sprinkler' | null;
   service_interval_months: number | null;
   last_service_date: string | null;
   next_service_due: string | null;
   install_date: string | null;
+  spring_startup_date?: string | null;
+  winterize_date?: string | null;
 }
 
 const APPLIANCE_LEAD_DAYS = 7;
@@ -154,6 +157,21 @@ export function nextServiceDate(
   return d;
 }
 
+function buildApplianceMessage(
+  applianceName: string,
+  eventLabel: string,
+  daysToDue: number,
+  address: string,
+): string {
+  const addrSuffix = address ? ` · ${address}` : '';
+  if (daysToDue < 0) {
+    const days = Math.abs(daysToDue);
+    return `${applianceName} ${eventLabel} is ${days} day${days === 1 ? '' : 's'} overdue${addrSuffix}`;
+  }
+  if (daysToDue === 0) return `${applianceName} ${eventLabel} due today${addrSuffix}`;
+  return `${applianceName} ${eventLabel} due in ${daysToDue} day${daysToDue === 1 ? '' : 's'}${addrSuffix}`;
+}
+
 export function computeApplianceServiceReminders(
   ownerId: string,
   appliances: ApplianceForReminders[],
@@ -163,30 +181,59 @@ export function computeApplianceServiceReminders(
   const out: ReminderSeed[] = [];
 
   for (const a of appliances) {
+    const addr = addressById.get(a.property_id) ?? '';
+
+    // Sprinkler systems: surface the next upcoming seasonal event (spring
+    // start-up OR winterize, whichever comes first). One reminder per
+    // appliance at a time — once the date passes, nextAnnualDate naturally
+    // rolls it forward to the following year.
+    if (a.appliance_type === 'sprinkler') {
+      const candidates: Array<{ date: Date; label: string }> = [];
+      if (a.spring_startup_date) {
+        candidates.push({
+          date: nextAnnualDate(parseISO(a.spring_startup_date), today),
+          label: 'spring start-up',
+        });
+      }
+      if (a.winterize_date) {
+        candidates.push({
+          date: nextAnnualDate(parseISO(a.winterize_date), today),
+          label: 'winterization',
+        });
+      }
+      if (candidates.length === 0) continue;
+      candidates.sort((x, y) => x.date.getTime() - y.date.getTime());
+      const upcoming = candidates[0];
+
+      const daysToDue = differenceInDays(upcoming.date, today);
+      if (daysToDue > 30) continue;
+
+      out.push({
+        user_id: ownerId,
+        property_id: a.property_id,
+        type: 'appliance_service',
+        trigger_date: format(addDays(upcoming.date, -APPLIANCE_LEAD_DAYS), 'yyyy-MM-dd'),
+        message: buildApplianceMessage(a.name, upcoming.label, daysToDue, addr),
+        recurrence: 'seasonal',
+        appliance_id: a.id,
+      });
+      continue;
+    }
+
+    // Generic + HVAC filter: interval-based service schedule.
     if (!a.service_interval_months) continue;
     const nextDue = nextServiceDate(a, today);
     if (!nextDue) continue;
-
-    // Only queue items that are at most ~30 days into the future — keeps the
-    // active list short. Overdue items always queue.
     const daysToDue = differenceInDays(nextDue, today);
     if (daysToDue > 30) continue;
 
-    const trigger = addDays(nextDue, -APPLIANCE_LEAD_DAYS);
-    const addr = addressById.get(a.property_id) ?? '';
-    const message =
-      daysToDue < 0
-        ? `${a.name} service is ${Math.abs(daysToDue)} day${Math.abs(daysToDue) === 1 ? '' : 's'} overdue${addr ? ` · ${addr}` : ''}`
-        : daysToDue === 0
-          ? `${a.name} service due today${addr ? ` · ${addr}` : ''}`
-          : `${a.name} service due in ${daysToDue} day${daysToDue === 1 ? '' : 's'}${addr ? ` · ${addr}` : ''}`;
-
+    const eventLabel = a.appliance_type === 'hvac_filter' ? 'replacement' : 'service';
     out.push({
       user_id: ownerId,
       property_id: a.property_id,
       type: 'appliance_service',
-      trigger_date: format(trigger, 'yyyy-MM-dd'),
-      message,
+      trigger_date: format(addDays(nextDue, -APPLIANCE_LEAD_DAYS), 'yyyy-MM-dd'),
+      message: buildApplianceMessage(a.name, eventLabel, daysToDue, addr),
       recurrence:
         a.service_interval_months === 12
           ? 'annual'

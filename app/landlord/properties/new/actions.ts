@@ -46,11 +46,22 @@ export async function createProperty(formData: FormData) {
   if (error) throw error;
 
   // Seed a small set of common appliances so the registry is useful from day one.
-  await supabase.from('appliances').insert(
-    ['HVAC', 'Water Heater', 'Smoke Detectors', 'CO Detectors', 'Dishwasher', 'Washer', 'Dryer', 'Refrigerator', 'Garage Door Opener'].map(
-      (name) => ({ property_id: data.id, name }),
-    ),
-  );
+  const seeds: Array<{ name: string; appliance_type: string }> = [
+    { name: 'HVAC', appliance_type: 'general' },
+    { name: 'HVAC Filter', appliance_type: 'hvac_filter' },
+    { name: 'Water Heater', appliance_type: 'general' },
+    { name: 'Smoke Detectors', appliance_type: 'general' },
+    { name: 'CO Detectors', appliance_type: 'general' },
+    { name: 'Dishwasher', appliance_type: 'general' },
+    { name: 'Washer', appliance_type: 'general' },
+    { name: 'Dryer', appliance_type: 'general' },
+    { name: 'Refrigerator', appliance_type: 'general' },
+    { name: 'Garage Door Opener', appliance_type: 'general' },
+    { name: 'Sprinkler System', appliance_type: 'sprinkler' },
+  ];
+  await supabase
+    .from('appliances')
+    .insert(seeds.map((s) => ({ property_id: data.id, ...s })));
 
   revalidatePath('/landlord');
   revalidatePath('/landlord/properties');

@@ -44,13 +44,17 @@ export default async function EditAppliancePage({
         markServicedAction={appliance.service_interval_months ? markServiced : undefined}
         initial={{
           name: appliance.name,
+          appliance_type: appliance.appliance_type ?? 'general',
           install_date: appliance.install_date,
           warranty_end: appliance.warranty_end,
           serial: appliance.serial,
           model: appliance.model,
+          dimensions: appliance.dimensions,
           last_service_date: appliance.last_service_date,
           next_service_due: appliance.next_service_due,
           service_interval_months: appliance.service_interval_months,
+          spring_startup_date: appliance.spring_startup_date,
+          winterize_date: appliance.winterize_date,
           notes: appliance.notes,
         }}
         submitLabel="Save changes"
