@@ -68,14 +68,14 @@ export async function POST(request: Request) {
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
     const { error: otpErr } = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${siteUrl}/auth/callback?next=/tenant`,
+      redirectTo: `${siteUrl}/auth/callback`,
       data: { role: 'tenant', lease_id },
     });
     if (otpErr) {
       // If the user already exists, fall back to a magic link.
       const { error: linkErr } = await admin.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: `${siteUrl}/auth/callback?next=/tenant` },
+        options: { emailRedirectTo: `${siteUrl}/auth/callback` },
       });
       if (linkErr) {
         return NextResponse.json({ error: linkErr.message }, { status: 500 });
