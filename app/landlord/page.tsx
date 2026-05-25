@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { StripeSetupBanner } from '@/components/stripe-setup-banner';
 import { formatCents } from '@/lib/utils';
 import { differenceInDays, parseISO } from 'date-fns';
 import { Wrench, ReceiptText, Send, Home as HomeIcon } from 'lucide-react';
@@ -46,6 +47,8 @@ export default async function LandlordDashboard() {
   return (
     <div className="space-y-6">
       <PageHeader title="Dashboard" description="Your portfolio at a glance" />
+
+      <StripeSetupBanner variant="dashboard" />
 
       <div className="grid grid-cols-3 gap-2">
         <StatTile label="YTD Income" value={formatCents(ytdIncomeCents)} />
