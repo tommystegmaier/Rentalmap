@@ -1,4 +1,4 @@
-# Get Rentalmap live on your iPhone — step by step
+# Get It Rents live on your iPhone — step by step
 
 Written for someone with **no coding experience**. Reading time: ~10 minutes.
 Total setup time: about **45 minutes** the first time. After that, your tenants can
@@ -8,7 +8,7 @@ You'll do five things, in order:
 
 1. Set up a free **database** (Supabase) — where your property/lease/tenant data lives
 2. Set up a free **payment processor** (Stripe) — so tenants can pay rent in-app
-3. **Publish the app to the internet** (Vercel) — gives you a public URL like `rentalmap.vercel.app`
+3. **Publish the app to the internet** (Vercel) — gives you a public URL like `it-rents.vercel.app`
 4. **Sign up + load your property data** — your landlord account, the Holmes St property, the Rose lease
 5. **Install on iPhone** — yours, then send the link to Matthew and Brittany
 
@@ -35,7 +35,7 @@ Think of it as a private spreadsheet on the internet with strict permission rule
 
 1. Click **New project**.
 2. **Organization**: pick your personal org (it's created automatically).
-3. **Project name**: type `Rentalmap`.
+3. **Project name**: type `It Rents`.
 4. **Database password**: click **Generate a password**, then **copy it somewhere
    safe** (a password manager, or write it down). You probably won't need it
    again, but you can't recover it.
@@ -103,7 +103,7 @@ step.
 
 Stripe is the payment processor. You'll be using **Stripe Connect** — the same
 infrastructure Lyft, Shopify, and Substack use. Money goes from tenant → Stripe →
-straight to your bank, never through Rentalmap.
+straight to your bank, never through It Rents.
 
 ### 2.1 Create your Stripe account
 
@@ -154,7 +154,7 @@ URL, which you'll get in Part 3. We'll come back here.
 ## Part 3 — Publish the app to the internet (Vercel) · ~10 min
 
 Vercel hosts the app and gives you a public URL. It's free for personal projects
-and built by the same people who made the framework Rentalmap runs on, so it's
+and built by the same people who made the framework It Rents runs on, so it's
 basically zero-config.
 
 ### 3.1 Connect Vercel to GitHub
@@ -163,11 +163,11 @@ basically zero-config.
 2. Sign up with **GitHub** (this is important — Vercel needs to read your repo).
 3. Vercel will ask permission to access your GitHub repos — say yes.
 
-### 3.2 Import the Rentalmap repo
+### 3.2 Import the It Rents repo
 
 1. On the Vercel dashboard, click **Add New… → Project**.
-2. You'll see a list of your GitHub repos. Find **Rentalmap** and click **Import**.
-3. **Project Name**: leave it as `rentalmap`.
+2. You'll see a list of your GitHub repos. Find **It Rents** and click **Import**.
+3. **Project Name**: leave it as `it-rents`.
 4. **Framework Preset**: Vercel will auto-detect "Next.js" — leave it.
 5. **Root Directory**: leave it as `./`.
 
@@ -200,15 +200,15 @@ Scroll to **Environment Variables**. Click **Add another** for each row marked �
 1. Click **Deploy**.
 2. Wait 1–3 minutes. Vercel will build and deploy.
 3. When it's done, you'll see a **success screen** with a live URL like
-   `https://rentalmap-abc123.vercel.app`. Click it — you should see the
-   Rentalmap landing page.
+   `https://it-rents-abc123.vercel.app`. Click it — you should see the
+   It Rents landing page.
 
 ### 3.5 Set the public URL, then redeploy
 
 1. Copy your live URL (without the trailing slash).
 2. In Vercel, go to **Settings → Environment Variables**.
 3. Click **Add New** and add `NEXT_PUBLIC_SITE_URL` with the value of your live
-   URL (e.g., `https://rentalmap-abc123.vercel.app`).
+   URL (e.g., `https://it-rents-abc123.vercel.app`).
 4. We'll come back for `STRIPE_WEBHOOK_SECRET` and the VAPID keys in a moment.
 
 ### 3.6 Register the Stripe webhook (event destination)
@@ -295,7 +295,7 @@ Supabase Auth blocks any sign-in or email-confirmation link that redirects to
 a URL not on its allowlist. By default that allowlist is just `localhost`, so
 we need to add your Vercel URL.
 
-1. Supabase dashboard → your **Rentalmap** project.
+1. Supabase dashboard → your **It Rents** project.
 2. Left sidebar → **Authentication** → **URL Configuration**.
 3. **Site URL**: set to your Vercel URL (no trailing slash):
    ```
@@ -320,7 +320,7 @@ Vercel is now configured. Your app is live!
 
 By default, invitation and password-reset emails arrive from "Supabase Auth"
 with plain-text content, which looks unpolished. To send them from
-**Rentalmap** with branded HTML, follow the dedicated guide at
+**It Rents** with branded HTML, follow the dedicated guide at
 `supabase/email-templates/README.md` — short version:
 
 1. Sign up at https://resend.com (free, 3,000 emails/month)
@@ -338,7 +338,7 @@ generic.
 
 ### 4.1 Create your landlord account
 
-1. On your iPhone or laptop, open your live URL (e.g., `https://rentalmap-abc123.vercel.app`).
+1. On your iPhone or laptop, open your live URL (e.g., `https://it-rents-abc123.vercel.app`).
 2. Tap **Get started as landlord**.
 3. Fill in:
    - Full name: `Tommy Stegmaier`
@@ -411,14 +411,14 @@ Store, no review process, no installation fee.
 
 1. Open **Safari** on your iPhone (Safari specifically — Chrome and Firefox can't
    install PWAs on iOS).
-2. Go to your live URL (`https://rentalmap-abc123.vercel.app`).
+2. Go to your live URL (`https://it-rents-abc123.vercel.app`).
 3. Sign in.
 4. Tap the **Share** button (the square with the arrow pointing up, at the
    bottom of the Safari screen).
 5. Scroll the share sheet and tap **Add to Home Screen**.
 6. Tap **Add** in the top-right corner.
 
-The Rentalmap icon will appear on your home screen. Tap it to launch — it opens
+The It Rents icon will appear on your home screen. Tap it to launch — it opens
 full-screen like a real app, no Safari URL bar.
 
 ### Turn on push notifications (do this AFTER installing to home screen)
@@ -426,7 +426,7 @@ full-screen like a real app, no Safari URL bar.
 iOS only delivers push notifications to PWAs that are launched from the home
 screen icon — not from Safari. So:
 
-1. Tap the **Rentalmap home-screen icon** to open the app.
+1. Tap the **It Rents home-screen icon** to open the app.
 2. Go to **More → Settings** (landlord) or **More → Profile** (tenant).
 3. Scroll to **Push notifications** and tap **Enable notifications**.
 4. iOS will ask permission — tap **Allow**.
@@ -445,13 +445,13 @@ the block below into a text):
 > under a minute.
 >
 > 1. Open **Safari** (not Chrome) on your iPhone.
-> 2. Tap the magic link in the invite email from Rentalmap. You'll be signed in
+> 2. Tap the magic link in the invite email from It Rents. You'll be signed in
 >    automatically.
 > 3. Tap the **Share** button (square with the arrow at the bottom of Safari).
 > 4. Tap **Add to Home Screen**.
 > 5. Tap **Add**.
 >
-> You'll see a Rentalmap icon on your home screen. Tap to open. From there you
+> You'll see a It Rents icon on your home screen. Tap to open. From there you
 > can pay rent, submit a maintenance request, see your lease, and message me.
 
 ---

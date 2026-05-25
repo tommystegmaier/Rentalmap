@@ -172,7 +172,7 @@ export default async function PayRentPage({
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        Payments are processed by Stripe. Rentalmap never sees or stores your card or bank
+        Payments are processed by Stripe. It Rents never sees or stores your card or bank
         details.
       </p>
     </div>

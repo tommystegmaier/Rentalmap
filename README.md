@@ -1,4 +1,4 @@
-# Rentalmap
+# It Rents
 
 Private rental property management for landlords and tenants. Built with Next.js 14
 (App Router), Supabase (Postgres + Auth + Storage + RLS), Tailwind, and Stripe.

@@ -56,7 +56,7 @@ export default async function SettingsPage({
         <CardContent className="space-y-3 text-sm">
           <p className="text-muted-foreground">
             Connecting Stripe lets tenants pay rent in the app. Rent deposits straight to your
-            bank — Rentalmap never holds the money. ACH transfers cost about $0.80 (capped at $5),
+            bank — It Rents never holds the money. ACH transfers cost about $0.80 (capped at $5),
             and cards cost 2.9% + $0.30 (passed to the tenant by default).
           </p>
           <StripeConnectButton connected={connected} />

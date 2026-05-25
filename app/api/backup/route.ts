@@ -41,7 +41,7 @@ export async function GET() {
   return new NextResponse(JSON.stringify(out, null, 2), {
     headers: {
       'Content-Type': 'application/json',
-      'Content-Disposition': 'attachment; filename="rentalmap-backup.json"',
+      'Content-Disposition': 'attachment; filename="it-rents-backup.json"',
     },
   });
 }

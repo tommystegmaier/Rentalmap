@@ -1,4 +1,4 @@
-/* Rentalmap service worker — push notifications + basic offline shell. */
+/* It Rents service worker — push notifications + basic offline shell. */
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -10,7 +10,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('push', (event) => {
   if (!event.data) return;
-  let payload = { title: 'Rentalmap', body: '', url: '/' };
+  let payload = { title: 'It Rents', body: '', url: '/' };
   try {
     payload = { ...payload, ...event.data.json() };
   } catch {

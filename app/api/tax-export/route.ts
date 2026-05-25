@@ -143,7 +143,7 @@ export async function GET(request: Request) {
 
   zip.file(
     'README.txt',
-    `Rentalmap tax export — ${year}\n\n` +
+    `It Rents tax export — ${year}\n\n` +
       `Generated ${new Date().toISOString()}\n\n` +
       `Contents:\n` +
       ` - schedule-e.pdf — IRS Schedule E line-item summary\n` +
@@ -158,7 +158,7 @@ export async function GET(request: Request) {
   return new NextResponse(blob as unknown as BodyInit, {
     headers: {
       'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="rentalmap-tax-${year}.zip"`,
+      'Content-Disposition': `attachment; filename="it-rents-tax-${year}.zip"`,
     },
   });
 }

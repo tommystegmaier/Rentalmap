@@ -16,7 +16,7 @@ export function Logo({
         width={size}
         height={size}
         role="img"
-        aria-label="Rentalmap"
+        aria-label="It Rents"
         className="shrink-0"
       >
         <defs>
@@ -28,23 +28,15 @@ export function Logo({
         <rect width="64" height="64" rx="16" fill="url(#rm-logo-bg)" />
         {/* House */}
         <path
-          d="M14 30 L32 14 L50 30 V50 H38 V38 H26 V50 H14 Z"
+          d="M12 32 L32 14 L52 32 V52 H38 V40 H26 V52 H12 Z"
           fill="white"
           stroke="white"
           strokeWidth="1.5"
           strokeLinejoin="round"
         />
-        {/* Map pin dot above the roof */}
-        <circle cx="32" cy="11" r="3.5" fill="white" />
-        <path
-          d="M32 14.5 L32 18"
-          stroke="white"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
       </svg>
       {showWordmark ? (
-        <span className="text-base font-semibold tracking-tight">Rentalmap</span>
+        <span className="text-base font-semibold tracking-tight">It Rents</span>
       ) : null}
     </span>
   );

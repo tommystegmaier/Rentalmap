@@ -17,7 +17,7 @@ export default function BackupPage() {
             documents metadata. Save to the iOS Files app — iCloud Drive will sync it.
           </p>
           <Button asChild>
-            <a href="/api/backup" download="rentalmap-backup.json">
+            <a href="/api/backup" download="it-rents-backup.json">
               Download backup
             </a>
           </Button>

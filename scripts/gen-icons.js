@@ -19,10 +19,8 @@ function svg({ rx, mask = false }) {
   </defs>
   <rect width="64" height="64" rx="${rx}" fill="url(#g)"/>
   <g transform="translate(${inset / 2}, ${inset / 2}) scale(${(64 - inset) / 64})">
-    <path d="M14 30 L32 14 L50 30 V50 H38 V38 H26 V50 H14 Z"
+    <path d="M12 32 L32 14 L52 32 V52 H38 V40 H26 V52 H12 Z"
           fill="white" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
-    <circle cx="32" cy="11" r="3.5" fill="white"/>
-    <path d="M32 14.5 L32 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
   </g>
 </svg>`;
 }

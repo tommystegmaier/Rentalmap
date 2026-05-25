@@ -1,4 +1,4 @@
-export const APP_NAME = 'Rentalmap';
+export const APP_NAME = 'It Rents';
 
 export const EXPENSE_CATEGORIES = [
   'Advertising',
