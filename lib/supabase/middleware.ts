@@ -41,6 +41,8 @@ export async function updateSession(request: NextRequest) {
   const isAuthPage =
     path.startsWith('/login') ||
     path.startsWith('/signup') ||
+    path.startsWith('/forgot-password') ||
+    path.startsWith('/reset-password') ||
     path.startsWith('/invite') ||
     path.startsWith('/auth');
   const isPublic = path === '/' || path.startsWith('/_next') || path.startsWith('/icons');
