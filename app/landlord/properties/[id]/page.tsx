@@ -161,8 +161,8 @@ export default async function PropertyDetail({ params }: { params: { id: string 
       ) : (
         <EmptyState
           icon={<FileSignature size={32} />}
-          title="No active lease"
-          description="Create one to start tracking rent and inviting tenants."
+          title="No active lease record yet"
+          description="This is for the lease terms (dates, rent, late fees) — not the PDF. The PDF goes in the Documents section below. Without a lease record, you can't invite tenants or track rent."
           action={
             <Button asChild>
               <Link href={`/landlord/properties/${params.id}/leases/new`}>Create lease</Link>

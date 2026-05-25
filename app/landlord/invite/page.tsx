@@ -67,10 +67,11 @@ export default async function InvitePage() {
         <div className="space-y-3">
           <Card className="border-warning/30 bg-warning/5">
             <CardContent className="p-4 text-sm">
-              <p className="font-medium">Create a lease first</p>
+              <p className="font-medium">Create a lease record first</p>
               <p className="mt-1 text-muted-foreground">
-                Tenants are invited to a specific lease. Pick a property below to create one,
-                then come back to invite your tenant.
+                Tenants are invited to a specific lease. This needs the structured lease data
+                (dates, rent, terms) — uploading the lease PDF alone isn&apos;t enough. Pick a
+                property below to fill out the form, then come back to send the invite.
               </p>
             </CardContent>
           </Card>

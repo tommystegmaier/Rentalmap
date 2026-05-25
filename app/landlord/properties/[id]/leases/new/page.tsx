@@ -31,6 +31,12 @@ export default async function NewLeasePage({ params }: { params: { id: string } 
     <div className="space-y-6">
       <PageHeader title="New lease" description={property.address} />
 
+      <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+        Capture the lease <strong className="text-foreground">terms</strong> here (dates, rent,
+        late fee). Once saved, you can upload the signed PDF from the property&apos;s Documents
+        section and share it with the tenant.
+      </div>
+
       <form action={action} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
