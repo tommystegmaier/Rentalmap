@@ -225,7 +225,6 @@ export function LandlordWorkOrderForm({ properties }: Props) {
           id="photos"
           type="file"
           accept="image/*"
-          capture="environment"
           multiple
           onChange={handleFiles}
         />

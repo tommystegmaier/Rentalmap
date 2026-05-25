@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +26,42 @@ export function ExpenseForm({ properties }: ExpenseFormProps) {
   const [notes, setNotes] = useState('');
   const [receipt, setReceipt] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  async function handleScan() {
+    if (!receipt) {
+      setError('Pick a receipt photo first.');
+      return;
+    }
+    setScanning(true);
+    setError(null);
+    setScanMessage(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', receipt);
+      const res = await fetch('/api/expenses/scan', { method: 'POST', body: fd });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'Scan failed');
+      setAmount(typeof json.amount === 'number' ? json.amount.toFixed(2) : '');
+      setVendor(json.vendor ?? '');
+      if (json.date) setDate(json.date);
+      if (json.category && (EXPENSE_CATEGORIES as readonly string[]).includes(json.category)) {
+        setCategory(json.category);
+      }
+      if (json.description) {
+        setNotes((prev) => (prev ? `${prev}\n${json.description}` : json.description));
+      }
+      setScanMessage(
+        'Fields filled in from the photo. Review and tweak anything that looks off before saving.',
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Scan failed');
+    } finally {
+      setScanning(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -80,6 +116,40 @@ export function ExpenseForm({ properties }: ExpenseFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="receipt">Receipt photo (optional)</Label>
+        <Input
+          id="receipt"
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            setReceipt(e.target.files?.[0] ?? null);
+            setScanMessage(null);
+          }}
+        />
+        <p className="text-xs text-muted-foreground">
+          Choose a photo from your library, or take a new one. Tap{' '}
+          <strong>Scan receipt</strong> below to auto-fill amount, vendor, and category.
+        </p>
+        {receipt ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleScan}
+            disabled={scanning}
+            className="w-full"
+          >
+            <Sparkles size={14} />
+            {scanning ? 'Reading receipt…' : 'Scan receipt'}
+          </Button>
+        ) : null}
+        {scanMessage ? (
+          <p className="rounded-lg border border-success/30 bg-success/5 p-2 text-xs text-success">
+            {scanMessage}
+          </p>
+        ) : null}
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="property">Property</Label>
         <Select
@@ -136,17 +206,6 @@ export function ExpenseForm({ properties }: ExpenseFormProps) {
       <div className="space-y-2">
         <Label htmlFor="vendor">Vendor (optional)</Label>
         <Input id="vendor" value={vendor} onChange={(e) => setVendor(e.target.value)} />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="receipt">Receipt photo (optional)</Label>
-        <Input
-          id="receipt"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={(e) => setReceipt(e.target.files?.[0] ?? null)}
-        />
       </div>
 
       <div className="space-y-2">

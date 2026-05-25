@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
-import { FileText, FileSignature, Plus, Pencil, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { FileText, FileSignature, Plus, Pencil, ChevronRight, Image as ImageIcon, X } from 'lucide-react';
+import { removeTenantFromLease } from './tenants/actions';
 
 export default async function PropertyDetail({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -23,7 +24,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   const [{ data: leases }, { data: appliances }, { data: documents }] = await Promise.all([
     supabase
       .from('leases')
-      .select('*, lease_tenants(user_id, users:user_id(name, email))')
+      .select('*, lease_tenants(id, user_id, users:user_id(name, email))')
       .eq('property_id', params.id)
       .order('start_date', { ascending: false }),
     supabase.from('appliances').select('*').eq('property_id', params.id),
@@ -35,12 +36,18 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   ]);
 
   type LeaseTenantJoined = {
+    id: string;
     user_id: string;
     users:
       | { name: string | null; email: string }
       | { name: string | null; email: string }[]
       | null;
   };
+
+  async function removeTenant(formData: FormData) {
+    'use server';
+    await removeTenantFromLease(params.id, formData);
+  }
   const activeLease = leases?.find((l: { status: string }) => l.status === 'active') as
     | (Record<string, unknown> & {
         start_date: string;
@@ -137,9 +144,22 @@ export default async function PropertyDetail({ params }: { params: { id: string 
                   activeLease.lease_tenants.map((lt) => {
                     const u = Array.isArray(lt.users) ? lt.users[0] : lt.users;
                     return (
-                      <Badge key={lt.user_id} className="border-transparent bg-secondary">
+                      <span
+                        key={lt.id}
+                        className="inline-flex items-center gap-1 rounded-full border bg-secondary px-2.5 py-0.5 text-xs font-medium"
+                      >
                         {u?.name ?? u?.email ?? '—'}
-                      </Badge>
+                        <form action={removeTenant} className="inline">
+                          <input type="hidden" name="lease_tenant_id" value={lt.id} />
+                          <button
+                            type="submit"
+                            aria-label={`Remove ${u?.name ?? u?.email ?? 'tenant'}`}
+                            className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <X size={10} />
+                          </button>
+                        </form>
+                      </span>
                     );
                   })
                 ) : (

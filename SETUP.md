@@ -83,7 +83,8 @@ database.
 8. Click **New query** again. Repeat with `supabase/migrations/0005_push_autopay_reminders.sql`.
 9. Click **New query** again. Repeat with `supabase/migrations/0006_tenant_rent_reminders.sql`.
 10. Click **New query** again. Repeat with `supabase/migrations/0007_property_photo_and_asking_rent.sql`.
-11. Click **New query** one more time. Repeat with `supabase/migrations/0008_messages.sql`.
+11. Click **New query** again. Repeat with `supabase/migrations/0008_messages.sql`.
+12. Click **New query** one more time. Repeat with `supabase/migrations/0009_fix_invitation_trigger.sql`.
 
 You should now have 15 tables. To check: in the left sidebar click the **Table
 Editor** icon. You'll see `appliances`, `autopay_subscriptions`, `documents`,
