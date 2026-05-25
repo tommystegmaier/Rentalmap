@@ -15,11 +15,14 @@ import { isIsoDate, resizeForUpload } from '@/lib/image';
 
 interface ExpenseFormProps {
   properties: { id: string; address: string }[];
+  initialPropertyId?: string;
 }
 
-export function ExpenseForm({ properties }: ExpenseFormProps) {
+export function ExpenseForm({ properties, initialPropertyId }: ExpenseFormProps) {
   const router = useRouter();
-  const [propertyId, setPropertyId] = useState(properties[0]?.id ?? '');
+  const [propertyId, setPropertyId] = useState(
+    initialPropertyId ?? properties[0]?.id ?? '',
+  );
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<(typeof EXPENSE_CATEGORIES)[number]>('Repairs');

@@ -6,26 +6,59 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
-import { ReceiptText } from 'lucide-react';
+import { ReceiptText, X } from 'lucide-react';
 
-export default async function ExpensesPage() {
+export default async function ExpensesPage({
+  searchParams,
+}: {
+  searchParams: { property_id?: string };
+}) {
   const supabase = createClient();
-  const { data: expenses } = await supabase
+  const propertyId = searchParams.property_id;
+
+  let query = supabase
     .from('expenses')
     .select('*, properties:property_id(address)')
     .order('date', { ascending: false })
-    .limit(50);
+    .limit(100);
+  if (propertyId) query = query.eq('property_id', propertyId);
+  const { data: expenses } = await query;
+
+  // When filtered, pull the property address for the header description.
+  let filterAddress: string | null = null;
+  if (propertyId) {
+    const { data: prop } = await supabase
+      .from('properties')
+      .select('address')
+      .eq('id', propertyId)
+      .maybeSingle();
+    filterAddress = prop?.address ?? null;
+  }
+
+  const addUrl = propertyId
+    ? `/landlord/expenses/new?property_id=${propertyId}`
+    : '/landlord/expenses/new';
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Expenses"
+        description={filterAddress ? `Filtered to ${filterAddress}` : undefined}
         action={
           <Button asChild size="sm">
-            <Link href="/landlord/expenses/new">Add</Link>
+            <Link href={addUrl}>Add</Link>
           </Button>
         }
       />
+
+      {filterAddress ? (
+        <Link
+          href="/landlord/expenses"
+          className="inline-flex items-center gap-1 rounded-full border bg-muted/30 px-3 py-1 text-xs text-muted-foreground hover:bg-muted"
+        >
+          <X size={12} /> Clear filter
+        </Link>
+      ) : null}
 
       {expenses && expenses.length > 0 ? (
         <div className="space-y-2">
@@ -48,7 +81,8 @@ export default async function ExpensesPage() {
                         {e.vendor ?? e.category}
                       </p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {e.category} · {format(parseISO(e.date), 'MMM d, yyyy')} · {addr}
+                        {e.category} · {format(parseISO(e.date), 'MMM d, yyyy')}
+                        {propertyId ? '' : ` · ${addr}`}
                       </p>
                     </div>
                     <p className="shrink-0 text-sm font-semibold">
@@ -63,11 +97,15 @@ export default async function ExpensesPage() {
       ) : (
         <EmptyState
           icon={<ReceiptText size={32} />}
-          title="No expenses logged"
-          description="Snap a receipt to add your first expense."
+          title={
+            filterAddress
+              ? `No expenses for ${filterAddress} yet`
+              : 'No expenses logged'
+          }
+          description="Snap a receipt to log your first expense."
           action={
             <Button asChild>
-              <Link href="/landlord/expenses/new">Add expense</Link>
+              <Link href={addUrl}>Add expense</Link>
             </Button>
           }
         />

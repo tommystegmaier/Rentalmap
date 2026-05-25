@@ -21,7 +21,15 @@ export default async function PropertyDetail({ params }: { params: { id: string 
 
   if (!property) notFound();
 
-  const [{ data: leases }, { data: appliances }, { data: documents }] = await Promise.all([
+  const yearStart = `${new Date().getFullYear()}-01-01`;
+
+  const [
+    { data: leases },
+    { data: appliances },
+    { data: documents },
+    { data: recentExpenses },
+    { data: ytdExpenses },
+  ] = await Promise.all([
     supabase
       .from('leases')
       .select('*, lease_tenants(id, user_id, users:user_id(name, email))')
@@ -33,7 +41,23 @@ export default async function PropertyDetail({ params }: { params: { id: string 
       .select('*')
       .eq('property_id', params.id)
       .order('date_added', { ascending: false }),
+    supabase
+      .from('expenses')
+      .select('id, date, amount_cents, category, vendor')
+      .eq('property_id', params.id)
+      .order('date', { ascending: false })
+      .limit(5),
+    supabase
+      .from('expenses')
+      .select('amount_cents')
+      .eq('property_id', params.id)
+      .gte('date', yearStart),
   ]);
+
+  const ytdExpenseCents = (ytdExpenses ?? []).reduce(
+    (s: number, e: { amount_cents: number | null }) => s + (e.amount_cents ?? 0),
+    0,
+  );
 
   type LeaseTenantJoined = {
     id: string;
@@ -190,6 +214,64 @@ export default async function PropertyDetail({ params }: { params: { id: string 
           }
         />
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Expenses</span>
+            <Button asChild size="sm" variant="outline">
+              <Link
+                href={`/landlord/expenses/new?property_id=${params.id}`}
+              >
+                <Plus size={14} /> Add
+              </Link>
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <div className="flex items-baseline justify-between border-b pb-3">
+            <span className="text-muted-foreground">YTD spend</span>
+            <span className="text-base font-semibold">
+              {formatCents(ytdExpenseCents)}
+            </span>
+          </div>
+          {recentExpenses && recentExpenses.length > 0 ? (
+            <>
+              {(recentExpenses as Array<{
+                id: string;
+                date: string;
+                amount_cents: number;
+                category: string;
+                vendor: string | null;
+              }>).map((e) => (
+                <Link
+                  key={e.id}
+                  href={`/landlord/expenses/${e.id}`}
+                  className="flex items-center justify-between gap-2 border-b py-2 last:border-0 hover:bg-muted/30"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{e.vendor ?? e.category}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {e.category} · {format(parseISO(e.date), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                  <p className="shrink-0 font-semibold">
+                    {formatCents(e.amount_cents)}
+                  </p>
+                </Link>
+              ))}
+              <Link
+                href={`/landlord/expenses?property_id=${params.id}`}
+                className="block pt-1 text-center text-xs text-primary underline-offset-4 hover:underline"
+              >
+                View all expenses for this property
+              </Link>
+            </>
+          ) : (
+            <p className="text-muted-foreground">No expenses logged for this property yet.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
