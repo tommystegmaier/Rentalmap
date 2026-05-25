@@ -82,8 +82,11 @@ database.
 7. Click **New query** again. Repeat with `supabase/migrations/0004_accept_invitation.sql`.
 8. Click **New query** one more time. Repeat with `supabase/migrations/0005_push_autopay_reminders.sql`.
 
-You should now have 11 tables. To check: in the left sidebar click the **Table
-Editor** icon. You'll see `users`, `properties`, `leases`, etc. — all empty for now.
+You should now have 14 tables. To check: in the left sidebar click the **Table
+Editor** icon. You'll see `appliances`, `autopay_subscriptions`, `documents`,
+`expenses`, `lease_stripe_prices`, `lease_tenants`, `leases`, `properties`,
+`push_subscriptions`, `reminders`, `rent_payments`, `tenant_invitations`,
+`users`, and `work_orders` — all empty for now.
 
 Done with Supabase. Leave the tab open; you'll come back to it later for one more
 step.
