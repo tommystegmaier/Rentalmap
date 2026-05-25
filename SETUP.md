@@ -314,6 +314,24 @@ Vercel is now configured. Your app is live!
 
 ---
 
+## Part 3.5 — Branded emails (optional but recommended) · ~15 min
+
+By default, invitation and password-reset emails arrive from "Supabase Auth"
+with plain-text content, which looks unpolished. To send them from
+**Rentalmap** with branded HTML, follow the dedicated guide at
+`supabase/email-templates/README.md` — short version:
+
+1. Sign up at https://resend.com (free, 3,000 emails/month)
+2. Get an API key, paste it into Supabase → **Authentication → Emails → SMTP**
+3. Paste the 5 HTML files from `supabase/email-templates/` into Supabase's
+   **Authentication → Emails → Templates**
+
+You can skip this and come back later — the app still works with the default
+emails. Tenants will just see them coming from "Supabase Auth", which feels
+generic.
+
+---
+
 ## Part 4 — First-time app setup · ~10 min
 
 ### 4.1 Create your landlord account

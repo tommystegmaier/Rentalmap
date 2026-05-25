@@ -23,23 +23,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  // Ensure caller is the landlord on the lease.
+  // Caller must own the property on the lease. Pull the property address so
+  // we can pass it to the invite email template.
   const { data: lease, error: leaseErr } = await supabase
     .from('leases')
-    .select('id, properties:property_id(owner_id)')
+    .select('id, properties:property_id(owner_id, address)')
     .eq('id', lease_id)
     .maybeSingle();
 
   if (leaseErr || !lease) {
     return NextResponse.json({ error: 'Lease not found' }, { status: 404 });
   }
-  // Supabase nested selects come back as arrays even when there's one row.
   const props = lease.properties as
-    | { owner_id: string }
-    | { owner_id: string }[]
+    | { owner_id: string; address: string }
+    | { owner_id: string; address: string }[]
     | null;
-  const ownerId = Array.isArray(props) ? props[0]?.owner_id : props?.owner_id;
-  if (ownerId !== user.id) {
+  const prop = Array.isArray(props) ? props[0] : props;
+  if (prop?.owner_id !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -50,6 +50,15 @@ export async function POST(request: Request) {
   if (invErr && invErr.code !== '23505') {
     return NextResponse.json({ error: invErr.message }, { status: 500 });
   }
+
+  // Fetch landlord's display name for the email template.
+  const { data: landlord } = await supabase
+    .from('users')
+    .select('name, email')
+    .eq('id', user.id)
+    .maybeSingle();
+  const landlordName = landlord?.name ?? landlord?.email ?? 'Your landlord';
+  const propertyAddress = prop?.address ?? '';
 
   // Send magic link via service role admin API.
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -67,15 +76,22 @@ export async function POST(request: Request) {
     const admin = createServiceRoleClient();
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
+    const emailRedirectTo = `${siteUrl}/auth/callback?to=welcome`;
+    const inviteData = {
+      role: 'tenant',
+      lease_id,
+      landlord_name: landlordName,
+      property_address: propertyAddress,
+    };
     const { error: otpErr } = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${siteUrl}/auth/callback?to=welcome`,
-      data: { role: 'tenant', lease_id },
+      redirectTo: emailRedirectTo,
+      data: inviteData,
     });
     if (otpErr) {
       // If the user already exists, fall back to a magic link.
       const { error: linkErr } = await admin.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: `${siteUrl}/auth/callback?to=welcome` },
+        options: { emailRedirectTo, data: inviteData },
       });
       if (linkErr) {
         return NextResponse.json({ error: linkErr.message }, { status: 500 });
