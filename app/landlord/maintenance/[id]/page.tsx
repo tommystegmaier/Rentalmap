@@ -8,6 +8,7 @@ import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
 import { one } from '@/lib/utils';
 import { updateWorkOrder } from './actions';
+import { MarkNotificationRead } from '@/components/mark-notification-read';
 
 interface WorkOrderDetailRow {
   id: string;
@@ -62,6 +63,7 @@ export default async function WorkOrderDetail({ params }: { params: { id: string
 
   return (
     <div className="space-y-6">
+      <MarkNotificationRead workOrderId={params.id} />
       <PageHeader title={wo.request_type} description={propAddr ?? undefined} />
 
       <div className="flex flex-wrap items-center gap-2">
