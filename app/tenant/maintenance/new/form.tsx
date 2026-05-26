@@ -85,11 +85,13 @@ export function WorkOrderForm({ leaseId, propertyId }: WorkOrderFormProps) {
         if (updErr) throw updErr;
       }
 
-      // Fire-and-forget landlord notification; never blocks the redirect.
+      // keepalive: true ensures the request survives the router.push() navigation
+      // on iOS Safari/PWA, which otherwise cancels in-flight fetches.
       fetch('/api/work-orders/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ work_order_id: inserted.id }),
+        keepalive: true,
       }).catch(() => {});
 
       router.push(`/tenant/maintenance/${inserted.id}`);
