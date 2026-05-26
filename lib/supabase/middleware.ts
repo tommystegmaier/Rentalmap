@@ -1,6 +1,15 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+// Browsers cap persistent cookies at 400 days. Without an explicit maxAge,
+// Supabase auth cookies are session-only and die when the browser/PWA closes —
+// which forces tenants to re-log-in constantly.
+const ONE_YEAR_PLUS = 60 * 60 * 24 * 400;
+
+function withPersistentMaxAge(options: CookieOptions): CookieOptions {
+  return { ...options, maxAge: options.maxAge ?? ONE_YEAR_PLUS };
+}
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -20,9 +29,10 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options });
+          const persistent = withPersistentMaxAge(options);
+          request.cookies.set({ name, value, ...persistent });
           response = NextResponse.next({ request });
-          response.cookies.set({ name, value, ...options });
+          response.cookies.set({ name, value, ...persistent });
         },
         remove(name: string, options: CookieOptions) {
           request.cookies.set({ name, value: '', ...options });

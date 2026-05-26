@@ -1,6 +1,13 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+// Browser cap. Without this, auth cookies are session-only and die on PWA close.
+const ONE_YEAR_PLUS = 60 * 60 * 24 * 400;
+
+function withPersistentMaxAge(options: CookieOptions): CookieOptions {
+  return { ...options, maxAge: options.maxAge ?? ONE_YEAR_PLUS };
+}
+
 export function createClient() {
   const cookieStore = cookies();
   return createServerClient(
@@ -13,7 +20,7 @@ export function createClient() {
         },
         set(name: string, value: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value, ...options });
+            cookieStore.set({ name, value, ...withPersistentMaxAge(options) });
           } catch {
             // Server Components cannot set cookies; middleware handles refresh.
           }
