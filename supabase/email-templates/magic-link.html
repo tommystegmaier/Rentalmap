@@ -79,7 +79,7 @@
                   <tr>
                     <td style="border-radius: 12px; background-color: #5B9BD5;" align="center">
                       <a
-                        href="{{ .ConfirmationURL }}"
+                        href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink"
                         style="display: inline-block; padding: 14px 36px; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; line-height: 1;"
                         >Sign in</a
                       >
@@ -92,9 +92,9 @@
                 >
                   Button not working? Copy and paste this link into your browser:<br />
                   <a
-                    href="{{ .ConfirmationURL }}"
+                    href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink"
                     style="color: #5B9BD5; word-break: break-all;"
-                    >{{ .ConfirmationURL }}</a
+                    >{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink</a
                   >
                 </p>
               </td>
