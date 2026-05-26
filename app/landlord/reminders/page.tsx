@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Bell } from 'lucide-react';
 import { differenceInDays, format, parseISO } from 'date-fns';
-import { dismissReminder } from './actions';
+import { dismissReminder, syncMyReminders } from './actions';
 
 const TYPE_LABELS: Record<string, string> = {
   rent_due: 'Rent due',
@@ -89,17 +89,13 @@ export default async function RemindersPage() {
         <EmptyState
           icon={<Bell size={32} />}
           title="No active reminders"
-          description="The nightly job populates this list — check back tomorrow, or hit Sync below."
+          description="The nightly job populates this list — check back tomorrow, or tap Sync below."
         />
       )}
 
-      <form action="/api/cron/reminders" method="get">
-        <Button
-          asChild
-          variant="outline"
-          className="w-full"
-        >
-          <a href="/api/cron/reminders">Sync now (dev only)</a>
+      <form action={syncMyReminders}>
+        <Button type="submit" variant="outline" className="w-full">
+          Sync now
         </Button>
       </form>
     </div>
