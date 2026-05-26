@@ -25,11 +25,16 @@ self.addEventListener('push', (event) => {
       tag: payload.tag,
     }),
   ];
-  if ('setAppBadge' in self.registration) {
+  // Try navigator first (iOS), fall back to registration (Chrome/Android).
+  const badger =
+    (typeof self.navigator !== 'undefined' && typeof self.navigator.setAppBadge === 'function')
+      ? self.navigator
+      : (typeof self.registration.setAppBadge === 'function' ? self.registration : null);
+  if (badger) {
     tasks.push(
       typeof payload.badgeCount === 'number'
-        ? self.registration.setAppBadge(payload.badgeCount)
-        : self.registration.setAppBadge(),
+        ? badger.setAppBadge(payload.badgeCount)
+        : badger.setAppBadge(),
     );
   }
   event.waitUntil(Promise.all(tasks));

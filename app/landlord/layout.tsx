@@ -23,8 +23,8 @@ export default async function LandlordLayout({ children }: { children: React.Rea
     redirect('/tenant');
   }
 
-  // Unread counts powering the bell badge + Maintenance tab badge.
-  const [{ count: unreadNotifications }, { data: openProperties }] = await Promise.all([
+  // Unread counts powering the bell badge + Maintenance tab badge + app icon badge.
+  const [{ count: unreadNotifications }, { data: openProperties }, { count: unreadMessages }] = await Promise.all([
     supabase
       .from('notifications')
       .select('id', { count: 'exact', head: true })
@@ -32,6 +32,11 @@ export default async function LandlordLayout({ children }: { children: React.Rea
       .is('read_at', null)
       .is('dismissed_at', null),
     supabase.from('properties').select('id').eq('owner_id', user.id),
+    supabase
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('recipient_id', user.id)
+      .is('read_at', null),
   ]);
 
   let unreadMaintenance = 0;
@@ -69,7 +74,7 @@ export default async function LandlordLayout({ children }: { children: React.Rea
           </span>
         </div>
       </header>
-      <AppBadgeSync count={unreadNotifications ?? 0} />
+      <AppBadgeSync count={(unreadNotifications ?? 0) + (unreadMessages ?? 0)} />
       <div className="p-4">{children}</div>
       <TabBar items={tabs} />
     </div>
