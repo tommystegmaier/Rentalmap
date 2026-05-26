@@ -105,7 +105,7 @@ export default async function SettingsPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>What pushes you</CardTitle>
+          <CardTitle>Push notifications</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p className="text-muted-foreground">
