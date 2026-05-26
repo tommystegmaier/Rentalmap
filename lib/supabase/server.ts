@@ -1,4 +1,5 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 // Browser cap. Without this, auth cookies are session-only and die on PWA close.
@@ -38,21 +39,13 @@ export function createClient() {
 }
 
 export function createServiceRoleClient() {
-  const cookieStore = cookies();
-  return createServerClient(
+  // Use the plain supabase-js client (no cookie store) so the service role key
+  // is the only credential sent. Using createServerClient here caused it to
+  // forward the tenant's session cookie as an Authorization header, which
+  // triggered RLS as the tenant instead of bypassing it.
+  return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      // Implicit flow so server-generated invite/magic links use a plain
-      // token_hash (verifiable on the callback) instead of a pkce_* token
-      // that requires a code_verifier cookie — which never exists for
-      // server-initiated flows.
-      auth: { flowType: 'implicit' },
-      cookies: {
-        get: (n: string) => cookieStore.get(n)?.value,
-        set: () => {},
-        remove: () => {},
-      },
-    },
+    { auth: { autoRefreshToken: false, persistSession: false } },
   );
 }
