@@ -4,6 +4,21 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { parseDollarsToCents } from '@/lib/utils';
 
+export async function markRelatedNotificationsRead(workOrderId: string) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from('notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('user_id', user.id)
+    .eq('related_id', workOrderId)
+    .is('read_at', null);
+  revalidatePath('/landlord', 'layout');
+}
+
 type Status = 'open' | 'in_progress' | 'closed';
 
 export async function updateWorkOrder(id: string, formData: FormData) {

@@ -79,11 +79,18 @@ export async function POST(request: Request) {
   const wantsPush = isEmergency || landlord?.notify_maintenance_requests !== false;
   if (wantsPush) {
     try {
+      const { count: badgeCount } = await admin
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', prop.owner_id)
+        .is('read_at', null)
+        .is('dismissed_at', null);
       const result = await sendPushToUser(prop.owner_id, {
         title,
         body,
         url,
         tag: `wo-${wo.id}`,
+        badgeCount: badgeCount ?? 1,
       });
       console.log('[work-order notify] push result:', result);
     } catch (err) {

@@ -6,6 +6,7 @@ import { PushToggle } from '@/components/push-toggle';
 import { StripeConnectButton } from './connect-button';
 import { NotificationSettings } from './notification-settings';
 import { PushTypeToggles } from './push-type-toggles';
+import { FeePayerToggles } from './fee-payer-toggles';
 import { getStripe } from '@/lib/stripe';
 
 export default async function SettingsPage({
@@ -21,7 +22,7 @@ export default async function SettingsPage({
   const { data: profile } = await supabase
     .from('users')
     .select(
-      'stripe_connect_account_id, tenant_rent_reminder_enabled, tenant_rent_reminder_days_before, notify_appliance_service, notify_hvac_filter, notify_maintenance_requests, notify_messages',
+      'stripe_connect_account_id, tenant_rent_reminder_enabled, tenant_rent_reminder_days_before, notify_appliance_service, notify_hvac_filter, notify_maintenance_requests, notify_messages, ach_fee_payer, card_fee_payer',
     )
     .eq('id', user!.id)
     .maybeSingle();
@@ -49,6 +50,8 @@ export default async function SettingsPage({
   const notifyHvacFilter = profile?.notify_hvac_filter ?? true;
   const notifyMaintenance = profile?.notify_maintenance_requests ?? true;
   const notifyMessages = profile?.notify_messages ?? true;
+  const achFeePayer = (profile?.ach_fee_payer as 'landlord' | 'tenant' | undefined) ?? 'landlord';
+  const cardFeePayer = (profile?.card_fee_payer as 'landlord' | 'tenant' | undefined) ?? 'tenant';
 
   return (
     <div className="space-y-6">
@@ -165,9 +168,14 @@ export default async function SettingsPage({
         <CardHeader>
           <CardTitle>Payment fees</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>ACH ($0.80, capped at $5): absorbed by landlord</p>
-          <p>Card (2.9% + $0.30): currently absorbed by landlord (configurable later)</p>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Choose who absorbs Stripe processing fees for each payment method.
+          </p>
+          <FeePayerToggles
+            initialAchFeePayer={achFeePayer}
+            initialCardFeePayer={cardFeePayer}
+          />
         </CardContent>
       </Card>
     </div>

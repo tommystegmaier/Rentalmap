@@ -13,11 +13,23 @@ import {
   Settings,
   UserPlus,
   Download,
+  ClipboardList,
+  CircleDollarSign,
+  Zap,
+  Users,
+  Wrench,
+  ShieldCheck,
 } from 'lucide-react';
 
 const items = [
   { href: '/landlord/messages', label: 'Messages', icon: <MessageSquare size={20} />, key: 'messages' },
   { href: '/landlord/expenses', label: 'Expenses', icon: <ReceiptText size={20} /> },
+  { href: '/landlord/late-fees', label: 'Late fees', icon: <CircleDollarSign size={20} /> },
+  { href: '/landlord/deposits', label: 'Security deposits', icon: <ShieldCheck size={20} /> },
+  { href: '/landlord/utilities', label: 'Utilities', icon: <Zap size={20} /> },
+  { href: '/landlord/inspections', label: 'Inspections', icon: <ClipboardList size={20} /> },
+  { href: '/landlord/vendors', label: 'Vendors / 1099s', icon: <Wrench size={20} /> },
+  { href: '/landlord/owners', label: 'Property owners', icon: <Users size={20} /> },
   { href: '/landlord/documents', label: 'Documents', icon: <FileText size={20} /> },
   { href: '/landlord/reports', label: 'Reports', icon: <BarChart3 size={20} /> },
   { href: '/landlord/reminders', label: 'Reminders', icon: <Bell size={20} /> },

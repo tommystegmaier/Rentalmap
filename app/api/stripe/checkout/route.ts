@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 
   const { data: landlord } = await admin
     .from('users')
-    .select('stripe_connect_account_id')
+    .select('stripe_connect_account_id, ach_fee_payer, card_fee_payer')
     .eq('id', props.owner_id)
     .maybeSingle();
 
@@ -62,10 +62,16 @@ export async function POST(request: Request) {
     );
   }
 
+  const achFeePayer = (landlord?.ach_fee_payer as 'landlord' | 'tenant' | undefined) ?? 'landlord';
+  const cardFeePayer = (landlord?.card_fee_payer as 'landlord' | 'tenant' | undefined) ?? 'tenant';
+
   const isCard = method === 'card';
   const rentCents = lease.monthly_rent_cents;
-  const totalCharge = isCard ? cardChargeCents(rentCents) : rentCents;
-  const feeCents = isCard ? totalCharge - rentCents : 0;
+  const ACH_FEE_CENTS = 80;
+  const totalCharge = isCard
+    ? cardFeePayer === 'tenant' ? cardChargeCents(rentCents) : rentCents
+    : achFeePayer === 'tenant' ? rentCents + ACH_FEE_CENTS : rentCents;
+  const feeCents = totalCharge - rentCents;
 
   const lineItems: Array<{
     price_data: {
@@ -88,7 +94,9 @@ export async function POST(request: Request) {
     lineItems.push({
       price_data: {
         currency: 'usd',
-        product_data: { name: 'Card processing fee (2.9% + $0.30)' },
+        product_data: {
+          name: isCard ? 'Card processing fee (2.9% + $0.30)' : 'ACH processing fee ($0.80)',
+        },
         unit_amount: feeCents,
       },
       quantity: 1,
@@ -102,7 +110,7 @@ export async function POST(request: Request) {
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
-      payment_method_types: isCard ? ['card'] : ['us_bank_account'],
+      payment_method_types: isCard ? ['card', 'cashapp'] : ['us_bank_account'],
       customer_email: user.email ?? undefined,
       line_items: lineItems,
       payment_intent_data: {

@@ -19,6 +19,7 @@ export interface PushPayload {
   body: string;
   url?: string;
   tag?: string;
+  badgeCount?: number;
 }
 
 export async function sendPushToUser(userId: string, payload: PushPayload) {

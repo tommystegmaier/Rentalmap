@@ -1,0 +1,42 @@
+'use server';
+
+import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
+import { createClient } from '@/lib/supabase/server';
+
+export async function updateVendor(id: string, formData: FormData) {
+  const supabase = createClient();
+
+  const isIndividual = formData.get('is_individual') === 'on';
+
+  const { error } = await supabase
+    .from('vendors')
+    .update({
+      name: formData.get('name') as string,
+      address: (formData.get('address') as string) || null,
+      city: (formData.get('city') as string) || null,
+      state: (formData.get('state') as string) || null,
+      zip: (formData.get('zip') as string) || null,
+      ein: isIndividual ? null : ((formData.get('ein') as string) || null),
+      ssn_last4: isIndividual ? ((formData.get('ssn_last4') as string) || null) : null,
+      email: (formData.get('email') as string) || null,
+      phone: (formData.get('phone') as string) || null,
+      notes: (formData.get('notes') as string) || null,
+    })
+    .eq('id', id);
+
+  if (error) throw error;
+
+  revalidatePath('/landlord/vendors');
+  revalidatePath(`/landlord/vendors/${id}`);
+}
+
+export async function deleteVendor(id: string) {
+  const supabase = createClient();
+
+  const { error } = await supabase.from('vendors').delete().eq('id', id);
+  if (error) throw error;
+
+  revalidatePath('/landlord/vendors');
+  redirect('/landlord/vendors');
+}
