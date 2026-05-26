@@ -102,7 +102,7 @@ export async function POST(request: Request) {
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
-      payment_method_types: isCard ? ['card'] : ['us_bank_account'],
+      payment_method_types: isCard ? ['card', 'cashapp'] : ['us_bank_account'],
       customer_email: user.email ?? undefined,
       line_items: lineItems,
       payment_intent_data: {

@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { StripeSetupBanner } from '@/components/stripe-setup-banner';
+import { StripeRentSection } from '@/components/stripe-rent-section';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Wallet } from 'lucide-react';
@@ -30,7 +30,7 @@ export default async function RentPage() {
         }
       />
 
-      <StripeSetupBanner variant="rent" />
+      <StripeRentSection />
 
       {payments && payments.length > 0 ? (
         <div className="space-y-2">

@@ -134,22 +134,22 @@ export default async function PayRentPage({
 
               <div className="rounded-xl border bg-card p-4 space-y-2">
                 <div className="flex items-baseline justify-between">
-                  <p className="font-medium">Pay with debit / credit card</p>
+                  <p className="font-medium">Card · Apple Pay · Cash App</p>
                   <p className="text-lg font-semibold">
                     {formatCents(cardChargeCents(lease.monthly_rent_cents))}
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Includes a 2.9% + $0.30 card processing fee (
+                  Includes a 2.9% + $0.30 processing fee (
                   {formatCents(cardChargeCents(lease.monthly_rent_cents) - lease.monthly_rent_cents)}
-                  ). Clears immediately.
+                  ). Clears immediately. Apple Pay and Cash App available at checkout.
                 </p>
                 <PayButton
                   leaseId={lease.id}
                   expectedDate={expectedDate}
                   method="card"
                   variant="outline"
-                  label={`Pay ${formatCents(cardChargeCents(lease.monthly_rent_cents))} by card`}
+                  label={`Pay ${formatCents(cardChargeCents(lease.monthly_rent_cents))} by card / Apple Pay`}
                 />
               </div>
             </CardContent>
