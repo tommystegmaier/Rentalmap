@@ -66,9 +66,14 @@ export default async function WorkOrderDetail({ params }: { params: { id: string
 
       <div className="flex flex-wrap items-center gap-2">
         <Badge className={`border-transparent ${urg.color}`}>{urg.label}</Badge>
-        <Badge className="border-transparent bg-secondary">
-          {wo.status.replace('_', ' ')}
-        </Badge>
+        {(() => {
+          const label = wo.status === 'closed' ? 'Completed' : wo.status.replace('_', ' ');
+          const cls =
+            wo.status === 'closed'
+              ? 'border-transparent bg-success/10 text-success'
+              : 'border-transparent bg-destructive/10 text-destructive';
+          return <Badge className={cls}>{label}</Badge>;
+        })()}
         <Badge className="border-transparent bg-muted text-muted-foreground">
           Submitted {format(parseISO(wo.submitted_at), 'PP')}
         </Badge>
@@ -129,7 +134,7 @@ export default async function WorkOrderDetail({ params }: { params: { id: string
               >
                 <option value="open">Open</option>
                 <option value="in_progress">In progress</option>
-                <option value="closed">Closed</option>
+                <option value="closed">Completed</option>
               </select>
             </label>
 

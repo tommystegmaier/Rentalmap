@@ -8,7 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { StripeSetupBanner } from '@/components/stripe-setup-banner';
 import { formatCents } from '@/lib/utils';
 import { differenceInDays, parseISO } from 'date-fns';
-import { Wrench, ReceiptText, Send, Home as HomeIcon } from 'lucide-react';
+import { Wrench, ReceiptText, Send, MessageSquare, Home as HomeIcon } from 'lucide-react';
 
 export default async function LandlordDashboard() {
   const supabase = createClient();
@@ -60,10 +60,11 @@ export default async function LandlordDashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <QuickAction href="/landlord/expenses/new" icon={<ReceiptText size={20} />} label="Add expense" />
         <QuickAction href="/landlord/maintenance" icon={<Wrench size={20} />} label="Work orders" />
         <QuickAction href="/landlord/invite" icon={<Send size={20} />} label="Invite tenant" />
+        <QuickAction href="/landlord/messages" icon={<MessageSquare size={20} />} label="Messages" />
       </div>
 
       <section className="space-y-3">

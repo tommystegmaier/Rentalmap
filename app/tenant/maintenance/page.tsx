@@ -9,6 +9,15 @@ import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
 import { Wrench } from 'lucide-react';
 
+function woStatus(status: string) {
+  const label = status === 'closed' ? 'Completed' : status.replace('_', ' ');
+  const cls =
+    status === 'closed'
+      ? 'border-transparent bg-success/10 text-success'
+      : 'border-transparent bg-destructive/10 text-destructive';
+  return { label, cls };
+}
+
 export default async function TenantMaintenancePage() {
   const supabase = createClient();
   const {
@@ -56,7 +65,10 @@ export default async function TenantMaintenancePage() {
                     </p>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{format(parseISO(w.submitted_at), 'MMM d')}</span>
-                      <span>{w.status.replace('_', ' ')}</span>
+                      {(() => {
+                        const s = woStatus(w.status);
+                        return <Badge className={s.cls}>{s.label}</Badge>;
+                      })()}
                     </div>
                   </CardContent>
                 </Card>
