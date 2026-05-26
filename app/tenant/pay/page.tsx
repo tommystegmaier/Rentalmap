@@ -50,11 +50,13 @@ export default async function PayRentPage({
   // so the UI correctly reflects whether payments can actually be accepted.
   let landlordConnected = false;
   let landlordHasAccount = false;
+  let achFeePayer: 'landlord' | 'tenant' = 'landlord';
+  let cardFeePayer: 'landlord' | 'tenant' = 'tenant';
   if (prop?.owner_id) {
     const admin = createServiceRoleClient();
     const { data: landlord } = await admin
       .from('users')
-      .select('stripe_connect_account_id')
+      .select('stripe_connect_account_id, ach_fee_payer, card_fee_payer')
       .eq('id', prop.owner_id)
       .maybeSingle();
     if (landlord?.stripe_connect_account_id) {
@@ -67,7 +69,21 @@ export default async function PayRentPage({
         landlordConnected = false;
       }
     }
+    if (landlord?.ach_fee_payer) achFeePayer = landlord.ach_fee_payer as 'landlord' | 'tenant';
+    if (landlord?.card_fee_payer) cardFeePayer = landlord.card_fee_payer as 'landlord' | 'tenant';
   }
+
+  const ACH_FEE_CENTS = 80;
+  const achTotalCents = lease
+    ? achFeePayer === 'tenant'
+      ? lease.monthly_rent_cents + ACH_FEE_CENTS
+      : lease.monthly_rent_cents
+    : 0;
+  const cardTotalCents = lease
+    ? cardFeePayer === 'tenant'
+      ? cardChargeCents(lease.monthly_rent_cents)
+      : lease.monthly_rent_cents
+    : 0;
 
   let autopay: { id: string; status: string } | null = null;
   if (lease) {
@@ -120,37 +136,37 @@ export default async function PayRentPage({
               <div className="rounded-xl border bg-card p-4 space-y-2">
                 <div className="flex items-baseline justify-between">
                   <p className="font-medium">Pay with bank (ACH)</p>
-                  <p className="text-lg font-semibold">{formatCents(lease.monthly_rent_cents)}</p>
+                  <p className="text-lg font-semibold">{formatCents(achTotalCents)}</p>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  No fee for you. Settles in 1–3 business days.
+                  {achFeePayer === 'tenant'
+                    ? `Includes a $0.80 processing fee. Settles in 1–3 business days.`
+                    : 'No fee for you. Settles in 1–3 business days.'}
                 </p>
                 <PayButton
                   leaseId={lease.id}
                   expectedDate={expectedDate}
                   method="ach"
-                  label={`Pay ${formatCents(lease.monthly_rent_cents)} by bank`}
+                  label={`Pay ${formatCents(achTotalCents)} by bank`}
                 />
               </div>
 
               <div className="rounded-xl border bg-card p-4 space-y-2">
                 <div className="flex items-baseline justify-between">
                   <p className="font-medium">Card · Apple Pay · Cash App</p>
-                  <p className="text-lg font-semibold">
-                    {formatCents(cardChargeCents(lease.monthly_rent_cents))}
-                  </p>
+                  <p className="text-lg font-semibold">{formatCents(cardTotalCents)}</p>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Includes a 2.9% + $0.30 processing fee (
-                  {formatCents(cardChargeCents(lease.monthly_rent_cents) - lease.monthly_rent_cents)}
-                  ). Clears immediately. Apple Pay and Cash App available at checkout.
+                  {cardFeePayer === 'tenant'
+                    ? `Includes a 2.9% + $0.30 processing fee (${formatCents(cardTotalCents - lease.monthly_rent_cents)}). Clears immediately. Apple Pay and Cash App available at checkout.`
+                    : 'No fee for you. Clears immediately. Apple Pay and Cash App available at checkout.'}
                 </p>
                 <PayButton
                   leaseId={lease.id}
                   expectedDate={expectedDate}
                   method="card"
                   variant="outline"
-                  label={`Pay ${formatCents(cardChargeCents(lease.monthly_rent_cents))} by card / Apple Pay`}
+                  label={`Pay ${formatCents(cardTotalCents)} by card / Apple Pay`}
                 />
               </div>
             </CardContent>

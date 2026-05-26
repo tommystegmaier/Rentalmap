@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StripeRentSection } from '@/components/stripe-rent-section';
 import { VenmoClaimsList, type VenmoClaim } from '@/components/venmo-claims-list';
+import { DeletePaymentButton } from '@/components/delete-payment-button';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Wallet } from 'lucide-react';
@@ -118,6 +119,7 @@ export default async function RentPage() {
                     >
                       PDF
                     </a>
+                    <DeletePaymentButton id={p.id} />
                   </div>
                 </CardContent>
               </Card>
