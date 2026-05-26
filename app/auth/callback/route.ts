@@ -14,10 +14,12 @@ export async function GET(request: Request) {
   const type = searchParams.get('type') as EmailOtpType | null;
   const to = searchParams.get('to');
 
-  // Invite links always go to /welcome so the tenant can set a password,
-  // regardless of whether the email template included &to=welcome.
+  // Invite + magic-link emails (both used by the invite API, depending on
+  // whether the user already exists in auth.users) always go to /welcome
+  // so a brand-new tenant can set a password. /welcome auto-forwards
+  // returning users who've already set one.
   const next =
-    type === 'invite'
+    type === 'invite' || type === 'magiclink'
       ? '/welcome'
       : to && TO_PATHS.has(to)
         ? `/${to}`

@@ -43,6 +43,11 @@ export function createServiceRoleClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
+      // Implicit flow so server-generated invite/magic links use a plain
+      // token_hash (verifiable on the callback) instead of a pkce_* token
+      // that requires a code_verifier cookie — which never exists for
+      // server-initiated flows.
+      auth: { flowType: 'implicit' },
       cookies: {
         get: (n: string) => cookieStore.get(n)?.value,
         set: () => {},

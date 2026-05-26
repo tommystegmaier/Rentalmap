@@ -33,15 +33,27 @@ export default function WelcomePage() {
         setChecked(true);
         return;
       }
+      // Returning user — they've signed in before, so skip the password-setup
+      // screen and drop them straight in their portal. Brand-new tenants
+      // (first sign-in) stay here to set a password.
+      const lastSignIn = user.last_sign_in_at ? new Date(user.last_sign_in_at).getTime() : null;
+      const createdAt = user.created_at ? new Date(user.created_at).getTime() : null;
+      const isFirstLogin =
+        !lastSignIn || (createdAt !== null && lastSignIn - createdAt < 60_000);
       const { data } = await supabase
         .from('users')
         .select('email, name, role')
         .eq('id', user.id)
         .maybeSingle();
-      setProfile((data as Profile | null) ?? null);
+      const profileData = (data as Profile | null) ?? null;
+      if (!isFirstLogin && profileData) {
+        router.replace(profileData.role === 'landlord' ? '/landlord' : '/tenant');
+        return;
+      }
+      setProfile(profileData);
       setChecked(true);
     });
-  }, []);
+  }, [router]);
 
   async function setUpPassword(e: React.FormEvent) {
     e.preventDefault();
