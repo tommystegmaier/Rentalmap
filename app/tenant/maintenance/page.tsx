@@ -33,7 +33,7 @@ export default async function TenantMaintenancePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Work orders"
+        title="Work Orders"
         action={
           <Button asChild size="sm">
             <Link href="/tenant/maintenance/new">New</Link>

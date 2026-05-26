@@ -50,7 +50,7 @@ export default async function LandlordLayout({ children }: { children: React.Rea
     { href: '/landlord/rent', label: 'Rent', icon: <Wallet size={22} /> },
     {
       href: '/landlord/maintenance',
-      label: 'Maintenance',
+      label: 'Work Orders',
       icon: <Wrench size={22} />,
       badge: unreadMaintenance,
     },
