@@ -4,10 +4,11 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Logo } from '@/components/logo';
+import { CheckCircle2 } from 'lucide-react';
 
 interface Profile {
   email: string;
@@ -94,6 +95,7 @@ export default function WelcomePage() {
   }
 
   const firstName = profile.name?.split(' ')[0] ?? '';
+  const isTenant = profile.role === 'tenant';
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col p-6">
@@ -101,28 +103,41 @@ export default function WelcomePage() {
         <Logo size={32} showWordmark />
       </header>
 
-      <div className="mt-12 flex-1">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Welcome{firstName ? `, ${firstName}` : ''}.
+      <div className="mt-10 flex-1">
+        <div className="inline-flex items-center gap-2 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
+          <CheckCircle2 size={14} />
+          You're signed in
+        </div>
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight">
+          {firstName ? `Welcome, ${firstName}.` : 'Welcome to It Rents.'}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          You&apos;re signed in as <span className="font-medium text-foreground">{profile.email}</span>.
+          Signed in as <span className="font-medium text-foreground">{profile.email}</span>.
+          {isTenant
+            ? ' Set a password below so you can sign in from any device — or skip and we\'ll email a one-time link whenever you need to sign in.'
+            : ''}
         </p>
 
         <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>Set a password (optional)</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {savedPassword ? (
-              <div className="rounded-lg border border-success/30 bg-success/5 p-3 text-sm">
-                Password saved. You can now sign in with email + password from any device.
+              <div className="flex items-start gap-3 rounded-lg border border-success/30 bg-success/5 p-3 text-sm">
+                <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-success" />
+                <div>
+                  <p className="font-medium">Password saved.</p>
+                  <p className="mt-0.5 text-muted-foreground">
+                    You can now sign in with your email and password from any device.
+                  </p>
+                </div>
               </div>
             ) : (
               <form onSubmit={setUpPassword} className="space-y-4 text-sm">
-                <p className="text-muted-foreground">
-                  Or skip — we&apos;ll just email you a one-time link any time you need to sign in.
-                </p>
+                <div>
+                  <h2 className="text-base font-semibold">Set a password</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Recommended. Lets you sign in without waiting for an email link.
+                  </p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <PasswordInput
@@ -144,7 +159,7 @@ export default function WelcomePage() {
                   />
                 </div>
                 {error ? <p className="text-destructive">{error}</p> : null}
-                <Button type="submit" disabled={busy}>
+                <Button type="submit" className="w-full" disabled={busy}>
                   {busy ? 'Saving…' : 'Save password'}
                 </Button>
               </form>
@@ -153,8 +168,8 @@ export default function WelcomePage() {
         </Card>
       </div>
 
-      <Button onClick={goToPortal} className="mt-6 w-full" size="lg">
-        Continue to my portal
+      <Button onClick={goToPortal} className="mt-6 w-full" size="lg" variant={savedPassword ? 'default' : 'outline'}>
+        {savedPassword ? 'Continue to my portal' : 'Skip for now and continue'}
       </Button>
     </main>
   );
