@@ -6,6 +6,7 @@ import { PushToggle } from '@/components/push-toggle';
 import { StripeConnectButton } from './connect-button';
 import { NotificationSettings } from './notification-settings';
 import { PushTypeToggles } from './push-type-toggles';
+import { getStripe } from '@/lib/stripe';
 
 export default async function SettingsPage({
   searchParams,
@@ -26,6 +27,22 @@ export default async function SettingsPage({
     .maybeSingle();
 
   const connected = !!profile?.stripe_connect_account_id;
+
+  // Check actual Stripe account status so we show accurate info to the landlord.
+  type StripeStatus = 'not_connected' | 'restricted' | 'active';
+  let stripeStatus: StripeStatus = 'not_connected';
+  let stripeDue: string[] = [];
+  if (connected && profile?.stripe_connect_account_id) {
+    try {
+      const stripe = getStripe();
+      const account = await stripe.accounts.retrieve(profile.stripe_connect_account_id);
+      stripeStatus = account.charges_enabled ? 'active' : 'restricted';
+      stripeDue = (account.requirements?.currently_due ?? []) as string[];
+    } catch {
+      stripeStatus = 'restricted';
+    }
+  }
+
   const reminderEnabled = profile?.tenant_rent_reminder_enabled ?? true;
   const reminderDays = profile?.tenant_rent_reminder_days_before ?? 3;
   const notifyApplianceService = profile?.notify_appliance_service ?? true;
@@ -48,12 +65,18 @@ export default async function SettingsPage({
             Stripe Connect
             <Badge
               className={
-                connected
+                stripeStatus === 'active'
                   ? 'border-transparent bg-success/10 text-success'
-                  : 'border-transparent bg-warning/10 text-warning'
+                  : stripeStatus === 'restricted'
+                    ? 'border-transparent bg-destructive/10 text-destructive'
+                    : 'border-transparent bg-warning/10 text-warning'
               }
             >
-              {connected ? 'connected' : 'not connected'}
+              {stripeStatus === 'active'
+                ? 'active'
+                : stripeStatus === 'restricted'
+                  ? 'action required'
+                  : 'not connected'}
             </Badge>
           </CardTitle>
         </CardHeader>
@@ -63,8 +86,24 @@ export default async function SettingsPage({
             bank — It Rents never holds the money. ACH transfers cost about $0.80 (capped at $5),
             and cards cost 2.9% + $0.30 (passed to the tenant by default).
           </p>
-          <StripeConnectButton connected={connected} />
-          {!connected ? (
+          {stripeStatus === 'restricted' ? (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+              <p className="font-medium">Your Stripe account needs attention.</p>
+              <p className="mt-1">
+                Stripe has placed restrictions on your account — tenants can&apos;t pay online until
+                you complete the required steps. Click below to finish verification.
+              </p>
+              {stripeDue.length > 0 ? (
+                <ul className="mt-2 list-inside list-disc space-y-0.5 text-muted-foreground">
+                  {stripeDue.slice(0, 5).map((req) => (
+                    <li key={req}>{req.replace(/_/g, ' ')}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+          <StripeConnectButton connected={connected} stripeStatus={stripeStatus} />
+          {stripeStatus === 'not_connected' ? (
             <p className="text-xs text-muted-foreground">
               You&apos;ll be sent to Stripe&apos;s secure onboarding to verify your identity and link
               your bank. Takes about 5–10 minutes.

@@ -3,7 +3,15 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 
-export function StripeConnectButton({ connected }: { connected: boolean }) {
+type StripeStatus = 'not_connected' | 'restricted' | 'active';
+
+export function StripeConnectButton({
+  connected,
+  stripeStatus,
+}: {
+  connected: boolean;
+  stripeStatus: StripeStatus;
+}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,14 +29,22 @@ export function StripeConnectButton({ connected }: { connected: boolean }) {
     }
   }
 
+  const label = busy
+    ? 'Opening Stripe…'
+    : stripeStatus === 'restricted'
+      ? 'Complete Stripe verification'
+      : stripeStatus === 'active'
+        ? 'Manage Stripe account'
+        : 'Connect Stripe account';
+
   return (
     <div className="space-y-2">
-      <Button onClick={handleConnect} disabled={busy}>
-        {busy
-          ? 'Opening Stripe…'
-          : connected
-            ? 'Re-open Stripe onboarding'
-            : 'Connect Stripe account'}
+      <Button
+        onClick={handleConnect}
+        disabled={busy}
+        variant={stripeStatus === 'restricted' ? 'default' : stripeStatus === 'active' ? 'outline' : 'default'}
+      >
+        {label}
       </Button>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
