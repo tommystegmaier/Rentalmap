@@ -59,11 +59,17 @@ export async function sendMessage(input: {
 
   // Respect the recipient's notify_messages toggle (default on if column absent).
   if (recipient?.notify_messages !== false) {
+    const { count: badgeCount } = await admin
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('recipient_id', input.recipient_id)
+      .is('read_at', null);
     await sendPushToUser(input.recipient_id, {
       title: `New message from ${fromName}`,
       body: preview,
       url,
       tag: `msg-${msg.id}`,
+      badgeCount: badgeCount ?? 1,
     });
   }
 

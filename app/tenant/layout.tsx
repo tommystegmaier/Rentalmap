@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { TabBar, type TabItem } from '@/components/tab-bar';
 import { Logo } from '@/components/logo';
 import { InstallPrompt } from '@/components/install-prompt';
+import { AppBadgeSync } from '@/components/app-badge-sync';
 import { Home, Wallet, Wrench, MessageSquare, MoreHorizontal } from 'lucide-react';
 
 export default async function TenantLayout({ children }: { children: React.ReactNode }) {
@@ -44,6 +45,7 @@ export default async function TenantLayout({ children }: { children: React.React
       <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 px-4 py-3 backdrop-blur">
         <Logo size={28} showWordmark />
       </header>
+      <AppBadgeSync count={unreadMessages ?? 0} />
       <div className="p-4">{children}</div>
       <TabBar items={tabs} />
       <InstallPrompt />

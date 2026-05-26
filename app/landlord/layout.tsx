@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { TabBar, type TabItem } from '@/components/tab-bar';
 import { Logo } from '@/components/logo';
 import { HeaderBell } from '@/components/header-bell';
+import { AppBadgeSync } from '@/components/app-badge-sync';
 import { Home, Building2, Wallet, Wrench, MoreHorizontal } from 'lucide-react';
 
 export default async function LandlordLayout({ children }: { children: React.ReactNode }) {
@@ -68,6 +69,7 @@ export default async function LandlordLayout({ children }: { children: React.Rea
           </span>
         </div>
       </header>
+      <AppBadgeSync count={unreadNotifications ?? 0} />
       <div className="p-4">{children}</div>
       <TabBar items={tabs} />
     </div>

@@ -10,13 +10,13 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('push', (event) => {
   if (!event.data) return;
-  let payload = { title: 'It Rents', body: '', url: '/' };
+  let payload = { title: 'It Rents', body: '', url: '/', badgeCount: undefined };
   try {
     payload = { ...payload, ...event.data.json() };
   } catch {
     payload.body = event.data.text();
   }
-  event.waitUntil(
+  const tasks = [
     self.registration.showNotification(payload.title, {
       body: payload.body,
       icon: '/icons/icon-192.png',
@@ -24,7 +24,15 @@ self.addEventListener('push', (event) => {
       data: { url: payload.url || '/' },
       tag: payload.tag,
     }),
-  );
+  ];
+  if ('setAppBadge' in self.registration) {
+    tasks.push(
+      typeof payload.badgeCount === 'number'
+        ? self.registration.setAppBadge(payload.badgeCount)
+        : self.registration.setAppBadge(),
+    );
+  }
+  event.waitUntil(Promise.all(tasks));
 });
 
 self.addEventListener('notificationclick', (event) => {
