@@ -134,6 +134,12 @@ export default async function NewLeasePage({ params }: { params: { id: string } 
           Pets allowed
         </label>
 
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="late_fee_enabled" className="h-4 w-4" />
+          Auto-charge late fee after grace period
+          <span className="text-xs text-muted-foreground">(runs nightly)</span>
+        </label>
+
         <div className="space-y-2">
           <Label htmlFor="terms_notes">Terms / notes</Label>
           <Textarea

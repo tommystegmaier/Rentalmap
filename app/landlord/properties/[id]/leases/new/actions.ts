@@ -25,6 +25,7 @@ export async function createLease(propertyId: string, formData: FormData) {
   const security_deposit_cents =
     parseDollarsToCents(String(formData.get('security_deposit') ?? '')) ?? monthly_rent_cents;
   const pets_allowed = formData.get('pets_allowed') === 'on';
+  const late_fee_enabled = formData.get('late_fee_enabled') === 'on';
   const utilities_paid_by = String(formData.get('utilities_paid_by') ?? 'tenant') as
     | 'tenant'
     | 'landlord'
@@ -45,6 +46,7 @@ export async function createLease(propertyId: string, formData: FormData) {
     late_fee_cents,
     security_deposit_cents,
     pets_allowed,
+    late_fee_enabled,
     utilities_paid_by,
     lawn_care_by,
     terms_notes,

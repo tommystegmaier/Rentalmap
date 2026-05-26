@@ -3,6 +3,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { syncRemindersForLandlord } from '@/lib/reminders-run';
 import { sendPushToUser } from '@/lib/push';
 import { createNotification, type NotificationType } from '@/lib/notifications';
+import { addDays, getDaysInMonth, setDate, format, parseISO } from 'date-fns';
 
 /**
  * Daily cron. Vercel triggers this via vercel.json. To prevent random hits,
@@ -139,5 +140,101 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ seedCount, pushed, due: dueToday?.length ?? 0 });
+  // ---- Auto-charge late fees ----
+  // Find active leases with late_fee_enabled.  For each, determine if today is
+  // past the grace period for the current rent period and rent hasn't been paid.
+  const { data: lateLeases } = await supabase
+    .from('leases')
+    .select(
+      'id, due_day, late_after_day, late_fee_cents, monthly_rent_cents, property_id, ' +
+      'properties:property_id(owner_id)',
+    )
+    .eq('status', 'active')
+    .eq('late_fee_enabled', true);
+
+  let lateFeeCount = 0;
+  const todayDate = parseISO(today);
+
+  type LateLease = {
+    id: string;
+    due_day: number;
+    late_after_day: number;
+    late_fee_cents: number;
+    monthly_rent_cents: number;
+    property_id: string;
+    properties: { owner_id: string } | { owner_id: string }[] | null;
+  };
+  for (const lease of (lateLeases ?? []) as unknown as LateLease[]) {
+    const prop = Array.isArray(lease.properties) ? lease.properties[0] : lease.properties;
+    if (!prop?.owner_id) continue;
+
+    // Determine the rent period: due date this month, fall back to last month if
+    // we're still in the same month as the due date.
+    const daysThisMonth = getDaysInMonth(todayDate);
+    const safeDueDay = Math.min(lease.due_day, daysThisMonth);
+    let dueDate = setDate(todayDate, safeDueDay);
+    if (dueDate > todayDate) {
+      // Due date hasn't come yet this month — check last month.
+      const lastMonth = new Date(todayDate.getFullYear(), todayDate.getMonth() - 1, 1);
+      const daysLastMonth = getDaysInMonth(lastMonth);
+      const safeDueDayLast = Math.min(lease.due_day, daysLastMonth);
+      dueDate = setDate(lastMonth, safeDueDayLast);
+    }
+
+    const graceDeadline = addDays(dueDate, lease.late_after_day);
+    if (todayDate <= graceDeadline) continue; // still within grace period
+
+    const periodStart = format(dueDate, 'yyyy-MM-dd');
+
+    // Check if rent was paid for this period.
+    const { count: paidCount } = await supabase
+      .from('rent_payments')
+      .select('id', { count: 'exact', head: true })
+      .eq('lease_id', lease.id)
+      .eq('expected_date', periodStart)
+      .in('status', ['settled', 'manual']);
+
+    if ((paidCount ?? 0) > 0) continue; // paid — no late fee
+
+    // Check if a late fee was already charged for this period.
+    const { count: feeCount } = await supabase
+      .from('late_fee_charges')
+      .select('id', { count: 'exact', head: true })
+      .eq('lease_id', lease.id)
+      .eq('period_start', periodStart)
+      .eq('waived', false);
+
+    if ((feeCount ?? 0) > 0) continue; // already charged
+
+    // Insert the late fee charge.
+    await supabase.from('late_fee_charges').insert({
+      lease_id: lease.id,
+      charge_date: today,
+      amount_cents: lease.late_fee_cents,
+      period_start: periodStart,
+    });
+    lateFeeCount++;
+
+    // Notify tenants on this lease.
+    const { data: tenantLinks } = await supabase
+      .from('lease_tenants')
+      .select('user_id')
+      .eq('lease_id', lease.id);
+
+    for (const link of (tenantLinks ?? []) as { user_id: string }[]) {
+      await createNotification(supabase, link.user_id, {
+        type: 'tenant_rent_due',
+        title: 'Late fee applied',
+        body: `A late fee of $${(lease.late_fee_cents / 100).toFixed(0)} has been added to your account for the rent period starting ${periodStart}.`,
+        url: '/tenant/pay',
+      });
+      await sendPushToUser(link.user_id, {
+        title: 'Late fee applied',
+        body: `A $${(lease.late_fee_cents / 100).toFixed(0)} late fee has been added to your account.`,
+        url: '/tenant/pay',
+      });
+    }
+  }
+
+  return NextResponse.json({ seedCount, pushed, due: dueToday?.length ?? 0, lateFeeCount });
 }

@@ -44,3 +44,31 @@ export function parseDollarsToCents(input: string): number | null {
 export function cardChargeCents(rentCents: number): number {
   return Math.ceil((rentCents + 30) / 0.971);
 }
+
+/**
+ * Calculate prorated rent for a partial first month.
+ * When a lease starts on a day other than the rent due_day, only the remaining
+ * days of that month are charged proportionally.
+ *
+ * Returns { prorated: false } when no proration is needed (start day === due_day).
+ */
+export function proratedRentCents(
+  monthlyRentCents: number,
+  startDateStr: string,
+  dueDay: number,
+): { prorated: boolean; amount_cents: number; days: number; totalDays: number } {
+  // Parse as local date to avoid UTC-offset day shifts.
+  const [year, month, day] = startDateStr.split('-').map(Number);
+  const startDay = day;
+
+  if (startDay === dueDay) {
+    return { prorated: false, amount_cents: monthlyRentCents, days: 0, totalDays: 0 };
+  }
+
+  const totalDays = new Date(year, month, 0).getDate(); // last day of start month
+  const daysRemaining = totalDays - startDay + 1;
+  const amount_cents = Math.round((monthlyRentCents * daysRemaining) / totalDays);
+
+  return { prorated: true, amount_cents, days: daysRemaining, totalDays };
+}
+
