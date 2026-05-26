@@ -7,6 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 
+function woStatus(status: string) {
+  const label = status === 'closed' ? 'Completed' : status.replace('_', ' ');
+  const cls =
+    status === 'closed'
+      ? 'border-transparent bg-success/10 text-success'
+      : 'border-transparent bg-destructive/10 text-destructive';
+  return { label, cls };
+}
+
 interface WorkOrderListRow {
   id: string;
   request_type: string;
@@ -58,11 +67,14 @@ export default async function MaintenancePage() {
                     </div>
                     <p className="line-clamp-2 text-xs text-muted-foreground">{w.description}</p>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{addr}</span>
                       <span>
-                        {format(parseISO(w.submitted_at), 'MMM d')} ·{' '}
-                        {submitter?.name ?? submitter?.email ?? '—'} · {w.status.replace('_', ' ')}
+                        {addr} · {format(parseISO(w.submitted_at), 'MMM d')} ·{' '}
+                        {submitter?.name ?? submitter?.email ?? '—'}
                       </span>
+                      {(() => {
+                        const s = woStatus(w.status);
+                        return <Badge className={s.cls}>{s.label}</Badge>;
+                      })()}
                     </div>
                   </CardContent>
                 </Card>

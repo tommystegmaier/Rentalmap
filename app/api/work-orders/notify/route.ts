@@ -53,22 +53,30 @@ export async function POST(request: Request) {
 
   // Always log to the in-app inbox so it's visible from the bell even if push
   // is off. Emergencies bypass the toggle.
-  await createNotification(admin, prop.owner_id, {
-    type: 'work_order_submitted',
-    title,
-    body,
-    url,
-    related_id: wo.id,
-  });
-
-  const wantsPush = isEmergency || landlord?.notify_maintenance_requests !== false;
-  if (wantsPush) {
-    await sendPushToUser(prop.owner_id, {
+  try {
+    await createNotification(admin, prop.owner_id, {
+      type: 'work_order_submitted',
       title,
       body,
       url,
-      tag: `wo-${wo.id}`,
+      related_id: wo.id,
     });
+  } catch (err) {
+    console.error('[work-order notify] failed to create in-app notification:', err);
+  }
+
+  const wantsPush = isEmergency || landlord?.notify_maintenance_requests !== false;
+  if (wantsPush) {
+    try {
+      await sendPushToUser(prop.owner_id, {
+        title,
+        body,
+        url,
+        tag: `wo-${wo.id}`,
+      });
+    } catch (err) {
+      console.error('[work-order notify] push failed:', err);
+    }
   }
 
   return NextResponse.json({ ok: true });
