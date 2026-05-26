@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO, differenceInCalendarDays, addMonths, setDate } from 'date-fns';
-import { Home as HomeIcon, Wallet, Wrench, FileText } from 'lucide-react';
+import { Home as HomeIcon, Wallet, Wrench, FileText, MessageSquare } from 'lucide-react';
 
 export default async function TenantDashboard() {
   const supabase = createClient();
@@ -69,26 +69,32 @@ export default async function TenantDashboard() {
     ? supabase.storage.from('property-photos').getPublicUrl(prop.photo_url).data.publicUrl
     : null;
 
-  const [{ data: payments }, { data: openWorkOrders }, { data: docs }] = await Promise.all([
-    supabase
-      .from('rent_payments')
-      .select('amount_cents, status, received_date, expected_date, method')
-      .eq('lease_id', lease.id)
-      .order('expected_date', { ascending: false })
-      .limit(5),
-    supabase
-      .from('work_orders')
-      .select('id, status')
-      .eq('submitted_by_user_id', user.id)
-      .neq('status', 'closed'),
-    prop
-      ? supabase
-          .from('documents')
-          .select('id, filename, type')
-          .eq('property_id', prop.id)
-          .order('date_added', { ascending: false })
-      : Promise.resolve({ data: [] as Array<{ id: string; filename: string; type: string }> }),
-  ]);
+  const [{ data: payments }, { data: openWorkOrders }, { data: docs }, { count: unreadMessages }] =
+    await Promise.all([
+      supabase
+        .from('rent_payments')
+        .select('amount_cents, status, received_date, expected_date, method')
+        .eq('lease_id', lease.id)
+        .order('expected_date', { ascending: false })
+        .limit(5),
+      supabase
+        .from('work_orders')
+        .select('id, status')
+        .eq('submitted_by_user_id', user.id)
+        .neq('status', 'closed'),
+      prop
+        ? supabase
+            .from('documents')
+            .select('id, filename, type')
+            .eq('property_id', prop.id)
+            .order('date_added', { ascending: false })
+        : Promise.resolve({ data: [] as Array<{ id: string; filename: string; type: string }> }),
+      supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('recipient_id', user.id)
+        .is('read_at', null),
+    ]);
 
   const today = new Date();
   let nextDue = setDate(today, lease.due_day);
@@ -107,6 +113,33 @@ export default async function TenantDashboard() {
       ) : null}
 
       <PageHeader title="Welcome home" description={prop?.address ?? ''} />
+
+      <div className="grid grid-cols-2 gap-2">
+        <Link
+          href="/tenant/messages"
+          className="relative flex flex-col items-center gap-1 rounded-2xl border bg-card p-3 text-center text-xs hover:bg-muted/30 tap-44"
+        >
+          {(unreadMessages ?? 0) > 0 ? (
+            <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-background">
+              {(unreadMessages ?? 0) > 99 ? '99+' : unreadMessages}
+            </span>
+          ) : null}
+          <span className="text-primary" aria-hidden><MessageSquare size={20} /></span>
+          <span className="font-medium">Messages</span>
+        </Link>
+        <Link
+          href="/tenant/maintenance"
+          className="relative flex flex-col items-center gap-1 rounded-2xl border bg-card p-3 text-center text-xs hover:bg-muted/30 tap-44"
+        >
+          {(openWorkOrders?.length ?? 0) > 0 ? (
+            <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-background">
+              {(openWorkOrders?.length ?? 0) > 99 ? '99+' : openWorkOrders!.length}
+            </span>
+          ) : null}
+          <span className="text-primary" aria-hidden><Wrench size={20} /></span>
+          <span className="font-medium">Maintenance</span>
+        </Link>
+      </div>
 
       <Card>
         <CardHeader>

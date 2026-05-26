@@ -20,20 +20,37 @@ export default async function LandlordDashboard() {
 
   const yearStart = `${new Date().getFullYear()}-01-01`;
 
-  const [{ data: properties }, { data: leases }, { data: openWorkOrders }, { data: ytdPayments }, { data: ytdExpenses }] =
-    await Promise.all([
-      supabase.from('properties').select('*').order('created_at'),
-      supabase
-        .from('leases')
-        .select('*, lease_tenants(user_id), properties(address)')
-        .eq('status', 'active'),
-      supabase.from('work_orders').select('id, urgency').neq('status', 'closed'),
-      supabase
-        .from('rent_payments')
-        .select('amount_cents, status, received_date')
-        .gte('received_date', yearStart),
-      supabase.from('expenses').select('amount_cents').gte('date', yearStart),
-    ]);
+  const [
+    { data: properties },
+    { data: leases },
+    { data: openWorkOrders },
+    { data: ytdPayments },
+    { data: ytdExpenses },
+    { count: unreadMessages },
+    { count: unviewedMaintenance },
+  ] = await Promise.all([
+    supabase.from('properties').select('*').order('created_at'),
+    supabase
+      .from('leases')
+      .select('*, lease_tenants(user_id), properties(address)')
+      .eq('status', 'active'),
+    supabase.from('work_orders').select('id, urgency').neq('status', 'closed'),
+    supabase
+      .from('rent_payments')
+      .select('amount_cents, status, received_date')
+      .gte('received_date', yearStart),
+    supabase.from('expenses').select('amount_cents').gte('date', yearStart),
+    supabase
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('recipient_id', user.id)
+      .is('read_at', null),
+    supabase
+      .from('work_orders')
+      .select('id', { count: 'exact', head: true })
+      .is('landlord_viewed_at', null)
+      .neq('status', 'closed'),
+  ]);
 
   const ytdIncomeCents = (ytdPayments ?? [])
     .filter((p: { status: string }) => p.status === 'settled' || p.status === 'manual')
@@ -62,9 +79,19 @@ export default async function LandlordDashboard() {
 
       <div className="grid grid-cols-2 gap-2">
         <QuickAction href="/landlord/expenses/new" icon={<ReceiptText size={20} />} label="Add expense" />
-        <QuickAction href="/landlord/maintenance" icon={<Wrench size={20} />} label="Work orders" />
+        <QuickAction
+          href="/landlord/maintenance"
+          icon={<Wrench size={20} />}
+          label="Work orders"
+          badge={unviewedMaintenance ?? 0}
+        />
         <QuickAction href="/landlord/invite" icon={<Send size={20} />} label="Invite tenant" />
-        <QuickAction href="/landlord/messages" icon={<MessageSquare size={20} />} label="Messages" />
+        <QuickAction
+          href="/landlord/messages"
+          icon={<MessageSquare size={20} />}
+          label="Messages"
+          badge={unreadMessages ?? 0}
+        />
       </div>
 
       <section className="space-y-3">
@@ -186,16 +213,23 @@ function QuickAction({
   href,
   icon,
   label,
+  badge = 0,
 }: {
   href: string;
   icon: React.ReactNode;
   label: string;
+  badge?: number;
 }) {
   return (
     <Link
       href={href}
-      className="flex flex-col items-center gap-1 rounded-2xl border bg-card p-3 text-center text-xs hover:bg-muted/30 tap-44"
+      className="relative flex flex-col items-center gap-1 rounded-2xl border bg-card p-3 text-center text-xs hover:bg-muted/30 tap-44"
     >
+      {badge > 0 ? (
+        <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-background">
+          {badge > 99 ? '99+' : badge}
+        </span>
+      ) : null}
       <span className="text-primary" aria-hidden>
         {icon}
       </span>
