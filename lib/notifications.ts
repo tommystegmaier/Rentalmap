@@ -24,7 +24,7 @@ export async function createNotification(
   userId: string,
   n: NewNotification,
 ) {
-  await admin.from('notifications').insert({
+  const { error } = await admin.from('notifications').insert({
     user_id: userId,
     type: n.type,
     title: n.title,
@@ -32,4 +32,5 @@ export async function createNotification(
     url: n.url ?? null,
     related_id: n.related_id ?? null,
   });
+  if (error) throw error;
 }

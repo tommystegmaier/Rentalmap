@@ -6,22 +6,26 @@ interface Props {
   initialApplianceService: boolean;
   initialHvacFilter: boolean;
   initialMaintenanceRequests: boolean;
+  initialMessages: boolean;
 }
 
 type Field =
   | 'notify_appliance_service'
   | 'notify_hvac_filter'
-  | 'notify_maintenance_requests';
+  | 'notify_maintenance_requests'
+  | 'notify_messages';
 
 export function PushTypeToggles({
   initialApplianceService,
   initialHvacFilter,
   initialMaintenanceRequests,
+  initialMessages,
 }: Props) {
   const [state, setState] = useState({
     notify_appliance_service: initialApplianceService,
     notify_hvac_filter: initialHvacFilter,
     notify_maintenance_requests: initialMaintenanceRequests,
+    notify_messages: initialMessages,
   });
   const [savingField, setSavingField] = useState<Field | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +59,11 @@ export function PushTypeToggles({
       title: 'New maintenance requests',
       description:
         'Push you when a tenant submits a work order. (Emergencies always notify.)',
+    },
+    {
+      field: 'notify_messages',
+      title: 'New messages',
+      description: 'Push you when a tenant sends you a message.',
     },
     {
       field: 'notify_appliance_service',

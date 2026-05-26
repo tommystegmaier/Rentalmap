@@ -43,10 +43,10 @@ export async function sendMessage(input: {
     .single();
   if (error) throw error;
 
-  // Look up recipient role to know which URL to deep-link
+  // Look up recipient role, push preference, and sender name via service role.
   const admin = createServiceRoleClient();
   const [{ data: recipient }, { data: sender }] = await Promise.all([
-    admin.from('users').select('role').eq('id', input.recipient_id).maybeSingle(),
+    admin.from('users').select('role, notify_messages').eq('id', input.recipient_id).maybeSingle(),
     admin.from('users').select('name, email').eq('id', user.id).maybeSingle(),
   ]);
 
@@ -57,12 +57,15 @@ export async function sendMessage(input: {
   const preview = body.length > 80 ? body.slice(0, 77) + '…' : body;
   const fromName = sender?.name ?? sender?.email ?? 'Someone';
 
-  await sendPushToUser(input.recipient_id, {
-    title: `New message from ${fromName}`,
-    body: preview,
-    url,
-    tag: `msg-${msg.id}`,
-  });
+  // Respect the recipient's notify_messages toggle (default on if column absent).
+  if (recipient?.notify_messages !== false) {
+    await sendPushToUser(input.recipient_id, {
+      title: `New message from ${fromName}`,
+      body: preview,
+      url,
+      tag: `msg-${msg.id}`,
+    });
+  }
 
   revalidatePath('/landlord/messages');
   revalidatePath('/tenant/messages');

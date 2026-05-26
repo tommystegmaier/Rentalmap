@@ -21,7 +21,7 @@ export default async function SettingsPage({
   const { data: profile } = await supabase
     .from('users')
     .select(
-      'stripe_connect_account_id, tenant_rent_reminder_enabled, tenant_rent_reminder_days_before, notify_appliance_service, notify_hvac_filter, notify_maintenance_requests',
+      'stripe_connect_account_id, tenant_rent_reminder_enabled, tenant_rent_reminder_days_before, notify_appliance_service, notify_hvac_filter, notify_maintenance_requests, notify_messages',
     )
     .eq('id', user!.id)
     .maybeSingle();
@@ -48,6 +48,7 @@ export default async function SettingsPage({
   const notifyApplianceService = profile?.notify_appliance_service ?? true;
   const notifyHvacFilter = profile?.notify_hvac_filter ?? true;
   const notifyMaintenance = profile?.notify_maintenance_requests ?? true;
+  const notifyMessages = profile?.notify_messages ?? true;
 
   return (
     <div className="space-y-6">
@@ -155,6 +156,7 @@ export default async function SettingsPage({
             initialApplianceService={notifyApplianceService}
             initialHvacFilter={notifyHvacFilter}
             initialMaintenanceRequests={notifyMaintenance}
+            initialMessages={notifyMessages}
           />
         </CardContent>
       </Card>
