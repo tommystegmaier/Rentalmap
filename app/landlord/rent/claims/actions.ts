@@ -52,6 +52,13 @@ export async function approveClaim(claimId: string) {
       url: '/tenant/pay',
       related_id: claimId,
     }),
+    // Clear the landlord's own bell notification for this claim submission.
+    admin
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('user_id', user.id)
+      .eq('related_id', claimId)
+      .is('read_at', null),
   ]);
 
   await sendPushToUser(claim.tenant_user_id, {
@@ -62,7 +69,7 @@ export async function approveClaim(claimId: string) {
   });
 
   revalidatePath('/landlord/rent');
-  revalidatePath('/landlord');
+  revalidatePath('/landlord', 'layout');
 }
 
 export async function denyClaim(claimId: string, reason?: string) {
@@ -109,6 +116,13 @@ export async function denyClaim(claimId: string, reason?: string) {
       url: '/tenant/pay',
       related_id: claimId,
     }),
+    // Clear the landlord's own bell notification for this claim submission.
+    admin
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('user_id', user.id)
+      .eq('related_id', claimId)
+      .is('read_at', null),
   ]);
 
   await sendPushToUser(claim.tenant_user_id, {
@@ -119,6 +133,6 @@ export async function denyClaim(claimId: string, reason?: string) {
   });
 
   revalidatePath('/landlord/rent');
-  revalidatePath('/landlord');
+  revalidatePath('/landlord', 'layout');
 }
 

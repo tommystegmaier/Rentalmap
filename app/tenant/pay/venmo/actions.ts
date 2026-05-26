@@ -28,13 +28,17 @@ export async function submitVenmoClaim(formData: FormData) {
     .maybeSingle();
   if (!link) throw new Error('Forbidden');
 
-  const { error } = await supabase.from('venmo_payment_claims').insert({
-    lease_id,
-    tenant_user_id: user.id,
-    amount_cents,
-    expected_date,
-    venmo_note,
-  });
+  const { data: insertedClaim, error } = await supabase
+    .from('venmo_payment_claims')
+    .insert({
+      lease_id,
+      tenant_user_id: user.id,
+      amount_cents,
+      expected_date,
+      venmo_note,
+    })
+    .select('id')
+    .maybeSingle();
   if (error) throw error;
 
   // Notify the landlord via service role (tenant can't read landlord row).
@@ -63,6 +67,7 @@ export async function submitVenmoClaim(formData: FormData) {
         title,
         body,
         url,
+        related_id: insertedClaim?.id,
       });
     } catch {}
 
