@@ -55,11 +55,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  // Insert (or update) invitation row.
+  // Upsert the invitation so re-inviting the same tenant always resets
+  // the status to 'pending'. A plain insert with 23505-ignore left stale
+  // 'accepted' rows which caused accept_pending_invitations to find nothing.
   const { error: invErr } = await supabase
     .from('tenant_invitations')
-    .insert({ landlord_id: user.id, lease_id, email, status: 'pending' });
-  if (invErr && invErr.code !== '23505') {
+    .upsert(
+      { landlord_id: user.id, lease_id, email, status: 'pending' },
+      { onConflict: 'lease_id,email', ignoreDuplicates: false },
+    );
+  if (invErr) {
     return NextResponse.json({ error: invErr.message }, { status: 500 });
   }
 
