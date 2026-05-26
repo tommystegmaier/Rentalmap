@@ -8,6 +8,7 @@ const Body = z.object({
   notify_appliance_service: z.boolean().optional(),
   notify_hvac_filter: z.boolean().optional(),
   notify_maintenance_requests: z.boolean().optional(),
+  notify_messages: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -37,6 +38,9 @@ export async function POST(request: Request) {
   }
   if (parsed.data.notify_maintenance_requests !== undefined) {
     update.notify_maintenance_requests = parsed.data.notify_maintenance_requests;
+  }
+  if (parsed.data.notify_messages !== undefined) {
+    update.notify_messages = parsed.data.notify_messages;
   }
 
   if (Object.keys(update).length === 0) {
