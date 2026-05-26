@@ -29,7 +29,7 @@ export default async function TenantLayout({ children }: { children: React.React
   const tabs: TabItem[] = [
     { href: '/tenant', label: 'Home', icon: <Home size={22} /> },
     { href: '/tenant/pay', label: 'Pay Rent', icon: <Wallet size={22} /> },
-    { href: '/tenant/maintenance', label: 'Maintenance', icon: <Wrench size={22} /> },
+    { href: '/tenant/maintenance', label: 'Work Orders', icon: <Wrench size={22} /> },
     {
       href: '/tenant/messages',
       label: 'Messages',
