@@ -62,13 +62,14 @@ export function UploadForm({ propertyId, leases }: UploadFormProps) {
         });
       if (upErr) throw upErr;
 
+      const isLease = type === 'Lease' || type === 'Lease addendum';
       const { error: insertErr } = await supabase.from('documents').insert({
         property_id: propertyId,
         lease_id: leaseId || null,
         type,
         filename: file.name,
         file_url: path,
-        visible_to_tenant: visibleToTenant,
+        visible_to_tenant: isLease ? true : visibleToTenant,
         uploaded_by: user.id,
       });
       if (insertErr) throw insertErr;
@@ -125,21 +126,33 @@ export function UploadForm({ propertyId, leases }: UploadFormProps) {
         </div>
       ) : null}
 
-      <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
-        <input
-          type="checkbox"
-          checked={visibleToTenant}
-          onChange={(e) => setVisibleToTenant(e.target.checked)}
-          className="mt-0.5 h-4 w-4"
-        />
-        <div>
-          <p className="font-medium">Share with tenant</p>
-          <p className="text-muted-foreground">
-            When on, the tenant can see and download this file from their Lease screen. Off keeps
-            it landlord-only (e.g. private inspection notes).
-          </p>
-        </div>
-      </label>
+      {(() => {
+        const isLease = type === 'Lease' || type === 'Lease addendum';
+        const effectiveVisible = isLease ? true : visibleToTenant;
+        return (
+          <label
+            className={`flex items-start gap-3 rounded-lg border p-3 text-sm ${
+              isLease ? 'opacity-70' : ''
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={effectiveVisible}
+              onChange={(e) => setVisibleToTenant(e.target.checked)}
+              disabled={isLease}
+              className="mt-0.5 h-4 w-4"
+            />
+            <div>
+              <p className="font-medium">Share with tenant</p>
+              <p className="text-muted-foreground">
+                {isLease
+                  ? 'Lease documents are always shared with tenants on this property — including any tenants added later.'
+                  : 'When on, the tenant can see and download this file from their home screen. Off keeps it landlord-only (e.g. private inspection notes).'}
+              </p>
+            </div>
+          </label>
+        );
+      })()}
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 

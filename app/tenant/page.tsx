@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO, differenceInCalendarDays, addMonths, setDate } from 'date-fns';
-import { Home as HomeIcon } from 'lucide-react';
+import { Home as HomeIcon, Wallet, Wrench, FileText } from 'lucide-react';
 
 export default async function TenantDashboard() {
   const supabase = createClient();
@@ -20,7 +20,7 @@ export default async function TenantDashboard() {
   const { data: leaseLinks } = await supabase
     .from('lease_tenants')
     .select(
-      'lease_id, leases:lease_id(*, properties:property_id(address))',
+      'lease_id, leases:lease_id(*, properties:property_id(id, address, photo_url))',
     )
     .eq('user_id', user.id);
 
@@ -33,14 +33,23 @@ export default async function TenantDashboard() {
         due_day: number;
         start_date: string;
         end_date: string;
-        properties: { address: string } | { address: string }[] | null;
+        late_after_day: number;
+        late_fee_cents: number;
+        security_deposit_cents: number;
+        pets_allowed: boolean;
+        terms_notes: string | null;
+        properties:
+          | { id: string; address: string; photo_url: string | null }
+          | { id: string; address: string; photo_url: string | null }[]
+          | null;
       }
     | null
     | undefined;
-  const propAddr = lease
+
+  const prop = lease
     ? Array.isArray(lease.properties)
-      ? lease.properties[0]?.address
-      : lease.properties?.address
+      ? lease.properties[0]
+      : lease.properties
     : null;
 
   if (!lease) {
@@ -56,18 +65,30 @@ export default async function TenantDashboard() {
     );
   }
 
-  const { data: payments } = await supabase
-    .from('rent_payments')
-    .select('amount_cents, status, received_date, expected_date, method')
-    .eq('lease_id', lease.id)
-    .order('expected_date', { ascending: false })
-    .limit(5);
+  const photoUrl = prop?.photo_url
+    ? supabase.storage.from('property-photos').getPublicUrl(prop.photo_url).data.publicUrl
+    : null;
 
-  const { data: openWorkOrders } = await supabase
-    .from('work_orders')
-    .select('id, status')
-    .eq('submitted_by_user_id', user.id)
-    .neq('status', 'closed');
+  const [{ data: payments }, { data: openWorkOrders }, { data: docs }] = await Promise.all([
+    supabase
+      .from('rent_payments')
+      .select('amount_cents, status, received_date, expected_date, method')
+      .eq('lease_id', lease.id)
+      .order('expected_date', { ascending: false })
+      .limit(5),
+    supabase
+      .from('work_orders')
+      .select('id, status')
+      .eq('submitted_by_user_id', user.id)
+      .neq('status', 'closed'),
+    prop
+      ? supabase
+          .from('documents')
+          .select('id, filename, type')
+          .eq('property_id', prop.id)
+          .order('date_added', { ascending: false })
+      : Promise.resolve({ data: [] as Array<{ id: string; filename: string; type: string }> }),
+  ]);
 
   const today = new Date();
   let nextDue = setDate(today, lease.due_day);
@@ -76,7 +97,16 @@ export default async function TenantDashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Welcome" description={propAddr ?? ''} />
+      {photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={photoUrl}
+          alt={prop?.address ?? 'Property'}
+          className="aspect-video w-full rounded-2xl border object-cover"
+        />
+      ) : null}
+
+      <PageHeader title="Welcome home" description={prop?.address ?? ''} />
 
       <Card>
         <CardHeader>
@@ -90,14 +120,17 @@ export default async function TenantDashboard() {
             </p>
           </div>
           <Button asChild className="w-full">
-            <Link href="/tenant/pay">Pay rent</Link>
+            <Link href="/tenant/pay">
+              <Wallet size={16} className="mr-2" />
+              Pay rent
+            </Link>
           </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Lease</CardTitle>
+          <CardTitle>Lease details</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-3 text-sm">
           <Field
@@ -105,6 +138,50 @@ export default async function TenantDashboard() {
             value={`${format(parseISO(lease.start_date), 'PP')} → ${format(parseISO(lease.end_date), 'PP')}`}
           />
           <Field label="Due day" value={`${lease.due_day} of month`} />
+          <Field label="Late after" value={`Day ${lease.late_after_day}`} />
+          <Field label="Late fee" value={formatCents(lease.late_fee_cents)} />
+          <Field label="Security deposit" value={formatCents(lease.security_deposit_cents)} />
+          <Field label="Pets" value={lease.pets_allowed ? 'Allowed' : 'Not allowed'} />
+        </CardContent>
+      </Card>
+
+      {lease.terms_notes ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Terms</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm">
+            <p className="whitespace-pre-wrap">{lease.terms_notes}</p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Documents</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          {docs && docs.length > 0 ? (
+            docs.map((d: { id: string; filename: string; type: string }) => (
+              <div
+                key={d.id}
+                className="flex items-center justify-between gap-2 border-b py-2 last:border-0"
+              >
+                <a
+                  href={`/api/documents/${d.id}/download`}
+                  className="min-w-0 truncate text-primary underline-offset-4 hover:underline"
+                >
+                  {d.filename}
+                </a>
+                <Badge className="border-transparent bg-secondary">{d.type}</Badge>
+              </div>
+            ))
+          ) : (
+            <p className="text-muted-foreground">
+              <FileText size={16} className="mr-1 inline" />
+              No documents shared yet.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -153,7 +230,10 @@ export default async function TenantDashboard() {
           </Badge>
         </div>
         <Button asChild variant="outline" className="w-full">
-          <Link href="/tenant/maintenance/new">Submit work order</Link>
+          <Link href="/tenant/maintenance/new">
+            <Wrench size={16} className="mr-2" />
+            Submit work order
+          </Link>
         </Button>
       </section>
     </div>
