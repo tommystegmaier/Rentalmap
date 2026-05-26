@@ -20,6 +20,8 @@ export interface CreateUtilityBillInput {
   paid_date: string | null;
   notes: string | null;
   also_log_as_expense: boolean;
+  /** If set, redirect to this property's detail page after saving */
+  return_property_id?: string | null;
 }
 
 export async function createUtilityBill(input: CreateUtilityBillInput) {
@@ -69,5 +71,10 @@ export async function createUtilityBill(input: CreateUtilityBillInput) {
 
   revalidatePath('/landlord/utilities');
   revalidatePath('/landlord/expenses');
-  redirect('/landlord/utilities');
+  if (input.return_property_id) {
+    revalidatePath(`/landlord/properties/${input.return_property_id}`);
+    redirect(`/landlord/properties/${input.return_property_id}`);
+  } else {
+    redirect('/landlord/utilities');
+  }
 }

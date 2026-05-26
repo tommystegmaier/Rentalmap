@@ -9,7 +9,11 @@ interface PropertyWithLease {
   leases: { id: string; start_date: string; end_date: string | null }[];
 }
 
-export default async function NewInspectionPage() {
+export default async function NewInspectionPage({
+  searchParams,
+}: {
+  searchParams: { property_id?: string };
+}) {
   const supabase = createClient();
   const {
     data: { user },
@@ -27,13 +31,19 @@ export default async function NewInspectionPage() {
     leases: Array.isArray(p.leases) ? p.leases : p.leases ? [p.leases] : [],
   }));
 
+  // Pre-select the property if we arrived from a property detail page.
+  const initialPropertyId =
+    searchParams.property_id && properties.some((p) => p.id === searchParams.property_id)
+      ? searchParams.property_id
+      : undefined;
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="New inspection"
         description="Document the property condition room by room."
       />
-      <NewInspectionForm properties={properties} />
+      <NewInspectionForm properties={properties} initialPropertyId={initialPropertyId} />
     </div>
   );
 }

@@ -29,9 +29,11 @@ const PAID_BY_OPTIONS: { value: PaidBy; label: string }[] = [
 interface UtilityBillFormProps {
   properties: { id: string; address: string }[];
   initialPropertyId?: string;
+  /** If set, redirect here after save instead of the utilities list */
+  returnPropertyId?: string;
 }
 
-export function UtilityBillForm({ properties, initialPropertyId }: UtilityBillFormProps) {
+export function UtilityBillForm({ properties, initialPropertyId, returnPropertyId }: UtilityBillFormProps) {
   const [propertyId, setPropertyId] = useState(
     initialPropertyId ?? properties[0]?.id ?? '',
   );
@@ -75,6 +77,7 @@ export function UtilityBillForm({ properties, initialPropertyId }: UtilityBillFo
         paid_date: paidDate || null,
         notes: notes || null,
         also_log_as_expense: alsoLogAsExpense,
+        return_property_id: returnPropertyId ?? null,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');

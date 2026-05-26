@@ -29,10 +29,20 @@ export default async function NewUtilityBillPage({
       ? searchParams.property_id
       : propertyList[0].id;
 
+  const returnPropertyId =
+    searchParams.property_id &&
+    propertyList.some((p) => p.id === searchParams.property_id)
+      ? searchParams.property_id
+      : undefined;
+
   return (
     <div className="space-y-6">
       <PageHeader title="Log utility bill" description="Track a utility bill for a property" />
-      <UtilityBillForm properties={propertyList} initialPropertyId={initialPropertyId} />
+      <UtilityBillForm
+        properties={propertyList}
+        initialPropertyId={initialPropertyId}
+        returnPropertyId={returnPropertyId}
+      />
     </div>
   );
 }

@@ -16,9 +16,11 @@ import { isIsoDate, resizeForUpload } from '@/lib/image';
 interface ExpenseFormProps {
   properties: { id: string; address: string }[];
   initialPropertyId?: string;
+  /** If set, redirect here after save instead of the expenses list */
+  returnPropertyId?: string;
 }
 
-export function ExpenseForm({ properties, initialPropertyId }: ExpenseFormProps) {
+export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }: ExpenseFormProps) {
   const router = useRouter();
   const [propertyId, setPropertyId] = useState(
     initialPropertyId ?? properties[0]?.id ?? '',
@@ -130,7 +132,11 @@ export function ExpenseForm({ properties, initialPropertyId }: ExpenseFormProps)
       });
       if (insertErr) throw insertErr;
 
-      router.push('/landlord/expenses');
+      if (returnPropertyId) {
+        router.push(`/landlord/properties/${returnPropertyId}`);
+      } else {
+        router.push('/landlord/expenses');
+      }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');

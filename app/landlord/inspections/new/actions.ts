@@ -69,6 +69,10 @@ export async function createInspection(
   }
 
   revalidatePath('/landlord/inspections');
+  // Revalidate the property detail page so the inspections card shows the new entry immediately.
+  if (data.propertyId) {
+    revalidatePath(`/landlord/properties/${data.propertyId}`);
+  }
 
   return { inspectionId: inspection.id };
 }

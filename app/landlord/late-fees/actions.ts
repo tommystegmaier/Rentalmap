@@ -8,6 +8,13 @@ export async function waiveLateFee(id: string, note?: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  // Fetch the property_id so we can revalidate the property detail page.
+  const { data: feeRow } = await supabase
+    .from('late_fee_charges')
+    .select('lease_id, leases:lease_id(property_id)')
+    .eq('id', id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from('late_fee_charges')
     .update({
@@ -19,6 +26,16 @@ export async function waiveLateFee(id: string, note?: string) {
     .eq('id', id);
 
   if (error) throw error;
+
   revalidatePath('/landlord/late-fees');
   revalidatePath('/landlord/rent');
+
+  // Also revalidate the property detail page so the late fees card updates immediately.
+  const lease = feeRow?.leases;
+  const propertyId = Array.isArray(lease)
+    ? (lease[0] as { property_id?: string } | undefined)?.property_id
+    : (lease as unknown as { property_id?: string } | null)?.property_id;
+  if (propertyId) {
+    revalidatePath(`/landlord/properties/${propertyId}`);
+  }
 }

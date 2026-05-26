@@ -29,10 +29,21 @@ export default async function NewExpensePage({
       ? searchParams.property_id
       : propertyList[0].id;
 
+  // If ?property_id is in the URL (came from property detail page), redirect back after save.
+  const returnPropertyId =
+    searchParams.property_id &&
+    propertyList.some((p) => p.id === searchParams.property_id)
+      ? searchParams.property_id
+      : undefined;
+
   return (
     <div className="space-y-6">
       <PageHeader title="Add expense" description="Photo a receipt, pick a category" />
-      <ExpenseForm properties={propertyList} initialPropertyId={initialPropertyId} />
+      <ExpenseForm
+        properties={propertyList}
+        initialPropertyId={initialPropertyId}
+        returnPropertyId={returnPropertyId}
+      />
     </div>
   );
 }

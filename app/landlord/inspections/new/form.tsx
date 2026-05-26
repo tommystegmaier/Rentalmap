@@ -65,6 +65,8 @@ interface PropertyOption {
 
 interface NewInspectionFormProps {
   properties: PropertyOption[];
+  /** Pre-select this property when arriving from a property detail page */
+  initialPropertyId?: string;
   /** When set, the form updates an existing inspection instead of creating one */
   editInspectionId?: string;
   initialData?: {
@@ -96,12 +98,12 @@ function makeDefaultRooms(): RoomState[] {
   }));
 }
 
-export function NewInspectionForm({ properties, editInspectionId, initialData }: NewInspectionFormProps) {
+export function NewInspectionForm({ properties, initialPropertyId, editInspectionId, initialData }: NewInspectionFormProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
 
   // Step 1 state
-  const [propertyId, setPropertyId] = useState(initialData?.propertyId ?? properties[0]?.id ?? '');
+  const [propertyId, setPropertyId] = useState(initialData?.propertyId ?? initialPropertyId ?? properties[0]?.id ?? '');
   const [leaseId, setLeaseId] = useState<string>(initialData?.leaseId ?? '');
   const [inspType, setInspType] = useState(initialData?.type ?? 'move_in');
   const [conductedDate, setConductedDate] = useState(
