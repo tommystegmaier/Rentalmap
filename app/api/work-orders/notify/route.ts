@@ -11,31 +11,41 @@ export async function POST(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  if (!user) {
+    console.error('[work-order notify] unauthenticated request');
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
 
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
+    console.error('[work-order notify] invalid payload');
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   }
 
-  const { data: wo } = await supabase
+  const { data: wo, error: woErr } = await supabase
     .from('work_orders')
     .select('id, property_id, request_type, urgency, description')
     .eq('id', parsed.data.work_order_id)
     .maybeSingle();
 
-  if (!wo) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!wo) {
+    console.error('[work-order notify] work order not found:', parsed.data.work_order_id, woErr);
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
 
   // Look up the landlord + their notify_maintenance_requests preference via
   // service role (the tenant making this call can't read the landlord's row).
   const admin = createServiceRoleClient();
-  const { data: prop } = await admin
+  const { data: prop, error: propErr } = await admin
     .from('properties')
     .select('owner_id')
     .eq('id', wo.property_id)
     .maybeSingle();
 
-  if (!prop?.owner_id) return NextResponse.json({ ok: true });
+  if (!prop?.owner_id) {
+    console.error('[work-order notify] property or owner not found for property_id:', wo.property_id, propErr);
+    return NextResponse.json({ ok: true });
+  }
 
   const { data: landlord } = await admin
     .from('users')
@@ -61,6 +71,7 @@ export async function POST(request: Request) {
       url,
       related_id: wo.id,
     });
+    console.log('[work-order notify] in-app notification created for landlord:', prop.owner_id);
   } catch (err) {
     console.error('[work-order notify] failed to create in-app notification:', err);
   }
@@ -68,12 +79,13 @@ export async function POST(request: Request) {
   const wantsPush = isEmergency || landlord?.notify_maintenance_requests !== false;
   if (wantsPush) {
     try {
-      await sendPushToUser(prop.owner_id, {
+      const result = await sendPushToUser(prop.owner_id, {
         title,
         body,
         url,
         tag: `wo-${wo.id}`,
       });
+      console.log('[work-order notify] push result:', result);
     } catch (err) {
       console.error('[work-order notify] push failed:', err);
     }
