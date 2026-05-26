@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { PushToggle } from '@/components/push-toggle';
 import { StripeConnectButton } from './connect-button';
 import { NotificationSettings } from './notification-settings';
+import { PushTypeToggles } from './push-type-toggles';
 
 export default async function SettingsPage({
   searchParams,
@@ -19,7 +20,7 @@ export default async function SettingsPage({
   const { data: profile } = await supabase
     .from('users')
     .select(
-      'stripe_connect_account_id, tenant_rent_reminder_enabled, tenant_rent_reminder_days_before',
+      'stripe_connect_account_id, tenant_rent_reminder_enabled, tenant_rent_reminder_days_before, notify_appliance_service, notify_hvac_filter, notify_maintenance_requests',
     )
     .eq('id', user!.id)
     .maybeSingle();
@@ -27,6 +28,9 @@ export default async function SettingsPage({
   const connected = !!profile?.stripe_connect_account_id;
   const reminderEnabled = profile?.tenant_rent_reminder_enabled ?? true;
   const reminderDays = profile?.tenant_rent_reminder_days_before ?? 3;
+  const notifyApplianceService = profile?.notify_appliance_service ?? true;
+  const notifyHvacFilter = profile?.notify_hvac_filter ?? true;
+  const notifyMaintenance = profile?.notify_maintenance_requests ?? true;
 
   return (
     <div className="space-y-6">
@@ -96,6 +100,23 @@ export default async function SettingsPage({
             reminder fires (lease renewal, inspections, HVAC service).
           </p>
           <PushToggle vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>What pushes you</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Mute specific kinds of pushes. Everything still appears in your in-app
+            notifications inbox (the bell icon) regardless.
+          </p>
+          <PushTypeToggles
+            initialApplianceService={notifyApplianceService}
+            initialHvacFilter={notifyHvacFilter}
+            initialMaintenanceRequests={notifyMaintenance}
+          />
         </CardContent>
       </Card>
 

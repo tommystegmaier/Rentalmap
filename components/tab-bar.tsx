@@ -7,6 +7,7 @@ export interface TabItem {
   href: string;
   label: string;
   icon: React.ReactNode;
+  badge?: number;
 }
 
 export function TabBar({ items }: { items: TabItem[] }) {
@@ -31,7 +32,14 @@ export function TabBar({ items }: { items: TabItem[] }) {
                   active ? 'text-primary' : 'text-muted-foreground',
                 )}
               >
-                <span aria-hidden>{item.icon}</span>
+                <span aria-hidden className="relative">
+                  {item.icon}
+                  {item.badge && item.badge > 0 ? (
+                    <span className="absolute -right-2 -top-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold leading-none text-white">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  ) : null}
+                </span>
                 <span className="max-w-full truncate">{item.label}</span>
               </Link>
             </li>

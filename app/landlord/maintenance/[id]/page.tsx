@@ -41,6 +41,15 @@ export default async function WorkOrderDetail({ params }: { params: { id: string
   if (!data) notFound();
   const wo = data as WorkOrderDetailRow;
 
+  // Mark as viewed by the landlord on first open so the Maintenance tab
+  // badge decrements. RLS limits this update to work orders on properties
+  // the caller owns, so no extra ownership check needed.
+  await supabase
+    .from('work_orders')
+    .update({ landlord_viewed_at: new Date().toISOString() })
+    .eq('id', params.id)
+    .is('landlord_viewed_at', null);
+
   const urg = URGENCY_LABELS[wo.urgency];
   const submitter = one(wo.submitter);
   const propAddr = one(wo.properties)?.address;

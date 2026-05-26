@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { sendPushToLandlord } from '@/lib/push';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { sendPushToUser } from '@/lib/push';
+import { createNotification } from '@/lib/notifications';
 import { z } from 'zod';
 
 const Body = z.object({ work_order_id: z.string().uuid() });
@@ -17,7 +18,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   }
 
-  // RLS ensures the tenant can only see their own work order.
   const { data: wo } = await supabase
     .from('work_orders')
     .select('id, property_id, request_type, urgency, description')
@@ -26,16 +26,50 @@ export async function POST(request: Request) {
 
   if (!wo) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  // Look up the landlord + their notify_maintenance_requests preference via
+  // service role (the tenant making this call can't read the landlord's row).
+  const admin = createServiceRoleClient();
+  const { data: prop } = await admin
+    .from('properties')
+    .select('owner_id')
+    .eq('id', wo.property_id)
+    .maybeSingle();
+
+  if (!prop?.owner_id) return NextResponse.json({ ok: true });
+
+  const { data: landlord } = await admin
+    .from('users')
+    .select('notify_maintenance_requests')
+    .eq('id', prop.owner_id)
+    .maybeSingle();
+
   const isEmergency = wo.urgency === 'emergency';
-  await sendPushToLandlord(wo.property_id, {
-    title: isEmergency ? '🚨 Emergency work order' : `New work order · ${wo.request_type}`,
-    body:
-      wo.description.length > 90
-        ? wo.description.slice(0, 87) + '…'
-        : wo.description,
-    url: `/landlord/maintenance/${wo.id}`,
-    tag: `wo-${wo.id}`,
+  const title = isEmergency
+    ? '🚨 Emergency work order'
+    : `New work order · ${wo.request_type}`;
+  const body =
+    wo.description.length > 90 ? wo.description.slice(0, 87) + '…' : wo.description;
+  const url = `/landlord/maintenance/${wo.id}`;
+
+  // Always log to the in-app inbox so it's visible from the bell even if push
+  // is off. Emergencies bypass the toggle.
+  await createNotification(admin, prop.owner_id, {
+    type: 'work_order_submitted',
+    title,
+    body,
+    url,
+    related_id: wo.id,
   });
+
+  const wantsPush = isEmergency || landlord?.notify_maintenance_requests !== false;
+  if (wantsPush) {
+    await sendPushToUser(prop.owner_id, {
+      title,
+      body,
+      url,
+      tag: `wo-${wo.id}`,
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }

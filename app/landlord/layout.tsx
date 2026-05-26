@@ -2,15 +2,8 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { TabBar, type TabItem } from '@/components/tab-bar';
 import { Logo } from '@/components/logo';
+import { HeaderBell } from '@/components/header-bell';
 import { Home, Building2, Wallet, Wrench, MoreHorizontal } from 'lucide-react';
-
-const tabs: TabItem[] = [
-  { href: '/landlord', label: 'Home', icon: <Home size={22} /> },
-  { href: '/landlord/properties', label: 'Properties', icon: <Building2 size={22} /> },
-  { href: '/landlord/rent', label: 'Rent', icon: <Wallet size={22} /> },
-  { href: '/landlord/maintenance', label: 'Maintenance', icon: <Wrench size={22} /> },
-  { href: '/landlord/more', label: 'More', icon: <MoreHorizontal size={22} /> },
-];
 
 export default async function LandlordLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -29,13 +22,51 @@ export default async function LandlordLayout({ children }: { children: React.Rea
     redirect('/tenant');
   }
 
+  // Unread counts powering the bell badge + Maintenance tab badge.
+  const [{ count: unreadNotifications }, { data: openProperties }] = await Promise.all([
+    supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .is('read_at', null)
+      .is('dismissed_at', null),
+    supabase.from('properties').select('id').eq('owner_id', user.id),
+  ]);
+
+  let unreadMaintenance = 0;
+  const propIds = (openProperties ?? []).map((p: { id: string }) => p.id);
+  if (propIds.length > 0) {
+    const { count } = await supabase
+      .from('work_orders')
+      .select('id', { count: 'exact', head: true })
+      .in('property_id', propIds)
+      .is('landlord_viewed_at', null);
+    unreadMaintenance = count ?? 0;
+  }
+
+  const tabs: TabItem[] = [
+    { href: '/landlord', label: 'Home', icon: <Home size={22} /> },
+    { href: '/landlord/properties', label: 'Properties', icon: <Building2 size={22} /> },
+    { href: '/landlord/rent', label: 'Rent', icon: <Wallet size={22} /> },
+    {
+      href: '/landlord/maintenance',
+      label: 'Maintenance',
+      icon: <Wrench size={22} />,
+      badge: unreadMaintenance,
+    },
+    { href: '/landlord/more', label: 'More', icon: <MoreHorizontal size={22} /> },
+  ];
+
   return (
     <div className="mx-auto min-h-screen max-w-md pb-20">
       <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 px-4 py-3 backdrop-blur">
         <Logo size={28} showWordmark />
-        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Landlord
-        </span>
+        <div className="flex items-center gap-3">
+          <HeaderBell unreadCount={unreadNotifications ?? 0} />
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Landlord
+          </span>
+        </div>
       </header>
       <div className="p-4">{children}</div>
       <TabBar items={tabs} />
