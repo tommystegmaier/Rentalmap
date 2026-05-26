@@ -6,17 +6,51 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StripeRentSection } from '@/components/stripe-rent-section';
+import { VenmoClaimsList, type VenmoClaim } from '@/components/venmo-claims-list';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Wallet } from 'lucide-react';
 
 export default async function RentPage() {
   const supabase = createClient();
-  const { data: payments } = await supabase
-    .from('rent_payments')
-    .select('*, leases:lease_id(properties:property_id(address))')
-    .order('expected_date', { ascending: false })
-    .limit(50);
+  const [{ data: payments }, { data: rawClaims }] = await Promise.all([
+    supabase
+      .from('rent_payments')
+      .select('*, leases:lease_id(properties:property_id(address))')
+      .order('expected_date', { ascending: false })
+      .limit(50),
+    supabase
+      .from('venmo_payment_claims')
+      .select(
+        'id, amount_cents, expected_date, venmo_note, submitted_at, tenant:tenant_user_id(name, email), lease:lease_id(properties:property_id(address))',
+      )
+      .eq('status', 'pending')
+      .order('submitted_at', { ascending: false }),
+  ]);
+
+  const pendingClaims: VenmoClaim[] = (rawClaims ?? []).map((c: {
+    id: string;
+    amount_cents: number;
+    expected_date: string;
+    venmo_note: string | null;
+    submitted_at: string;
+    tenant: { name: string | null; email: string } | { name: string | null; email: string }[] | null;
+    lease: { properties: { address: string } | { address: string }[] | null } | { properties: { address: string } | { address: string }[] | null }[] | null;
+  }) => {
+    const t = Array.isArray(c.tenant) ? c.tenant[0] : c.tenant;
+    const l = Array.isArray(c.lease) ? c.lease[0] : c.lease;
+    const p = l ? (Array.isArray(l.properties) ? l.properties[0] : l.properties) : null;
+    return {
+      id: c.id,
+      amount_cents: c.amount_cents,
+      expected_date: c.expected_date,
+      venmo_note: c.venmo_note,
+      submitted_at: c.submitted_at,
+      tenant_name: t?.name ?? null,
+      tenant_email: t?.email ?? null,
+      property_address: p?.address ?? null,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -31,6 +65,13 @@ export default async function RentPage() {
       />
 
       <StripeRentSection />
+
+      {pendingClaims.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Pending Venmo claims</p>
+          <VenmoClaimsList claims={pendingClaims} />
+        </div>
+      ) : null}
 
       {payments && payments.length > 0 ? (
         <div className="space-y-2">

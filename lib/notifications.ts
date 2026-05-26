@@ -8,7 +8,9 @@ export type NotificationType =
   | 'reminder_appliance_service'
   | 'reminder_hvac_filter'
   | 'reminder_custom'
-  | 'tenant_rent_due';
+  | 'tenant_rent_due'
+  | 'venmo_claim_submitted'
+  | 'venmo_claim_reviewed';
 
 export interface NewNotification {
   type: NotificationType;

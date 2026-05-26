@@ -185,9 +185,29 @@ export default async function PayRentPage({
         </CardContent>
       </Card>
 
+      <Card>
+        <CardContent className="p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Paid via Venmo?</p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Already sent the payment through Venmo? Let your landlord know — they&apos;ll
+            confirm receipt and it gets logged automatically.
+          </p>
+          {lease ? (
+            <Link
+              href="/tenant/pay/venmo"
+              className="block w-full rounded-lg border px-4 py-2 text-center text-sm font-medium transition hover:bg-muted/30"
+            >
+              Log a Venmo payment
+            </Link>
+          ) : null}
+        </CardContent>
+      </Card>
+
       <p className="text-xs text-muted-foreground">
-        Payments are processed by Stripe. It Rents never sees or stores your card or bank
-        details.
+        Online payments are processed by Stripe. It Rents never sees or stores your card or
+        bank details.
       </p>
     </div>
   );
