@@ -10,7 +10,8 @@ export type NotificationType =
   | 'reminder_custom'
   | 'tenant_rent_due'
   | 'venmo_claim_submitted'
-  | 'venmo_claim_reviewed';
+  | 'venmo_claim_reviewed'
+  | 'late_fee_applied';
 
 export interface NewNotification {
   type: NotificationType;

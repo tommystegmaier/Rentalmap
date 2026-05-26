@@ -3,10 +3,11 @@ import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cardChargeCents, formatCents } from '@/lib/utils';
-import { addMonths, format, setDate } from 'date-fns';
+import { addMonths, format, parseISO, setDate } from 'date-fns';
 import { PayButton } from './pay-button';
 import { AutopayControls } from './autopay-controls';
 import { getStripe } from '@/lib/stripe';
+import { AlertCircle, ClipboardList } from 'lucide-react';
 
 export default async function PayRentPage({
   searchParams,
@@ -86,16 +87,30 @@ export default async function PayRentPage({
     : 0;
 
   let autopay: { id: string; status: string } | null = null;
+  type LateFeeRow = { id: string; charge_date: string; amount_cents: number; period_start: string };
+  let lateFees: LateFeeRow[] = [];
+
   if (lease) {
-    const { data } = await supabase
-      .from('autopay_subscriptions')
-      .select('id, status')
-      .eq('lease_id', lease.id)
-      .eq('tenant_user_id', user!.id)
-      .eq('status', 'active')
-      .maybeSingle();
-    autopay = data as { id: string; status: string } | null;
+    const [{ data: autopayData }, { data: feeData }] = await Promise.all([
+      supabase
+        .from('autopay_subscriptions')
+        .select('id, status')
+        .eq('lease_id', lease.id)
+        .eq('tenant_user_id', user!.id)
+        .eq('status', 'active')
+        .maybeSingle(),
+      supabase
+        .from('late_fee_charges')
+        .select('id, charge_date, amount_cents, period_start')
+        .eq('lease_id', lease.id)
+        .eq('waived', false)
+        .order('charge_date', { ascending: false }),
+    ]);
+    autopay = autopayData as { id: string; status: string } | null;
+    lateFees = (feeData ?? []) as LateFeeRow[];
   }
+
+  const totalLateFeesCents = lateFees.reduce((s, f) => s + f.amount_cents, 0);
 
   const today = new Date();
   let nextDue = lease ? setDate(today, lease.due_day) : today;
@@ -123,6 +138,14 @@ export default async function PayRentPage({
           <p className="mt-1 text-sm text-muted-foreground">
             Next due {format(nextDue, 'MMMM d, yyyy')}
           </p>
+          {totalLateFeesCents > 0 ? (
+            <div className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertCircle size={15} className="shrink-0" />
+              <span>
+                <strong>{formatCents(totalLateFeesCents)}</strong> in outstanding late fees — see below.
+              </span>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -221,6 +244,46 @@ export default async function PayRentPage({
           ) : null}
         </CardContent>
       </Card>
+
+      {lateFees.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertCircle size={18} />
+              Outstanding late fees
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm">
+            {lateFees.map((fee) => (
+              <div
+                key={fee.id}
+                className="flex items-center justify-between gap-2 border-b py-2.5 last:border-0"
+              >
+                <div>
+                  <p className="font-medium">{formatCents(fee.amount_cents)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Period starting {format(parseISO(fee.period_start), 'MMM d, yyyy')}
+                  </p>
+                </div>
+                <span className="text-xs text-destructive font-medium">Due</span>
+              </div>
+            ))}
+            <p className="pt-2 text-xs text-muted-foreground">
+              Contact your landlord to arrange payment or request a waiver.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className="flex justify-center">
+        <Link
+          href="/tenant/inspections"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          <ClipboardList size={13} />
+          View inspection records
+        </Link>
+      </div>
 
       <p className="text-xs text-muted-foreground">
         Online payments are processed by Stripe. It Rents never sees or stores your card or

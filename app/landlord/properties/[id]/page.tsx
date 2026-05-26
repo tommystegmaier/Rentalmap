@@ -8,8 +8,53 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
-import { FileText, FileSignature, Plus, Pencil, ChevronRight, Image as ImageIcon, X } from 'lucide-react';
+import {
+  FileText,
+  FileSignature,
+  Plus,
+  Pencil,
+  ChevronRight,
+  Image as ImageIcon,
+  X,
+  Landmark,
+  ClipboardList,
+  CheckCircle2,
+  AlertCircle,
+} from 'lucide-react';
 import { removeTenantFromLease } from './tenants/actions';
+
+type DepositStatus =
+  | 'holding'
+  | 'returned'
+  | 'partially_returned'
+  | 'applied_to_damages'
+  | 'forfeited';
+
+const DEPOSIT_BADGE: Record<DepositStatus, string> = {
+  holding: 'border-blue-300 bg-blue-50 text-blue-700',
+  returned: 'border-green-300 bg-green-50 text-green-700',
+  partially_returned: 'border-yellow-300 bg-yellow-50 text-yellow-700',
+  applied_to_damages: 'border-red-300 bg-red-50 text-red-700',
+  forfeited: 'border-red-300 bg-red-50 text-red-700',
+};
+const DEPOSIT_LABEL: Record<DepositStatus, string> = {
+  holding: 'Holding',
+  returned: 'Returned',
+  partially_returned: 'Partial return',
+  applied_to_damages: 'Applied to damages',
+  forfeited: 'Forfeited',
+};
+
+const INSP_BADGE: Record<string, string> = {
+  move_in: 'border-transparent bg-blue-100 text-blue-700',
+  move_out: 'border-transparent bg-orange-100 text-orange-700',
+  periodic: 'border-transparent bg-muted text-muted-foreground',
+};
+const INSP_LABEL: Record<string, string> = {
+  move_in: 'Move-in',
+  move_out: 'Move-out',
+  periodic: 'Periodic',
+};
 
 export default async function PropertyDetail({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -29,6 +74,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
     { data: documents },
     { data: recentExpenses },
     { data: ytdExpenses },
+    { data: propertyInspections },
   ] = await Promise.all([
     supabase
       .from('leases')
@@ -52,6 +98,12 @@ export default async function PropertyDetail({ params }: { params: { id: string 
       .select('amount_cents')
       .eq('property_id', params.id)
       .gte('date', yearStart),
+    supabase
+      .from('inspections')
+      .select('id, type, conducted_date, tenant_signed_at')
+      .eq('property_id', params.id)
+      .order('conducted_date', { ascending: false })
+      .limit(10),
   ]);
 
   const ytdExpenseCents = (ytdExpenses ?? []).reduce(
@@ -72,8 +124,10 @@ export default async function PropertyDetail({ params }: { params: { id: string 
     'use server';
     await removeTenantFromLease(params.id, formData);
   }
+
   const activeLease = leases?.find((l: { status: string }) => l.status === 'active') as
     | (Record<string, unknown> & {
+        id: string;
         start_date: string;
         end_date: string;
         monthly_rent_cents: number;
@@ -85,6 +139,53 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         lease_tenants: LeaseTenantJoined[];
       })
     | undefined;
+
+  // Fetch security deposit and late fees only once we have the active lease id.
+  type DepositRow = {
+    id: string;
+    amount_cents: number;
+    status: DepositStatus;
+    received_date: string | null;
+    holding_institution: string | null;
+    interest_rate_pct: number | null;
+    interest_accrued_cents: number;
+  };
+  type LateFeeRow = {
+    id: string;
+    charge_date: string;
+    amount_cents: number;
+    period_start: string;
+    waived: boolean;
+    waive_note: string | null;
+  };
+
+  let securityDeposit: DepositRow | null = null;
+  let lateFeeCharges: LateFeeRow[] = [];
+
+  if (activeLease) {
+    const [{ data: deposit }, { data: fees }] = await Promise.all([
+      supabase
+        .from('security_deposits')
+        .select('id, amount_cents, status, received_date, holding_institution, interest_rate_pct, interest_accrued_cents')
+        .eq('lease_id', activeLease.id)
+        .maybeSingle(),
+      supabase
+        .from('late_fee_charges')
+        .select('id, charge_date, amount_cents, period_start, waived, waive_note')
+        .eq('lease_id', activeLease.id)
+        .order('charge_date', { ascending: false })
+        .limit(10),
+    ]);
+    securityDeposit = deposit as DepositRow | null;
+    lateFeeCharges = (fees ?? []) as LateFeeRow[];
+  }
+
+  const inspections = (propertyInspections ?? []) as {
+    id: string;
+    type: string;
+    conducted_date: string;
+    tenant_signed_at: string | null;
+  }[];
 
   const photoUrl = property.photo_url
     ? supabase.storage.from('property-photos').getPublicUrl(property.photo_url).data.publicUrl
@@ -214,6 +315,178 @@ export default async function PropertyDetail({ params }: { params: { id: string 
           }
         />
       )}
+
+      {/* Security deposit */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Landmark size={18} className="text-muted-foreground" />
+              Security deposit
+            </span>
+            {!securityDeposit && activeLease ? (
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/landlord/deposits/new?lease_id=${activeLease.id}`}>
+                  <Plus size={14} /> Record
+                </Link>
+              </Button>
+            ) : securityDeposit ? (
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/landlord/deposits/${securityDeposit.id}`}>
+                  <Pencil size={14} /> Manage
+                </Link>
+              </Button>
+            ) : null}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm">
+          {securityDeposit ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Amount" value={formatCents(securityDeposit.amount_cents)} />
+                <div>
+                  <p className="text-muted-foreground">Status</p>
+                  <Badge className={DEPOSIT_BADGE[securityDeposit.status] ?? ''}>
+                    {DEPOSIT_LABEL[securityDeposit.status] ?? securityDeposit.status}
+                  </Badge>
+                </div>
+                {securityDeposit.received_date ? (
+                  <Field
+                    label="Received"
+                    value={format(parseISO(securityDeposit.received_date), 'PP')}
+                  />
+                ) : null}
+                {securityDeposit.holding_institution ? (
+                  <Field label="Held at" value={securityDeposit.holding_institution} />
+                ) : null}
+                {securityDeposit.interest_rate_pct != null ? (
+                  <Field label="Interest rate" value={`${securityDeposit.interest_rate_pct}%`} />
+                ) : null}
+                {securityDeposit.interest_accrued_cents > 0 ? (
+                  <Field label="Interest accrued" value={formatCents(securityDeposit.interest_accrued_cents)} />
+                ) : null}
+              </div>
+            </div>
+          ) : activeLease ? (
+            <p className="text-muted-foreground">No deposit recorded for this lease yet.</p>
+          ) : (
+            <p className="text-muted-foreground">Create a lease to record a security deposit.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Inspections */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <ClipboardList size={18} className="text-muted-foreground" />
+              Inspections
+            </span>
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/landlord/inspections/new?property_id=${params.id}`}>
+                <Plus size={14} /> New
+              </Link>
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm">
+          {inspections.length > 0 ? (
+            <div className="space-y-1">
+              {inspections.map((insp) => (
+                <Link
+                  key={insp.id}
+                  href={`/landlord/inspections/${insp.id}`}
+                  className="flex items-center justify-between gap-2 border-b py-2.5 last:border-0 hover:bg-muted/30 -mx-1 px-1 rounded"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium">
+                      {INSP_LABEL[insp.type] ?? insp.type} inspection
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(parseISO(insp.conducted_date), 'MMM d, yyyy')}
+                      {insp.tenant_signed_at ? ' · Tenant signed' : ''}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {insp.tenant_signed_at ? (
+                      <CheckCircle2 size={14} className="text-green-600" />
+                    ) : null}
+                    <Badge className={INSP_BADGE[insp.type] ?? INSP_BADGE.periodic}>
+                      {INSP_LABEL[insp.type] ?? insp.type}
+                    </Badge>
+                    <ChevronRight size={16} className="text-muted-foreground" />
+                  </div>
+                </Link>
+              ))}
+              <Link
+                href={`/landlord/inspections`}
+                className="block pt-2 text-center text-xs text-primary underline-offset-4 hover:underline"
+              >
+                View all inspections
+              </Link>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">
+              No inspections recorded. Document move-in and move-out condition with photos.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Late fees */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <AlertCircle size={18} className="text-muted-foreground" />
+              Late fees
+            </span>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/landlord/late-fees">
+                Manage all
+              </Link>
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm">
+          {lateFeeCharges.length > 0 ? (
+            <div className="space-y-1">
+              {lateFeeCharges.map((fee) => (
+                <div
+                  key={fee.id}
+                  className="flex items-center justify-between gap-2 border-b py-2.5 last:border-0"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium">{formatCents(fee.amount_cents)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Period starting {format(parseISO(fee.period_start), 'MMM d, yyyy')}
+                      {fee.waived ? ` · Waived${fee.waive_note ? `: ${fee.waive_note}` : ''}` : ''}
+                    </p>
+                  </div>
+                  <Badge
+                    className={
+                      fee.waived
+                        ? 'border-transparent bg-muted text-muted-foreground'
+                        : 'border-transparent bg-destructive/10 text-destructive'
+                    }
+                  >
+                    {fee.waived ? 'Waived' : 'Outstanding'}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : activeLease ? (
+            <p className="text-muted-foreground">
+              {(activeLease as Record<string, unknown>).late_fee_enabled
+                ? 'No late fees charged yet.'
+                : 'Auto late fees are disabled for this lease.'}
+            </p>
+          ) : (
+            <p className="text-muted-foreground">No active lease.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

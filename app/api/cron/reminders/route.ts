@@ -221,17 +221,33 @@ export async function GET(request: Request) {
       .select('user_id')
       .eq('lease_id', lease.id);
 
+    const feeLabel = `$${(lease.late_fee_cents / 100).toFixed(0)}`;
     for (const link of (tenantLinks ?? []) as { user_id: string }[]) {
       await createNotification(supabase, link.user_id, {
-        type: 'tenant_rent_due',
+        type: 'late_fee_applied',
         title: 'Late fee applied',
-        body: `A late fee of $${(lease.late_fee_cents / 100).toFixed(0)} has been added to your account for the rent period starting ${periodStart}.`,
+        body: `A late fee of ${feeLabel} has been added to your account for the rent period starting ${periodStart}.`,
         url: '/tenant/pay',
       });
       await sendPushToUser(link.user_id, {
         title: 'Late fee applied',
-        body: `A $${(lease.late_fee_cents / 100).toFixed(0)} late fee has been added to your account.`,
+        body: `A ${feeLabel} late fee has been added to your account.`,
         url: '/tenant/pay',
+      });
+    }
+
+    // Also notify the landlord.
+    if (prop?.owner_id) {
+      await createNotification(supabase, prop.owner_id, {
+        type: 'late_fee_applied',
+        title: 'Late fee auto-charged',
+        body: `A ${feeLabel} late fee was automatically applied for the rent period starting ${periodStart}.`,
+        url: '/landlord/late-fees',
+      });
+      await sendPushToUser(prop.owner_id, {
+        title: 'Late fee auto-charged',
+        body: `A ${feeLabel} late fee was auto-applied for period ${periodStart}.`,
+        url: '/landlord/late-fees',
       });
     }
   }
