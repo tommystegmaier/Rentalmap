@@ -36,6 +36,10 @@ export function ConversationView({
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
+  // Bust the client-side router cache on mount so navigating back to the
+  // home page immediately reflects the cleared message badge.
+  useEffect(() => { router.refresh(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages.length]);
