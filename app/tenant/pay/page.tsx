@@ -5,6 +5,7 @@ import { cardChargeCents, formatCents } from '@/lib/utils';
 import { addMonths, format, setDate } from 'date-fns';
 import { PayButton } from './pay-button';
 import { AutopayControls } from './autopay-controls';
+import { getStripe } from '@/lib/stripe';
 
 export default async function PayRentPage({
   searchParams,
@@ -44,15 +45,27 @@ export default async function PayRentPage({
     : null;
 
   // Look up landlord's Stripe connect status (service role — tenant can't read landlord row).
+  // We check charges_enabled via Stripe API, not just whether an ID is stored in the DB,
+  // so the UI correctly reflects whether payments can actually be accepted.
   let landlordConnected = false;
-  if (prop) {
+  let landlordHasAccount = false;
+  if (prop?.owner_id) {
     const admin = createServiceRoleClient();
     const { data: landlord } = await admin
       .from('users')
       .select('stripe_connect_account_id')
       .eq('id', prop.owner_id)
       .maybeSingle();
-    landlordConnected = !!landlord?.stripe_connect_account_id;
+    if (landlord?.stripe_connect_account_id) {
+      landlordHasAccount = true;
+      try {
+        const stripe = getStripe();
+        const account = await stripe.accounts.retrieve(landlord.stripe_connect_account_id);
+        landlordConnected = account.charges_enabled;
+      } catch {
+        landlordConnected = false;
+      }
+    }
   }
 
   let autopay: { id: string; status: string } | null = null;
@@ -145,8 +158,9 @@ export default async function PayRentPage({
           <Card>
             <CardContent className="p-4 text-sm">
               <p className="text-muted-foreground">
-                Your landlord hasn&apos;t finished connecting their bank yet. Please continue
-                paying via Zelle, Venmo, or check; payments will be logged here.
+                {landlordHasAccount
+                  ? "Your landlord's payment account is being verified by Stripe and isn't ready yet. Please continue paying via Zelle, Venmo, or check in the meantime."
+                  : "Your landlord hasn't set up online payments yet. Please continue paying via Zelle, Venmo, or check; payments will be logged here."}
               </p>
             </CardContent>
           </Card>
