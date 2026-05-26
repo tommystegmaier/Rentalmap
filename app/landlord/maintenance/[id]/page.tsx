@@ -57,7 +57,7 @@ export default async function WorkOrderDetail({ params }: { params: { id: string
   async function action(formData: FormData) {
     'use server';
     await updateWorkOrder(params.id, formData);
-    redirect(`/landlord/maintenance/${params.id}`);
+    redirect('/landlord/maintenance');
   }
 
   return (
