@@ -326,7 +326,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
             </span>
             {!securityDeposit && activeLease ? (
               <Button asChild size="sm" variant="outline">
-                <Link href={`/landlord/deposits/new?lease_id=${activeLease.id}`}>
+                <Link href={`/landlord/deposits/new?lease_id=${activeLease.id}&property_id=${params.id}`}>
                   <Plus size={14} /> Record
                 </Link>
               </Button>

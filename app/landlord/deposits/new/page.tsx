@@ -8,6 +8,7 @@ interface LeaseOption {
   id: string;
   monthly_rent_cents: number;
   start_date: string;
+  property_id: string;
   properties: { address: string } | { address: string }[] | null;
   tenants: { users: { name: string | null } | { name: string | null }[] | null }[] | null;
 }
@@ -21,31 +22,35 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export default async function NewDepositPage() {
+export default async function NewDepositPage({
+  searchParams,
+}: {
+  searchParams: { lease_id?: string; property_id?: string };
+}) {
   const supabase = createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: leases } = await supabase
+  // Fetch all active leases owned by this landlord.
+  const { data: ownedLeases } = await supabase
     .from('leases')
     .select(
-      'id, monthly_rent_cents, start_date, properties:property_id(address), tenants:lease_tenants(users:user_id(name))',
+      'id, monthly_rent_cents, start_date, property_id, properties:property_id!inner(address), tenants:lease_tenants(users:user_id(name))',
     )
     .eq('status', 'active')
     .eq('properties.owner_id', user!.id);
 
-  // Filter to leases where the property belongs to this landlord
-  // (PostgREST inner filter on embedded table)
-  const { data: ownedLeases } = await supabase
-    .from('leases')
-    .select(
-      'id, monthly_rent_cents, start_date, properties:property_id!inner(address), tenants:lease_tenants(users:user_id(name))',
-    )
-    .eq('properties.owner_id', user!.id);
+  const leasesToShow = (ownedLeases ?? []) as LeaseOption[];
 
-  const leasesToShow = (ownedLeases ?? leases ?? []) as LeaseOption[];
+  // Pre-select the lease passed in the URL (from the property detail page).
+  const preselectedLeaseId = searchParams.lease_id ?? leasesToShow[0]?.id ?? '';
+  // Pass the property_id through so we can redirect back after saving.
+  const returnPropertyId =
+    searchParams.property_id ??
+    leasesToShow.find((l) => l.id === preselectedLeaseId)?.property_id ??
+    '';
 
   return (
     <div className="space-y-6">
@@ -60,11 +65,14 @@ export default async function NewDepositPage() {
         </p>
       ) : (
         <form action={createDeposit} className="space-y-4">
+          {/* Hidden field so the action knows where to redirect after save */}
+          <input type="hidden" name="return_property_id" value={returnPropertyId} />
+
           <Field label="Lease / Property">
             <select
               name="lease_id"
               required
-              defaultValue={leasesToShow[0]?.id ?? ''}
+              defaultValue={preselectedLeaseId}
               className="h-11 w-full rounded-lg border border-input bg-background px-3"
             >
               {leasesToShow.map((l) => {
