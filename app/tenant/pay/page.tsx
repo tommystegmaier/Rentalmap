@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
