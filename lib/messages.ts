@@ -81,4 +81,7 @@ export async function markThreadRead(otherUserId: string) {
     .eq('recipient_id', user.id)
     .eq('sender_id', otherUserId)
     .is('read_at', null);
+  // Bust home-page badge counts for both roles so the red dot clears immediately.
+  revalidatePath('/tenant');
+  revalidatePath('/landlord');
 }
