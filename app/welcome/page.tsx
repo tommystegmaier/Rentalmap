@@ -33,24 +33,22 @@ export default function WelcomePage() {
         setChecked(true);
         return;
       }
-      // Returning user — they've signed in before, so skip the password-setup
-      // screen and drop them straight in their portal. Brand-new tenants
-      // (first sign-in) stay here to set a password.
-      const lastSignIn = user.last_sign_in_at ? new Date(user.last_sign_in_at).getTime() : null;
-      const createdAt = user.created_at ? new Date(user.created_at).getTime() : null;
-      const isFirstLogin =
-        !lastSignIn || (createdAt !== null && lastSignIn - createdAt < 60_000);
+      // If they've already set a password, skip straight to their portal.
+      if (user.user_metadata?.password_set === true) {
+        const { data } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+        router.replace(data?.role === 'landlord' ? '/landlord' : '/tenant');
+        return;
+      }
       const { data } = await supabase
         .from('users')
         .select('email, name, role')
         .eq('id', user.id)
         .maybeSingle();
-      const profileData = (data as Profile | null) ?? null;
-      if (!isFirstLogin && profileData) {
-        router.replace(profileData.role === 'landlord' ? '/landlord' : '/tenant');
-        return;
-      }
-      setProfile(profileData);
+      setProfile((data as Profile | null) ?? null);
       setChecked(true);
     });
   }, [router]);
@@ -68,7 +66,10 @@ export default function WelcomePage() {
     setBusy(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
+    const { error } = await supabase.auth.updateUser({
+      password,
+      data: { password_set: true },
+    });
     setBusy(false);
     if (error) {
       setError(error.message);

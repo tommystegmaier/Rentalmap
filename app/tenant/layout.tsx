@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { TabBar, type TabItem } from '@/components/tab-bar';
 import { Logo } from '@/components/logo';
+import { InstallPrompt } from '@/components/install-prompt';
 import { Home, Wallet, Wrench, MoreHorizontal } from 'lucide-react';
 
 const tabs: TabItem[] = [
@@ -33,6 +34,7 @@ export default async function TenantLayout({ children }: { children: React.React
       </header>
       <div className="p-4">{children}</div>
       <TabBar items={tabs} />
+      <InstallPrompt />
     </div>
   );
 }
