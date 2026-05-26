@@ -13,7 +13,15 @@ export async function GET(request: Request) {
   const tokenHash = searchParams.get('token_hash');
   const type = searchParams.get('type') as EmailOtpType | null;
   const to = searchParams.get('to');
-  const next = to && TO_PATHS.has(to) ? `/${to}` : '/';
+
+  // Invite links always go to /welcome so the tenant can set a password,
+  // regardless of whether the email template included &to=welcome.
+  const next =
+    type === 'invite'
+      ? '/welcome'
+      : to && TO_PATHS.has(to)
+        ? `/${to}`
+        : '/';
 
   const supabase = createClient();
   let userId: string | null = null;
