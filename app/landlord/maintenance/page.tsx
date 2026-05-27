@@ -29,6 +29,7 @@ interface OrderRow {
   urgency: Urgency;
   status: 'open' | 'in_progress' | 'closed';
   submitted_at: string;
+  closed_at: string | null;
   properties: { id: string; address: string } | { id: string; address: string }[] | null;
   submitter: { name: string | null; email: string } | { name: string | null; email: string }[] | null;
 }
@@ -53,7 +54,7 @@ export default async function LandlordMaintenancePage({
   const [{ data: rawOrders }, { data: rawProperties }] = await Promise.all([
     supabase
       .from('work_orders')
-      .select('id, property_id, request_type, description, urgency, status, submitted_at, properties:property_id(id, address), submitter:submitted_by_user_id(name, email)')
+      .select('id, property_id, request_type, description, urgency, status, submitted_at, closed_at, properties:property_id(id, address), submitter:submitted_by_user_id(name, email)')
       .order('submitted_at', { ascending: false })
       .limit(200),
     supabase
@@ -244,7 +245,9 @@ function OrderCard({
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">
               {showProperty ? `${props?.address ?? '—'} · ` : ''}
-              {format(parseISO(w.submitted_at), 'MMM d')}
+              {w.status === 'closed' && w.closed_at
+                ? `Completed ${format(parseISO(w.closed_at), 'MMM d')}`
+                : format(parseISO(w.submitted_at), 'MMM d')}
               {sub ? ` · ${sub.name ?? sub.email}` : ''}
             </span>
             <Badge className={s.cls}>{s.label}</Badge>

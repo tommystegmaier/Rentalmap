@@ -17,6 +17,7 @@ interface WorkOrderDetailRow {
   urgency: Urgency;
   status: 'open' | 'in_progress' | 'closed';
   submitted_at: string;
+  closed_at: string | null;
   photo_urls: string[];
   vendor_name: string | null;
   vendor_phone: string | null;
@@ -79,6 +80,11 @@ export default async function WorkOrderDetail({ params }: { params: { id: string
         <Badge className="border-transparent bg-muted text-muted-foreground">
           Submitted {format(parseISO(wo.submitted_at), 'PP')}
         </Badge>
+        {wo.status === 'closed' && wo.closed_at ? (
+          <Badge className="border-transparent bg-success/10 text-success">
+            Completed {format(parseISO(wo.closed_at), 'PP')}
+          </Badge>
+        ) : null}
       </div>
 
       <Card>

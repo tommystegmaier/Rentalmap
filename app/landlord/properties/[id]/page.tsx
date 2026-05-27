@@ -773,7 +773,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
                     <div className="min-w-0">
                       <p className="truncate font-medium">{item.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        Work order · {format(parseISO(item.sortDate), 'MMM d, yyyy')}
+                        Work order · Completed {format(parseISO(item.sortDate), 'MMM d, yyyy')}
                       </p>
                     </div>
                   </div>

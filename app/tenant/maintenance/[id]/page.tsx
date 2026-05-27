@@ -39,6 +39,11 @@ export default async function TenantWorkOrderDetail({
         <Badge className="border-transparent bg-muted text-muted-foreground">
           Submitted {format(parseISO(wo.submitted_at), 'PP')}
         </Badge>
+        {wo.status === 'closed' && wo.closed_at ? (
+          <Badge className="border-transparent bg-success/10 text-success">
+            Completed {format(parseISO(wo.closed_at), 'PP')}
+          </Badge>
+        ) : null}
       </div>
 
       <Card>
