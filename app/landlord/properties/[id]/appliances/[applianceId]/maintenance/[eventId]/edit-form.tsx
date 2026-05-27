@@ -17,11 +17,11 @@ import {
 import type { ReminderInput } from '../new/actions';
 import { differenceInDays, parseISO, format, subDays } from 'date-fns';
 
-const QUICK_DAYS = [0, 1, 2, 3, 4, 5, 6, 7];
+const QUICK_DAYS = [1, 2, 3, 4, 5, 6, 7];
 
 function dayLabel(days: number) {
-  if (days === 0) return 'Day of';
   if (days === 1) return '1 day before';
+  if (days === 7) return '1 week before';
   return `${days} days before`;
 }
 

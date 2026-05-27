@@ -16,11 +16,11 @@ interface MaintenanceEventFormProps {
   applianceName: string;
 }
 
-const QUICK_DAYS = [0, 1, 2, 3, 4, 5, 6, 7];
+const QUICK_DAYS = [1, 2, 3, 4, 5, 6, 7];
 
 function dayLabel(days: number) {
-  if (days === 0) return 'Day of';
   if (days === 1) return '1 day before';
+  if (days === 7) return '1 week before';
   return `${days} days before`;
 }
 
@@ -55,7 +55,7 @@ export function MaintenanceEventForm({
   const [notes, setNotes] = useState('');
   const [reminders, setReminders] = useState<ReminderUIRow[]>([
     { days_before: 7, notify_landlord: true, notify_tenant: true, use_date_picker: false, picked_date: '' },
-    { days_before: 1, notify_landlord: true, notify_tenant: false, use_date_picker: false, picked_date: '' },
+    { days_before: 1, notify_landlord: true, notify_tenant: true, use_date_picker: false, picked_date: '' },
   ]);
   const [error, setError] = useState<string | null>(null);
 

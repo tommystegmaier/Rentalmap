@@ -645,8 +645,6 @@ export default async function PropertyDetail({ params }: { params: { id: string 
                   <p className="text-xs text-muted-foreground">
                     {nextEv
                       ? `Next: ${nextEv.title} · ${format(parseISO(nextEv.scheduled_date), 'MMM d, yyyy')}`
-                      : a.next_service_due
-                      ? `Service due ${format(parseISO(a.next_service_due), 'MMM d, yyyy')}`
                       : 'Tap to schedule maintenance'}
                   </p>
                 </div>
