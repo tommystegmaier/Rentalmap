@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
-import { Wrench } from 'lucide-react';
+import { Wrench, FolderOpen, ChevronRight } from 'lucide-react';
 
 function woStatus(status: string) {
   const label = status === 'closed' ? 'Completed' : status.replace('_', ' ');
@@ -30,6 +30,40 @@ export default async function TenantMaintenancePage() {
     .eq('submitted_by_user_id', user!.id)
     .order('submitted_at', { ascending: false });
 
+  // Count past activity for the tenant's property to display on the folder card
+  const { data: leaseLinks } = await supabase
+    .from('lease_tenants')
+    .select('leases:lease_id(property_id)')
+    .eq('user_id', user!.id);
+  const rawLease = leaseLinks?.[0]?.leases;
+  const leaseRow = Array.isArray(rawLease) ? rawLease[0] : rawLease;
+  const propertyId = (leaseRow as { property_id?: string } | null | undefined)?.property_id ?? null;
+
+  let previousCount = 0;
+  if (propertyId) {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const [{ data: maintCountRaw }, { count: closedWoCount }] = await Promise.all([
+      supabase
+        .from('maintenance_events')
+        .select('id, scheduled_date, completed_at')
+        .eq('property_id', propertyId),
+      supabase
+        .from('work_orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('property_id', propertyId)
+        .eq('status', 'closed'),
+    ]);
+    const pastMaint = (maintCountRaw ?? []).filter(
+      (e: { scheduled_date: string; completed_at: string | null }) =>
+        !!e.completed_at || e.scheduled_date < today,
+    ).length;
+    previousCount = pastMaint + (closedWoCount ?? 0);
+  }
+
+  const activeOrders = (orders ?? []).filter(
+    (w: { status: string }) => w.status !== 'closed',
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -41,9 +75,9 @@ export default async function TenantMaintenancePage() {
         }
       />
 
-      {orders && orders.length > 0 ? (
+      {activeOrders.length > 0 ? (
         <div className="space-y-2">
-          {orders.map((w: {
+          {activeOrders.map((w: {
             id: string;
             request_type: string;
             description: string;
@@ -76,7 +110,7 @@ export default async function TenantMaintenancePage() {
             );
           })}
         </div>
-      ) : (
+      ) : (orders ?? []).length === 0 ? (
         <EmptyState
           icon={<Wrench size={32} />}
           title="No work orders yet"
@@ -87,7 +121,24 @@ export default async function TenantMaintenancePage() {
             </Button>
           }
         />
+      ) : (
+        <p className="text-sm text-muted-foreground text-center py-4">No open work orders.</p>
       )}
+
+      {previousCount > 0 ? (
+        <Link href="/tenant/history">
+          <Card className="transition hover:bg-muted/30">
+            <CardContent className="flex items-center gap-3 p-3">
+              <FolderOpen size={18} className="shrink-0 text-muted-foreground" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Previous service & work orders</p>
+                <p className="text-xs text-muted-foreground">{previousCount} completed</p>
+              </div>
+              <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
+      ) : null}
     </div>
   );
 }

@@ -1,10 +1,9 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { format, parseISO } from 'date-fns';
-import { ChevronLeft, ChevronRight, CheckCircle2, Wrench, FolderOpen } from 'lucide-react';
+import { ChevronLeft, CheckCircle2, Wrench, FolderOpen } from 'lucide-react';
 
 type MaintenanceRow = {
   id: string;
@@ -29,7 +28,6 @@ type PreviousItem =
       title: string;
       sortDate: string;
       applianceName: string | null;
-      applianceId: string;
       completed: boolean;
     }
   | {
@@ -39,30 +37,57 @@ type PreviousItem =
       sortDate: string;
     };
 
-export default async function PropertyHistoryPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function TenantHistoryPage() {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  // Find the tenant's current property via lease_tenants.
+  const { data: leaseLinks } = await supabase
+    .from('lease_tenants')
+    .select('leases:lease_id(property_id, properties:property_id(id, address))')
+    .eq('user_id', user.id);
+
+  const rawLease = leaseLinks?.[0]?.leases as unknown;
+  const leaseRow = Array.isArray(rawLease) ? rawLease[0] : rawLease;
+  const propsField = (leaseRow as { properties?: unknown } | null | undefined)?.properties;
+  const propRaw = (Array.isArray(propsField) ? propsField[0] : propsField) as
+    | { id: string; address: string }
+    | null
+    | undefined;
+
+  if (!propRaw) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Previous service & work orders" />
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            <FolderOpen size={28} className="mx-auto mb-2 opacity-40" />
+            No property associated with your account.
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const propertyId = propRaw.id;
   const today = format(new Date(), 'yyyy-MM-dd');
 
-  const [{ data: property }, { data: maintRaw }, { data: workOrdersRaw }] = await Promise.all([
-    supabase.from('properties').select('id, address').eq('id', params.id).maybeSingle(),
+  const [{ data: maintRaw }, { data: workOrdersRaw }] = await Promise.all([
     supabase
       .from('maintenance_events')
       .select('id, appliance_id, title, scheduled_date, completed_at, appliances:appliance_id(name)')
-      .eq('property_id', params.id)
+      .eq('property_id', propertyId)
       .order('scheduled_date', { ascending: false }),
     supabase
       .from('work_orders')
       .select('id, request_type, submitted_at, closed_at')
-      .eq('property_id', params.id)
+      .eq('property_id', propertyId)
       .eq('status', 'closed')
       .order('closed_at', { ascending: false, nullsFirst: false }),
   ]);
-
-  if (!property) notFound();
 
   const previousMaintenance = (maintRaw ?? []).filter(
     (e: { scheduled_date: string; completed_at: string | null }) =>
@@ -78,7 +103,6 @@ export default async function PropertyHistoryPage({
         title: ev.title,
         sortDate: ev.completed_at ?? ev.scheduled_date,
         applianceName: appl?.name ?? null,
-        applianceId: ev.appliance_id,
         completed: !!ev.completed_at,
       };
     }),
@@ -92,21 +116,21 @@ export default async function PropertyHistoryPage({
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Previous service & work orders" description={property.address} />
+      <PageHeader title="Previous service & work orders" description={propRaw.address} />
 
       <Link
-        href={`/landlord/properties/${params.id}`}
+        href="/tenant/maintenance"
         className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ChevronLeft size={16} />
-        Back to property
+        Back to work orders
       </Link>
 
       {items.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             <FolderOpen size={28} className="mx-auto mb-2 opacity-40" />
-            No previous service or work orders.
+            No previous service or work orders yet.
           </CardContent>
         </Card>
       ) : (
@@ -117,7 +141,7 @@ export default async function PropertyHistoryPage({
                 return (
                   <Link
                     key={`m-${item.id}`}
-                    href={`/landlord/properties/${params.id}/history/maintenance/${item.id}`}
+                    href={`/tenant/history/maintenance/${item.id}`}
                     className="flex items-center justify-between gap-2 border-b py-3 last:border-0 hover:bg-muted/30 tap-44"
                   >
                     <div className="min-w-0">
@@ -130,16 +154,14 @@ export default async function PropertyHistoryPage({
                     </div>
                     {item.completed ? (
                       <CheckCircle2 size={16} className="shrink-0 text-success" />
-                    ) : (
-                      <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
-                    )}
+                    ) : null}
                   </Link>
                 );
               }
               return (
                 <Link
                   key={`w-${item.id}`}
-                  href={`/landlord/properties/${params.id}/history/work-orders/${item.id}`}
+                  href={`/tenant/maintenance/${item.id}`}
                   className="flex items-center justify-between gap-2 border-b py-3 last:border-0 hover:bg-muted/30 tap-44"
                 >
                   <div className="min-w-0 flex items-center gap-2">
