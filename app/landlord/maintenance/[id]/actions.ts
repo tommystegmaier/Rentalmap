@@ -1,8 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { parseDollarsToCents } from '@/lib/utils';
+import { createNotification } from '@/lib/notifications';
+import { sendPushToUser } from '@/lib/push';
 
 export async function markRelatedNotificationsRead(workOrderId: string) {
   const supabase = createClient();
@@ -34,6 +36,13 @@ export async function updateWorkOrder(id: string, formData: FormData) {
   const landlord_notes_shared =
     (formData.get('landlord_notes_shared') as string | null) || null;
 
+  // Fetch old status + tenant id before update so we can detect transitions
+  const { data: oldWo } = await supabase
+    .from('work_orders')
+    .select('status, submitted_by_user_id, request_type, landlord_notes_shared')
+    .eq('id', id)
+    .maybeSingle();
+
   const updates: Record<string, unknown> = {
     status,
     vendor_name,
@@ -46,6 +55,52 @@ export async function updateWorkOrder(id: string, formData: FormData) {
 
   const { error } = await supabase.from('work_orders').update(updates).eq('id', id);
   if (error) throw error;
+
+  // Notify tenant on status transitions
+  const oldStatus = oldWo?.status as Status | undefined;
+  const tenantId = oldWo?.submitted_by_user_id as string | null | undefined;
+  const reqType = oldWo?.request_type ?? 'Work order';
+
+  if (tenantId && oldStatus && oldStatus !== status) {
+    const admin = createServiceRoleClient();
+    const url = `/tenant/maintenance/${id}`;
+
+    if (status === 'in_progress') {
+      const title = `Work order in progress · ${reqType}`;
+      const body = landlord_notes_shared
+        ? landlord_notes_shared.slice(0, 120)
+        : 'Your landlord has started working on your request.';
+      try {
+        await createNotification(admin, tenantId, {
+          type: 'work_order_in_progress',
+          title,
+          body,
+          url,
+          related_id: id,
+        });
+        await sendPushToUser(tenantId, { title, body, url, tag: `wo-${id}` });
+      } catch (err) {
+        console.error('[updateWorkOrder] tenant in_progress notify failed:', err);
+      }
+    } else if (status === 'closed') {
+      const title = `Work order completed · ${reqType}`;
+      const body = landlord_notes_shared
+        ? landlord_notes_shared.slice(0, 120)
+        : 'Your landlord has marked your request as completed.';
+      try {
+        await createNotification(admin, tenantId, {
+          type: 'work_order_completed',
+          title,
+          body,
+          url,
+          related_id: id,
+        });
+        await sendPushToUser(tenantId, { title, body, url, tag: `wo-${id}` });
+      } catch (err) {
+        console.error('[updateWorkOrder] tenant completed notify failed:', err);
+      }
+    }
+  }
 
   revalidatePath('/landlord/maintenance');
   revalidatePath(`/landlord/maintenance/${id}`);

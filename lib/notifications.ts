@@ -2,6 +2,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type NotificationType =
   | 'work_order_submitted'
+  | 'work_order_in_progress'
+  | 'work_order_completed'
   | 'reminder_rent_due'
   | 'reminder_lease_renewal'
   | 'reminder_quarterly_inspection'

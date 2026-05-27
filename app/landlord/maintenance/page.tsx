@@ -8,7 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
-import { Wrench, Home as HomeIcon, ChevronLeft } from 'lucide-react';
+import { Wrench, Home as HomeIcon, ChevronLeft, FolderOpen, ChevronRight } from 'lucide-react';
 
 function woStatus(status: string) {
   if (status === 'closed') {
@@ -42,12 +42,13 @@ interface PropertyRow {
 export default async function LandlordMaintenancePage({
   searchParams,
 }: {
-  searchParams: { view?: string; property?: string };
+  searchParams: { view?: string; property?: string; past?: string };
 }) {
   const supabase = createClient();
 
   const propertyId = searchParams.property ?? null;
   const byProperty = searchParams.view === 'property' || !!propertyId;
+  const showPast = searchParams.past === '1';
 
   const [{ data: rawOrders }, { data: rawProperties }] = await Promise.all([
     supabase
@@ -78,20 +79,37 @@ export default async function LandlordMaintenancePage({
     ? orders.filter((w) => w.property_id === propertyId)
     : orders;
 
+  const pastBackHref = propertyId
+    ? `/landlord/maintenance?property=${propertyId}&past=1`
+    : '/landlord/maintenance?past=1';
+  const backFromPastHref = propertyId
+    ? `/landlord/maintenance?property=${propertyId}`
+    : '/landlord/maintenance';
+
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Work Orders"
+        title={showPast ? 'Past Work Orders' : 'Work Orders'}
         description={selectedProperty ? selectedProperty.address : undefined}
         action={
-          <Button asChild size="sm">
-            <Link href="/landlord/maintenance/new">Add</Link>
-          </Button>
+          showPast ? null : (
+            <Button asChild size="sm">
+              <Link href="/landlord/maintenance/new">Add</Link>
+            </Button>
+          )
         }
       />
 
-      {/* Back link when in property-specific view */}
-      {propertyId ? (
+      {/* Back navigation */}
+      {showPast ? (
+        <Link
+          href={backFromPastHref}
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft size={16} />
+          Active work orders
+        </Link>
+      ) : propertyId ? (
         <Link
           href="/landlord/maintenance?view=property"
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -100,7 +118,7 @@ export default async function LandlordMaintenancePage({
           All properties
         </Link>
       ) : (
-        /* View toggle */
+        /* View toggle — only on main active view */
         <div className="flex rounded-xl border bg-muted/20 p-0.5 text-sm font-medium">
           <Link
             href="/landlord/maintenance"
@@ -128,10 +146,12 @@ export default async function LandlordMaintenancePage({
       )}
 
       {/* Content */}
-      {byProperty && !propertyId ? (
+      {showPast ? (
+        <PastOrderList orders={displayedOrders} showProperty={!propertyId} />
+      ) : byProperty && !propertyId ? (
         <PropertyGrid properties={properties} orders={orders} />
       ) : (
-        <OrderList orders={displayedOrders} showProperty={!propertyId} />
+        <OrderList orders={displayedOrders} showProperty={!propertyId} pastHref={pastBackHref} />
       )}
     </div>
   );
@@ -238,12 +258,14 @@ function OrderCard({
 function OrderList({
   orders,
   showProperty,
+  pastHref,
 }: {
   orders: OrderRow[];
   showProperty: boolean;
+  pastHref: string;
 }) {
   const active = orders.filter((w) => w.status !== 'closed');
-  const past = orders.filter((w) => w.status === 'closed');
+  const pastCount = orders.filter((w) => w.status === 'closed').length;
 
   if (orders.length === 0) {
     return (
@@ -272,16 +294,48 @@ function OrderList({
         <p className="text-sm text-muted-foreground text-center py-4">No open work orders.</p>
       )}
 
-      {past.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Past Work Orders
-          </p>
-          {past.map((w) => (
-            <OrderCard key={w.id} w={w} showProperty={showProperty} showUrgency={false} />
-          ))}
-        </div>
+      {pastCount > 0 ? (
+        <Link href={pastHref}>
+          <Card className="transition hover:bg-muted/30">
+            <CardContent className="flex items-center gap-3 p-3">
+              <FolderOpen size={18} className="shrink-0 text-muted-foreground" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Past Work Orders</p>
+                <p className="text-xs text-muted-foreground">{pastCount} completed</p>
+              </div>
+              <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
       ) : null}
+    </div>
+  );
+}
+
+function PastOrderList({
+  orders,
+  showProperty,
+}: {
+  orders: OrderRow[];
+  showProperty: boolean;
+}) {
+  const past = orders.filter((w) => w.status === 'closed');
+
+  if (past.length === 0) {
+    return (
+      <EmptyState
+        icon={<FolderOpen size={32} />}
+        title="No completed work orders"
+        description="Completed work orders will appear here."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {past.map((w) => (
+        <OrderCard key={w.id} w={w} showProperty={showProperty} showUrgency={false} />
+      ))}
     </div>
   );
 }
