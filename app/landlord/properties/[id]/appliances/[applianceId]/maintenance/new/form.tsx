@@ -31,6 +31,14 @@ function toTimeInput(t: string) {
   return t.slice(0, 5); // "09:00:00" → "09:00"
 }
 
+/** Convert local "HH:MM" → UTC "HH:MM" using today's DST. */
+function localTimeToUtc(localHHMM: string): string {
+  const [h, m] = localHHMM.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+}
+
 type ReminderUIRow = {
   days_before: number;
   notify_landlord: boolean;
@@ -49,7 +57,7 @@ function toReminderInput(r: ReminderUIRow, eventDate: string): ReminderInput {
     days_before: days,
     notify_landlord: r.notify_landlord,
     notify_tenant: r.notify_tenant,
-    send_time: r.send_time || '09:00',
+    send_time: localTimeToUtc(r.send_time || '09:00'),
   };
 }
 
