@@ -63,8 +63,8 @@ export function MaintenanceEventForm({
 
   const [title, setTitle] = useState(applianceName ? `${applianceName} service` : '');
   const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [timeEnd, setTimeEnd] = useState('');
+  const [time, setTime] = useState('12:00');
+  const [timeEnd, setTimeEnd] = useState('17:00');
   const [notes, setNotes] = useState('');
   const [reminders, setReminders] = useState<ReminderUIRow[]>([
     { days_before: 7, notify_landlord: true, notify_tenant: true, use_date_picker: false, picked_date: '', send_time: '09:00' },
