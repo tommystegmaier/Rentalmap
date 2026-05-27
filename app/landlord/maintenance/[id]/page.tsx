@@ -9,6 +9,7 @@ import { format, parseISO } from 'date-fns';
 import { one } from '@/lib/utils';
 import { updateWorkOrder } from './actions';
 import { MarkNotificationRead } from '@/components/mark-notification-read';
+import { DeleteWorkOrderButton } from '@/components/delete-work-order-button';
 
 interface WorkOrderDetailRow {
   id: string;
@@ -203,6 +204,8 @@ export default async function WorkOrderDetail({ params }: { params: { id: string
           </form>
         </CardContent>
       </Card>
+
+      <DeleteWorkOrderButton id={wo.id} redirectTo="/landlord/maintenance" />
     </div>
   );
 }

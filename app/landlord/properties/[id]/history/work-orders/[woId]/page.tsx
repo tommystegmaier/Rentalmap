@@ -8,6 +8,7 @@ import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
 import { ChevronLeft } from 'lucide-react';
 import { formatCents, one } from '@/lib/utils';
+import { DeleteWorkOrderButton } from '@/components/delete-work-order-button';
 
 interface WorkOrderRow {
   id: string;
@@ -171,6 +172,11 @@ export default async function HistoryWorkOrderView({
           </CardContent>
         </Card>
       ) : null}
+
+      <DeleteWorkOrderButton
+        id={wo.id}
+        redirectTo={`/landlord/properties/${params.id}/history`}
+      />
     </div>
   );
 }

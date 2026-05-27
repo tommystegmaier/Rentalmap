@@ -106,3 +106,24 @@ export async function updateWorkOrder(id: string, formData: FormData) {
   revalidatePath(`/landlord/maintenance/${id}`);
   revalidatePath('/tenant/maintenance');
 }
+
+export async function deleteWorkOrder(id: string) {
+  const supabase = createClient();
+
+  // Look up property_id before delete so we can revalidate the right paths
+  const { data: wo } = await supabase
+    .from('work_orders')
+    .select('property_id')
+    .eq('id', id)
+    .maybeSingle();
+
+  const { error } = await supabase.from('work_orders').delete().eq('id', id);
+  if (error) throw error;
+
+  revalidatePath('/landlord/maintenance');
+  revalidatePath('/tenant/maintenance');
+  if (wo?.property_id) {
+    revalidatePath(`/landlord/properties/${wo.property_id}`);
+    revalidatePath(`/landlord/properties/${wo.property_id}/history`);
+  }
+}
