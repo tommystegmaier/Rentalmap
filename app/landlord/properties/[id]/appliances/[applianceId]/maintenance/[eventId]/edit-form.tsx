@@ -39,6 +39,7 @@ interface EditMaintenanceEventClientProps {
     title: string;
     scheduled_date: string;
     scheduled_time: string | null;
+    scheduled_time_end: string | null;
     notes: string | null;
     completed_at: string | null;
     reminders: ExistingReminder[];
@@ -60,6 +61,7 @@ export default function EditMaintenanceEventPage({
   const [title, setTitle] = useState(initial.title);
   const [date, setDate] = useState(initial.scheduled_date);
   const [time, setTime] = useState(initial.scheduled_time ?? '');
+  const [timeEnd, setTimeEnd] = useState(initial.scheduled_time_end ?? '');
   const [notes, setNotes] = useState(initial.notes ?? '');
   const [reminders, setReminders] = useState<ReminderInput[]>(
     initial.reminders.map((r) => ({
@@ -99,6 +101,7 @@ export default function EditMaintenanceEventPage({
         title: title.trim(),
         scheduled_date: date,
         scheduled_time: time || null,
+        scheduled_time_end: timeEnd || null,
         notes: notes.trim() || null,
         reminders,
       } satisfies UpdateMaintenanceEventInput);
@@ -151,25 +154,36 @@ export default function EditMaintenanceEventPage({
           />
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="date">Date *</Label>
+          <Input
+            id="date"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            required
+            disabled={isCompleted}
+          />
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="date">Date *</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-              disabled={isCompleted}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="time">Time (optional)</Label>
+            <Label htmlFor="time">Start time</Label>
             <Input
               id="time"
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
+              disabled={isCompleted}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="time_end">End time</Label>
+            <Input
+              id="time_end"
+              type="time"
+              value={timeEnd}
+              onChange={(e) => setTimeEnd(e.target.value)}
               disabled={isCompleted}
             />
           </div>

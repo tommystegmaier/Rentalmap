@@ -22,6 +22,7 @@ type EventRow = {
   title: string;
   scheduled_date: string;
   scheduled_time: string | null;
+  scheduled_time_end: string | null;
   completed_at: string | null;
   reminder_count: number;
 };
@@ -39,7 +40,7 @@ export default async function EditAppliancePage({
     supabase.from('appliances').select('*').eq('id', params.applianceId).maybeSingle(),
     supabase
       .from('maintenance_events')
-      .select('id, title, scheduled_date, scheduled_time, completed_at, maintenance_reminders(id)')
+      .select('id, title, scheduled_date, scheduled_time, scheduled_time_end, completed_at, maintenance_reminders(id)')
       .eq('appliance_id', params.applianceId)
       .order('scheduled_date', { ascending: true }),
   ]);
@@ -50,6 +51,7 @@ export default async function EditAppliancePage({
     title: string;
     scheduled_date: string;
     scheduled_time: string | null;
+    scheduled_time_end: string | null;
     completed_at: string | null;
     maintenance_reminders: { id: string }[] | { id: string } | null;
   }) => ({
@@ -57,6 +59,7 @@ export default async function EditAppliancePage({
     title: e.title,
     scheduled_date: e.scheduled_date,
     scheduled_time: e.scheduled_time,
+    scheduled_time_end: e.scheduled_time_end,
     completed_at: e.completed_at,
     reminder_count: Array.isArray(e.maintenance_reminders)
       ? e.maintenance_reminders.length
@@ -182,7 +185,9 @@ export default async function EditAppliancePage({
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {format(d, 'MMM d, yyyy')}
-                            {ev.scheduled_time ? ` · ${formatTime(ev.scheduled_time)}` : ''}
+                            {ev.scheduled_time
+                              ? ` · ${formatTime(ev.scheduled_time)}${ev.scheduled_time_end ? ` – ${formatTime(ev.scheduled_time_end)}` : ''}`
+                              : ''}
                             {overdue ? ' · Overdue' : ''}
                           </p>
                         </div>
@@ -216,7 +221,9 @@ export default async function EditAppliancePage({
                         <p className="truncate text-sm font-medium line-through">{ev.title}</p>
                         <p className="text-xs text-muted-foreground">
                           {format(parseISO(ev.scheduled_date), 'MMM d, yyyy')}
-                          {ev.scheduled_time ? ` · ${formatTime(ev.scheduled_time)}` : ''}
+                          {ev.scheduled_time
+                            ? ` · ${formatTime(ev.scheduled_time)}${ev.scheduled_time_end ? ` – ${formatTime(ev.scheduled_time_end)}` : ''}`
+                            : ''}
                         </p>
                       </div>
                       <CheckCircle2 size={16} className="shrink-0 text-success" />

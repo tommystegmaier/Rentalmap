@@ -19,7 +19,7 @@ export default async function MaintenanceEventPage({
         .maybeSingle(),
       supabase
         .from('maintenance_events')
-        .select('id, title, scheduled_date, scheduled_time, notes, completed_at')
+        .select('id, title, scheduled_date, scheduled_time, scheduled_time_end, notes, completed_at')
         .eq('id', params.eventId)
         .maybeSingle(),
       supabase
@@ -43,6 +43,7 @@ export default async function MaintenanceEventPage({
           title: event.title,
           scheduled_date: event.scheduled_date,
           scheduled_time: event.scheduled_time ?? null,
+          scheduled_time_end: (event as { scheduled_time_end?: string | null }).scheduled_time_end ?? null,
           notes: event.notes ?? null,
           completed_at: event.completed_at ?? null,
           reminders: (reminders ?? []).map((r) => ({

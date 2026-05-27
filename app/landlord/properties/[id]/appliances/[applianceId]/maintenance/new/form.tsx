@@ -41,6 +41,7 @@ export function MaintenanceEventForm({
   const [title, setTitle] = useState(applianceName ? `${applianceName} service` : '');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [timeEnd, setTimeEnd] = useState('');
   const [notes, setNotes] = useState('');
   const [reminders, setReminders] = useState<ReminderInput[]>([
     { days_before: 7, notify_landlord: true, notify_tenant: true },
@@ -83,6 +84,7 @@ export function MaintenanceEventForm({
         title: title.trim(),
         scheduled_date: date,
         scheduled_time: time || null,
+        scheduled_time_end: timeEnd || null,
         notes: notes.trim() || null,
         reminders,
       });
@@ -110,24 +112,34 @@ export function MaintenanceEventForm({
         />
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="date">Date *</Label>
+        <Input
+          id="date"
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          required
+        />
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="date">Date *</Label>
-          <Input
-            id="date"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="time">Time (optional)</Label>
+          <Label htmlFor="time">Start time</Label>
           <Input
             id="time"
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="time_end">End time</Label>
+          <Input
+            id="time_end"
+            type="time"
+            value={timeEnd}
+            onChange={(e) => setTimeEnd(e.target.value)}
           />
         </div>
       </div>

@@ -15,6 +15,7 @@ export interface CreateMaintenanceEventInput {
   title: string;
   scheduled_date: string;
   scheduled_time: string | null;
+  scheduled_time_end: string | null;
   notes: string | null;
   reminders: ReminderInput[];
 }
@@ -39,6 +40,7 @@ export async function createMaintenanceEvent(
       title: input.title.trim(),
       scheduled_date: input.scheduled_date,
       scheduled_time: input.scheduled_time || null,
+      scheduled_time_end: input.scheduled_time_end || null,
       notes: input.notes?.trim() || null,
     })
     .select('id')

@@ -259,7 +259,7 @@ export async function GET(request: Request) {
     .from('maintenance_reminders')
     .select(
       'id, days_before, notify_landlord, notify_tenant, ' +
-      'maintenance_events:event_id(id, title, scheduled_date, scheduled_time, property_id, completed_at, ' +
+      'maintenance_events:event_id(id, title, scheduled_date, scheduled_time, scheduled_time_end, property_id, completed_at, ' +
       'properties:property_id(owner_id))',
     )
     .is('sent_at', null);
@@ -275,6 +275,7 @@ export async function GET(request: Request) {
           title: string;
           scheduled_date: string;
           scheduled_time: string | null;
+          scheduled_time_end: string | null;
           property_id: string;
           completed_at: string | null;
           properties: { owner_id: string } | { owner_id: string }[] | null;
@@ -301,12 +302,12 @@ export async function GET(request: Request) {
         : mr.days_before === 1
           ? 'tomorrow'
           : `in ${mr.days_before} days`;
+    function fmtTime(t: string) {
+      const [h, m] = t.split(':').map(Number);
+      return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+    }
     const timeStr = event.scheduled_time
-      ? ` at ${(() => {
-          const [h, m] = event.scheduled_time.split(':').map(Number);
-          const ampm = h >= 12 ? 'PM' : 'AM';
-          return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${ampm}`;
-        })()}`
+      ? ` at ${fmtTime(event.scheduled_time)}${event.scheduled_time_end ? ` – ${fmtTime(event.scheduled_time_end)}` : ''}`
       : '';
     const body = `"${event.title}" is scheduled ${dayLabel}${timeStr}.`;
 
