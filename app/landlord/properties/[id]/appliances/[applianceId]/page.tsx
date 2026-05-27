@@ -66,8 +66,15 @@ export default async function EditAppliancePage({
       : e.maintenance_reminders ? 1 : 0,
   }));
 
-  const upcoming = events.filter((e) => !e.completed_at);
-  const completed = events.filter((e) => !!e.completed_at);
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  // "Upcoming" = not completed AND scheduled for today or later.
+  // "Previous service" = completed OR scheduled date is in the past.
+  const upcoming = events.filter(
+    (e) => !e.completed_at && e.scheduled_date >= todayStr,
+  );
+  const previous = events
+    .filter((e) => !!e.completed_at || e.scheduled_date < todayStr)
+    .sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date));
 
   const tab = searchParams.tab === 'schedule' ? 'schedule' : 'details';
   const base = `/landlord/properties/${params.id}/appliances/${params.applianceId}`;
@@ -158,7 +165,7 @@ export default async function EditAppliancePage({
             </Link>
           </Button>
 
-          {upcoming.length === 0 && completed.length === 0 ? (
+          {upcoming.length === 0 && previous.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-sm text-muted-foreground">
                 <CalendarClock size={28} className="mx-auto mb-2 opacity-40" />
@@ -208,29 +215,39 @@ export default async function EditAppliancePage({
             </div>
           ) : null}
 
-          {completed.length > 0 ? (
+          {previous.length > 0 ? (
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Completed
+                Previous service
               </p>
-              {completed.map((ev) => (
-                <Link key={ev.id} href={`${base}/maintenance/${ev.id}`}>
-                  <Card className="opacity-60 transition hover:bg-muted/30">
-                    <CardContent className="flex items-center justify-between gap-3 p-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium line-through">{ev.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(parseISO(ev.scheduled_date), 'MMM d, yyyy')}
-                          {ev.scheduled_time
-                            ? ` · ${formatTime(ev.scheduled_time)}${ev.scheduled_time_end ? ` – ${formatTime(ev.scheduled_time_end)}` : ''}`
-                            : ''}
-                        </p>
-                      </div>
-                      <CheckCircle2 size={16} className="shrink-0 text-success" />
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+              {previous.map((ev) => {
+                const isCompleted = !!ev.completed_at;
+                return (
+                  <Link key={ev.id} href={`${base}/maintenance/${ev.id}`}>
+                    <Card className="opacity-70 transition hover:bg-muted/30">
+                      <CardContent className="flex items-center justify-between gap-3 p-3">
+                        <div className="min-w-0">
+                          <p className={cn('truncate text-sm font-medium', isCompleted && 'line-through')}>
+                            {ev.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(parseISO(ev.scheduled_date), 'MMM d, yyyy')}
+                            {ev.scheduled_time
+                              ? ` · ${formatTime(ev.scheduled_time)}${ev.scheduled_time_end ? ` – ${formatTime(ev.scheduled_time_end)}` : ''}`
+                              : ''}
+                            {!isCompleted ? ' · Past' : ''}
+                          </p>
+                        </div>
+                        {isCompleted ? (
+                          <CheckCircle2 size={16} className="shrink-0 text-success" />
+                        ) : (
+                          <CalendarClock size={16} className="shrink-0 text-muted-foreground" />
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
             </div>
           ) : null}
         </div>

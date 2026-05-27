@@ -115,6 +115,14 @@ export default async function PropertyDetail({ params }: { params: { id: string 
       .order('scheduled_date', { ascending: true }),
   ]);
 
+  const { data: previousMaintenanceEvents } = await supabase
+    .from('maintenance_events')
+    .select('id, appliance_id, title, scheduled_date, completed_at, appliances:appliance_id(name)')
+    .eq('property_id', params.id)
+    .or(`completed_at.not.is.null,scheduled_date.lt.${today}`)
+    .order('scheduled_date', { ascending: false })
+    .limit(10);
+
   const ytdExpenseCents = (ytdExpenses ?? []).reduce(
     (s: number, e: { amount_cents: number | null }) => s + (e.amount_cents ?? 0),
     0,
@@ -656,6 +664,48 @@ export default async function PropertyDetail({ params }: { params: { id: string 
           )}
         </CardContent>
       </Card>
+
+      {previousMaintenanceEvents && previousMaintenanceEvents.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Previous service</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {(previousMaintenanceEvents as Array<{
+              id: string;
+              appliance_id: string;
+              title: string;
+              scheduled_date: string;
+              completed_at: string | null;
+              appliances: { name: string } | { name: string }[] | null;
+            }>).map((ev) => {
+              const appl = Array.isArray(ev.appliances) ? ev.appliances[0] : ev.appliances;
+              const isCompleted = !!ev.completed_at;
+              return (
+                <Link
+                  key={ev.id}
+                  href={`/landlord/properties/${params.id}/appliances/${ev.appliance_id}/maintenance/${ev.id}`}
+                  className="flex items-center justify-between gap-2 border-b py-3 last:border-0 hover:bg-muted/30 tap-44"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{ev.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {appl?.name ? `${appl.name} · ` : ''}
+                      {format(parseISO(ev.scheduled_date), 'MMM d, yyyy')}
+                      {!isCompleted ? ' · Past' : ''}
+                    </p>
+                  </div>
+                  {isCompleted ? (
+                    <CheckCircle2 size={16} className="shrink-0 text-success" />
+                  ) : (
+                    <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
+                  )}
+                </Link>
+              );
+            })}
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }
