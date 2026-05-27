@@ -67,6 +67,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   if (!property) notFound();
 
   const yearStart = `${new Date().getFullYear()}-01-01`;
+  const today = format(new Date(), 'yyyy-MM-dd');
 
   const [
     { data: leases },
@@ -75,6 +76,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
     { data: recentExpenses },
     { data: ytdExpenses },
     { data: propertyInspections },
+    { data: upcomingMaintenanceEvents },
   ] = await Promise.all([
     supabase
       .from('leases')
@@ -104,12 +106,28 @@ export default async function PropertyDetail({ params }: { params: { id: string 
       .eq('property_id', params.id)
       .order('conducted_date', { ascending: false })
       .limit(10),
+    supabase
+      .from('maintenance_events')
+      .select('id, appliance_id, title, scheduled_date')
+      .eq('property_id', params.id)
+      .is('completed_at', null)
+      .gte('scheduled_date', today)
+      .order('scheduled_date', { ascending: true }),
   ]);
 
   const ytdExpenseCents = (ytdExpenses ?? []).reduce(
     (s: number, e: { amount_cents: number | null }) => s + (e.amount_cents ?? 0),
     0,
   );
+
+  // Build a map of appliance_id → next upcoming maintenance event (first result per appliance)
+  type NextEventRow = { id: string; title: string; scheduled_date: string };
+  const nextEventByAppliance = new Map<string, NextEventRow>();
+  for (const ev of (upcomingMaintenanceEvents ?? []) as (NextEventRow & { appliance_id: string })[]) {
+    if (!nextEventByAppliance.has(ev.appliance_id)) {
+      nextEventByAppliance.set(ev.appliance_id, { id: ev.id, title: ev.title, scheduled_date: ev.scheduled_date });
+    }
+  }
 
   type LeaseTenantJoined = {
     id: string;
@@ -614,7 +632,9 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           {appliances && appliances.length > 0 ? (
-            appliances.map((a: { id: string; name: string; next_service_due: string | null }) => (
+            appliances.map((a: { id: string; name: string; next_service_due: string | null }) => {
+              const nextEv = nextEventByAppliance.get(a.id);
+              return (
               <Link
                 key={a.id}
                 href={`/landlord/properties/${params.id}/appliances/${a.id}`}
@@ -623,14 +643,16 @@ export default async function PropertyDetail({ params }: { params: { id: string 
                 <div className="min-w-0">
                   <p className="font-medium">{a.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {a.next_service_due
-                      ? `Next service ${format(parseISO(a.next_service_due), 'PP')}`
-                      : 'Tap to set service dates'}
+                    {nextEv
+                      ? `Next: ${nextEv.title} · ${format(parseISO(nextEv.scheduled_date), 'MMM d, yyyy')}`
+                      : a.next_service_due
+                      ? `Service due ${format(parseISO(a.next_service_due), 'MMM d, yyyy')}`
+                      : 'Tap to schedule maintenance'}
                   </p>
                 </div>
                 <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
               </Link>
-            ))
+            );})
           ) : (
             <p className="text-muted-foreground">No appliances tracked yet.</p>
           )}
