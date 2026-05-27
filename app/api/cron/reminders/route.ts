@@ -253,11 +253,12 @@ export async function GET(request: Request) {
   }
 
   // ---- Maintenance event reminders ----
-  // For each unsent maintenance_reminder, fire when
-  //   today == scheduled_date - days_before.
-  // The per-reminder send_time is stored but not honored here — Vercel Hobby
-  // only allows a daily cron, so all reminders fire when this job runs
-  // (currently 13:00 UTC). send_time is preserved for future hourly-cron use.
+  // Driven by cron-job.org hitting this endpoint hourly. For each unsent
+  // maintenance_reminder, fire when:
+  //   today == scheduled_date - days_before  AND  current UTC hour >= send_time hour.
+  // sent_at is set after firing, so each reminder fires only once.
+  const currentHourUtc = new Date().getUTCHours();
+
   const { data: pendingMaintenanceReminders } = await supabase
     .from('maintenance_reminders')
     .select(
@@ -296,6 +297,11 @@ export async function GET(request: Request) {
     // Fire when today == scheduled_date - days_before
     const triggerDate = format(subDays(parseISO(event.scheduled_date), mr.days_before), 'yyyy-MM-dd');
     if (triggerDate !== today) continue;
+
+    // Only fire once we've reached or passed the reminder's send_time hour (UTC).
+    // Defaults to hour 9 if send_time is missing.
+    const sendHour = mr.send_time ? parseInt(mr.send_time.slice(0, 2), 10) : 9;
+    if (currentHourUtc < sendHour) continue;
 
     const prop = Array.isArray(event.properties) ? event.properties[0] : event.properties;
     if (!prop?.owner_id) continue;
