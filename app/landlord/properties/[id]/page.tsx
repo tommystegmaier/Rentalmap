@@ -115,13 +115,19 @@ export default async function PropertyDetail({ params }: { params: { id: string 
       .order('scheduled_date', { ascending: true }),
   ]);
 
-  const { data: previousMaintenanceEvents } = await supabase
+  const { data: previousMaintenanceEventsRaw } = await supabase
     .from('maintenance_events')
     .select('id, appliance_id, title, scheduled_date, completed_at, appliances:appliance_id(name)')
     .eq('property_id', params.id)
-    .or(`completed_at.not.is.null,scheduled_date.lt.${today}`)
     .order('scheduled_date', { ascending: false })
-    .limit(10);
+    .limit(50);
+
+  const previousMaintenanceEvents = (previousMaintenanceEventsRaw ?? [])
+    .filter(
+      (e: { scheduled_date: string; completed_at: string | null }) =>
+        !!e.completed_at || e.scheduled_date < today,
+    )
+    .slice(0, 10);
 
   const ytdExpenseCents = (ytdExpenses ?? []).reduce(
     (s: number, e: { amount_cents: number | null }) => s + (e.amount_cents ?? 0),
