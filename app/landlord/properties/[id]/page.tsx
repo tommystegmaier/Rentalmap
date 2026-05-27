@@ -20,6 +20,7 @@ import {
   ClipboardList,
   CheckCircle2,
   AlertCircle,
+  Wrench,
 } from 'lucide-react';
 import { removeTenantFromLease } from './tenants/actions';
 
@@ -128,6 +129,66 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         !!e.completed_at || e.scheduled_date < today,
     )
     .slice(0, 10);
+
+  const { data: previousWorkOrdersRaw } = await supabase
+    .from('work_orders')
+    .select('id, request_type, submitted_at, closed_at')
+    .eq('property_id', params.id)
+    .eq('status', 'closed')
+    .order('closed_at', { ascending: false, nullsFirst: false })
+    .limit(10);
+
+  type PreviousActivityItem =
+    | {
+        kind: 'maintenance';
+        id: string;
+        title: string;
+        sortDate: string; // ISO date
+        applianceName: string | null;
+        applianceId: string;
+        completed: boolean;
+      }
+    | {
+        kind: 'work_order';
+        id: string;
+        title: string;
+        sortDate: string;
+      };
+
+  const previousActivity: PreviousActivityItem[] = [
+    ...((previousMaintenanceEvents ?? []) as Array<{
+      id: string;
+      appliance_id: string;
+      title: string;
+      scheduled_date: string;
+      completed_at: string | null;
+      appliances: { name: string } | { name: string }[] | null;
+    }>).map((ev): PreviousActivityItem => {
+      const appl = Array.isArray(ev.appliances) ? ev.appliances[0] : ev.appliances;
+      return {
+        kind: 'maintenance',
+        id: ev.id,
+        title: ev.title,
+        sortDate: ev.completed_at ?? ev.scheduled_date,
+        applianceName: appl?.name ?? null,
+        applianceId: ev.appliance_id,
+        completed: !!ev.completed_at,
+      };
+    }),
+    ...((previousWorkOrdersRaw ?? []) as Array<{
+      id: string;
+      request_type: string;
+      submitted_at: string;
+      closed_at: string | null;
+    }>).map((wo): PreviousActivityItem => ({
+      kind: 'work_order',
+      id: wo.id,
+      title: wo.request_type,
+      sortDate: wo.closed_at ?? wo.submitted_at,
+    })),
+  ]
+    .sort((a, b) => b.sortDate.localeCompare(a.sortDate))
+    .slice(0, 15);
 
   const ytdExpenseCents = (ytdExpenses ?? []).reduce(
     (s: number, e: { amount_cents: number | null }) => s + (e.amount_cents ?? 0),
@@ -671,41 +732,52 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         </CardContent>
       </Card>
 
-      {previousMaintenanceEvents && previousMaintenanceEvents.length > 0 ? (
+      {previousActivity.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>Previous service</CardTitle>
+            <CardTitle>Previous service & work orders</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            {(previousMaintenanceEvents as Array<{
-              id: string;
-              appliance_id: string;
-              title: string;
-              scheduled_date: string;
-              completed_at: string | null;
-              appliances: { name: string } | { name: string }[] | null;
-            }>).map((ev) => {
-              const appl = Array.isArray(ev.appliances) ? ev.appliances[0] : ev.appliances;
-              const isCompleted = !!ev.completed_at;
+            {previousActivity.map((item) => {
+              if (item.kind === 'maintenance') {
+                return (
+                  <Link
+                    key={`m-${item.id}`}
+                    href={`/landlord/properties/${params.id}/appliances/${item.applianceId}/maintenance/${item.id}`}
+                    className="flex items-center justify-between gap-2 border-b py-3 last:border-0 hover:bg-muted/30 tap-44"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.applianceName ? `${item.applianceName} · ` : ''}
+                        {format(parseISO(item.sortDate), 'MMM d, yyyy')}
+                        {!item.completed ? ' · Past' : ''}
+                      </p>
+                    </div>
+                    {item.completed ? (
+                      <CheckCircle2 size={16} className="shrink-0 text-success" />
+                    ) : (
+                      <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
+                    )}
+                  </Link>
+                );
+              }
               return (
                 <Link
-                  key={ev.id}
-                  href={`/landlord/properties/${params.id}/appliances/${ev.appliance_id}/maintenance/${ev.id}`}
+                  key={`w-${item.id}`}
+                  href={`/landlord/maintenance/${item.id}`}
                   className="flex items-center justify-between gap-2 border-b py-3 last:border-0 hover:bg-muted/30 tap-44"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{ev.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {appl?.name ? `${appl.name} · ` : ''}
-                      {format(parseISO(ev.scheduled_date), 'MMM d, yyyy')}
-                      {!isCompleted ? ' · Past' : ''}
-                    </p>
+                  <div className="min-w-0 flex items-center gap-2">
+                    <Wrench size={14} className="shrink-0 text-muted-foreground" />
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Work order · {format(parseISO(item.sortDate), 'MMM d, yyyy')}
+                      </p>
+                    </div>
                   </div>
-                  {isCompleted ? (
-                    <CheckCircle2 size={16} className="shrink-0 text-success" />
-                  ) : (
-                    <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
-                  )}
+                  <CheckCircle2 size={16} className="shrink-0 text-success" />
                 </Link>
               );
             })}
