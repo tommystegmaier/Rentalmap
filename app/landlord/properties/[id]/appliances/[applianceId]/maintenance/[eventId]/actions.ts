@@ -28,10 +28,7 @@ export async function updateMaintenanceEvent(
   if (!input.title.trim()) return { error: 'Title is required' };
   if (!input.scheduled_date) return { error: 'Date is required' };
 
-  const badReminder = input.reminders.find((r) => !r.notify_landlord && !r.notify_tenant);
-  if (badReminder !== undefined) return { error: 'Each reminder must notify at least one recipient' };
-
-  const { error: updErr } = await supabase
+  const { error: updateErr } = await supabase
     .from('maintenance_events')
     .update({
       title: input.title.trim(),
@@ -41,30 +38,27 @@ export async function updateMaintenanceEvent(
       notes: input.notes?.trim() || null,
     })
     .eq('id', eventId);
-  if (updErr) return { error: updErr.message };
 
-  // Replace all reminders (delete old, insert new).
+  if (updateErr) return { error: updateErr.message };
+
+  // Replace all reminders: delete then re-insert
   await supabase.from('maintenance_reminders').delete().eq('event_id', eventId);
 
-  if (input.reminders.length > 0) {
-    const validReminders = input.reminders.filter(
-      (r) => r.notify_landlord || r.notify_tenant,
+  const validReminders = input.reminders.filter((r) => r.notify_landlord || r.notify_tenant);
+  if (validReminders.length > 0) {
+    const { error: remErr } = await supabase.from('maintenance_reminders').insert(
+      validReminders.map((r) => ({
+        event_id: eventId,
+        days_before: Math.max(0, Math.round(r.days_before)),
+        notify_landlord: r.notify_landlord,
+        notify_tenant: r.notify_tenant,
+      })),
     );
-    if (validReminders.length > 0) {
-      const { error: remErr } = await supabase.from('maintenance_reminders').insert(
-        validReminders.map((r) => ({
-          event_id: eventId,
-          days_before: Math.max(0, Math.round(r.days_before)),
-          notify_landlord: r.notify_landlord,
-          notify_tenant: r.notify_tenant,
-        })),
-      );
-      if (remErr) return { error: remErr.message };
-    }
+    if (remErr) return { error: remErr.message };
   }
 
   revalidatePath(`/landlord/properties/${propertyId}/appliances/${applianceId}`);
-  revalidatePath(`/landlord/properties/${propertyId}/appliances/${applianceId}/maintenance/${eventId}`);
+  revalidatePath(`/landlord/properties/${propertyId}`);
   return {};
 }
 
@@ -81,11 +75,16 @@ export async function completeMaintenanceEvent(
 
   const { error } = await supabase
     .from('maintenance_events')
-    .update({ completed_at: new Date().toISOString(), completed_by: user.id })
+    .update({
+      completed_at: new Date().toISOString(),
+      completed_by: user.id,
+    })
     .eq('id', eventId);
+
   if (error) return { error: error.message };
 
   revalidatePath(`/landlord/properties/${propertyId}/appliances/${applianceId}`);
+  revalidatePath(`/landlord/properties/${propertyId}`);
   return {};
 }
 
@@ -104,8 +103,10 @@ export async function deleteMaintenanceEvent(
     .from('maintenance_events')
     .delete()
     .eq('id', eventId);
+
   if (error) return { error: error.message };
 
   revalidatePath(`/landlord/properties/${propertyId}/appliances/${applianceId}`);
+  revalidatePath(`/landlord/properties/${propertyId}`);
   return {};
 }

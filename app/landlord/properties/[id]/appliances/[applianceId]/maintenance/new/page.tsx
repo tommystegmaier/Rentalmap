@@ -13,10 +13,11 @@ export default async function NewMaintenanceEventPage({
     supabase.from('properties').select('id, address').eq('id', params.id).maybeSingle(),
     supabase.from('appliances').select('id, name').eq('id', params.applianceId).maybeSingle(),
   ]);
+
   if (!property || !appliance) notFound();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4">
       <PageHeader
         title="Schedule maintenance"
         description={`${appliance.name} · ${property.address}`}

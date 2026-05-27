@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { format } from 'date-fns';
 import {
   computeApplianceServiceReminders,
   computeLandlordReminders,
@@ -40,7 +41,9 @@ export async function syncRemindersForLandlord(
     (properties ?? []).map((p: { id: string; address: string }) => [p.id, p.address]),
   );
 
-  const [{ data: leases }, { data: appliances }] = await Promise.all([
+  const today = format(new Date(), 'yyyy-MM-dd');
+
+  const [{ data: leases }, { data: appliances }, { data: upcomingEvents }] = await Promise.all([
     admin
       .from('leases')
       .select(
@@ -53,7 +56,20 @@ export async function syncRemindersForLandlord(
         'id, property_id, name, appliance_type, service_interval_months, last_service_date, next_service_due, install_date, spring_startup_date, winterize_date',
       )
       .in('property_id', propIds),
+    // Fetch appliances that already have upcoming maintenance_events so we
+    // don't create duplicate old-style reminders for the same service date.
+    admin
+      .from('maintenance_events')
+      .select('appliance_id')
+      .in('property_id', propIds)
+      .is('completed_at', null)
+      .gte('scheduled_date', today),
   ]);
+
+  // Set of appliance IDs covered by the new maintenance_events system
+  const appliancesWithEvents = new Set(
+    (upcomingEvents ?? []).map((e: { appliance_id: string }) => e.appliance_id),
+  );
 
   const leaseRows = (leases ?? []) as LeaseRow[];
 
@@ -69,9 +85,15 @@ export async function syncRemindersForLandlord(
     })),
   });
 
+  // Only compute old-style service reminders for appliances that don't already
+  // have a maintenance_event scheduled — those use the maintenance_reminders system.
+  const appliancesForOldReminders = (appliances ?? []).filter(
+    (a: { id: string }) => !appliancesWithEvents.has(a.id),
+  );
+
   const applianceSeeds = computeApplianceServiceReminders(
     owner.id,
-    (appliances ?? []) as ApplianceForReminders[],
+    appliancesForOldReminders as ApplianceForReminders[],
     addressById as Map<string, string>,
   );
 

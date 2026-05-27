@@ -70,5 +70,6 @@ export async function createMaintenanceEvent(
   }
 
   revalidatePath(`/landlord/properties/${input.property_id}/appliances/${input.appliance_id}`);
+  revalidatePath(`/landlord/properties/${input.property_id}`);
   return { id: event.id };
 }
