@@ -52,6 +52,7 @@ export async function updateMaintenanceEvent(
         days_before: Math.max(0, Math.round(r.days_before)),
         notify_landlord: r.notify_landlord,
         notify_tenant: r.notify_tenant,
+        send_time: r.send_time ?? '09:00:00',
       })),
     );
     if (remErr) return { error: remErr.message };

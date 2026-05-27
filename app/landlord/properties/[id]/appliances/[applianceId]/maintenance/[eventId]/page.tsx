@@ -24,7 +24,7 @@ export default async function MaintenanceEventPage({
         .maybeSingle(),
       supabase
         .from('maintenance_reminders')
-        .select('id, days_before, notify_landlord, notify_tenant, sent_at')
+        .select('id, days_before, notify_landlord, notify_tenant, sent_at, send_time')
         .eq('event_id', params.eventId)
         .order('days_before', { ascending: false }),
     ]);
@@ -52,6 +52,7 @@ export default async function MaintenanceEventPage({
             notify_landlord: r.notify_landlord,
             notify_tenant: r.notify_tenant,
             sent_at: r.sent_at ?? null,
+            send_time: (r as { send_time?: string | null }).send_time ?? null,
           })),
         }}
       />

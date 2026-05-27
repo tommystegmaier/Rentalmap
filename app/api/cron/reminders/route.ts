@@ -253,12 +253,16 @@ export async function GET(request: Request) {
   }
 
   // ---- Maintenance event reminders ----
-  // For each unsent maintenance_reminder, check if today is
-  // (scheduled_date - days_before). If so, notify landlord and/or tenant.
+  // The cron runs hourly. For each unsent maintenance_reminder, fire when:
+  //   today == scheduled_date - days_before  AND  current UTC hour >= send_time hour.
+  // Because sent_at is set after firing, each reminder only fires once.
+  const nowUtc = new Date();
+  const currentHourUtc = nowUtc.getUTCHours();
+
   const { data: pendingMaintenanceReminders } = await supabase
     .from('maintenance_reminders')
     .select(
-      'id, days_before, notify_landlord, notify_tenant, ' +
+      'id, days_before, notify_landlord, notify_tenant, send_time, ' +
       'maintenance_events:event_id(id, title, scheduled_date, scheduled_time, scheduled_time_end, property_id, completed_at, ' +
       'properties:property_id(owner_id))',
     )
@@ -269,6 +273,7 @@ export async function GET(request: Request) {
     days_before: number;
     notify_landlord: boolean;
     notify_tenant: boolean;
+    send_time: string | null; // e.g. "09:00:00"
     maintenance_events:
       | {
           id: string;
@@ -292,6 +297,11 @@ export async function GET(request: Request) {
     // Fire when today == scheduled_date - days_before
     const triggerDate = format(subDays(parseISO(event.scheduled_date), mr.days_before), 'yyyy-MM-dd');
     if (triggerDate !== today) continue;
+
+    // Only fire if we've reached or passed the reminder's send_time hour (UTC).
+    // Default to hour 9 if send_time is missing.
+    const sendHour = mr.send_time ? parseInt(mr.send_time.slice(0, 2), 10) : 9;
+    if (currentHourUtc < sendHour) continue;
 
     const prop = Array.isArray(event.properties) ? event.properties[0] : event.properties;
     if (!prop?.owner_id) continue;
