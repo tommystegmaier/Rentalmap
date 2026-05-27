@@ -33,19 +33,19 @@ function toTimeInput(t: string | undefined | null) {
   return t.slice(0, 5); // "09:00:00" → "09:00"
 }
 
-/** Convert local "HH:MM" → UTC "HH:MM" using today's DST. */
-function localTimeToUtc(localHHMM: string): string {
+/** Convert local "HH:MM" → UTC "HH:MM" on refDate's DST. */
+function localTimeToUtc(localHHMM: string, refDate: string): string {
   const [h, m] = localHHMM.split(':').map(Number);
-  const d = new Date();
+  const d = refDate ? new Date(`${refDate}T00:00:00`) : new Date();
   d.setHours(h, m, 0, 0);
   return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
 }
 
-/** Convert stored UTC "HH:MM[:SS]" → local "HH:MM" using today's DST. */
-function utcTimeToLocal(utcStr: string | undefined | null): string {
+/** Convert stored UTC "HH:MM[:SS]" → local "HH:MM" on refDate's DST. */
+function utcTimeToLocal(utcStr: string | undefined | null, refDate: string): string {
   if (!utcStr) return '09:00';
   const [h, m] = utcStr.slice(0, 5).split(':').map(Number);
-  const d = new Date();
+  const d = refDate ? new Date(`${refDate}T00:00:00`) : new Date();
   d.setUTCHours(h, m, 0, 0);
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
@@ -68,7 +68,7 @@ function toReminderInput(r: ReminderUIRow, eventDate: string): ReminderInput {
     days_before: days,
     notify_landlord: r.notify_landlord,
     notify_tenant: r.notify_tenant,
-    send_time: localTimeToUtc(r.send_time || '09:00'),
+    send_time: localTimeToUtc(r.send_time || '09:00', eventDate),
   };
 }
 
@@ -87,7 +87,7 @@ function loadReminders(
       notify_tenant: r.notify_tenant,
       use_date_picker: useDatePicker,
       picked_date: pickedDate,
-      send_time: utcTimeToLocal(r.send_time),
+      send_time: utcTimeToLocal(r.send_time, scheduledDate),
     };
   });
 }
