@@ -20,7 +20,7 @@ import {
   ClipboardList,
   CheckCircle2,
   AlertCircle,
-  Wrench,
+  FolderOpen,
 } from 'lucide-react';
 import { removeTenantFromLease } from './tenants/actions';
 
@@ -116,79 +116,24 @@ export default async function PropertyDetail({ params }: { params: { id: string 
       .order('scheduled_date', { ascending: true }),
   ]);
 
-  const { data: previousMaintenanceEventsRaw } = await supabase
-    .from('maintenance_events')
-    .select('id, appliance_id, title, scheduled_date, completed_at, appliances:appliance_id(name)')
-    .eq('property_id', params.id)
-    .order('scheduled_date', { ascending: false })
-    .limit(50);
+  const [{ data: maintCountRaw }, { count: closedWorkOrderCount }] = await Promise.all([
+    supabase
+      .from('maintenance_events')
+      .select('id, scheduled_date, completed_at')
+      .eq('property_id', params.id),
+    supabase
+      .from('work_orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('property_id', params.id)
+      .eq('status', 'closed'),
+  ]);
 
-  const previousMaintenanceEvents = (previousMaintenanceEventsRaw ?? [])
-    .filter(
-      (e: { scheduled_date: string; completed_at: string | null }) =>
-        !!e.completed_at || e.scheduled_date < today,
-    )
-    .slice(0, 10);
+  const pastMaintenanceCount = (maintCountRaw ?? []).filter(
+    (e: { scheduled_date: string; completed_at: string | null }) =>
+      !!e.completed_at || e.scheduled_date < today,
+  ).length;
 
-  const { data: previousWorkOrdersRaw } = await supabase
-    .from('work_orders')
-    .select('id, request_type, submitted_at, closed_at')
-    .eq('property_id', params.id)
-    .eq('status', 'closed')
-    .order('closed_at', { ascending: false, nullsFirst: false })
-    .limit(10);
-
-  type PreviousActivityItem =
-    | {
-        kind: 'maintenance';
-        id: string;
-        title: string;
-        sortDate: string; // ISO date
-        applianceName: string | null;
-        applianceId: string;
-        completed: boolean;
-      }
-    | {
-        kind: 'work_order';
-        id: string;
-        title: string;
-        sortDate: string;
-      };
-
-  const previousActivity: PreviousActivityItem[] = [
-    ...((previousMaintenanceEvents ?? []) as Array<{
-      id: string;
-      appliance_id: string;
-      title: string;
-      scheduled_date: string;
-      completed_at: string | null;
-      appliances: { name: string } | { name: string }[] | null;
-    }>).map((ev): PreviousActivityItem => {
-      const appl = Array.isArray(ev.appliances) ? ev.appliances[0] : ev.appliances;
-      return {
-        kind: 'maintenance',
-        id: ev.id,
-        title: ev.title,
-        sortDate: ev.completed_at ?? ev.scheduled_date,
-        applianceName: appl?.name ?? null,
-        applianceId: ev.appliance_id,
-        completed: !!ev.completed_at,
-      };
-    }),
-    ...((previousWorkOrdersRaw ?? []) as Array<{
-      id: string;
-      request_type: string;
-      submitted_at: string;
-      closed_at: string | null;
-    }>).map((wo): PreviousActivityItem => ({
-      kind: 'work_order',
-      id: wo.id,
-      title: wo.request_type,
-      sortDate: wo.closed_at ?? wo.submitted_at,
-    })),
-  ]
-    .sort((a, b) => b.sortDate.localeCompare(a.sortDate))
-    .slice(0, 15);
+  const previousActivityCount = pastMaintenanceCount + (closedWorkOrderCount ?? 0);
 
   const ytdExpenseCents = (ytdExpenses ?? []).reduce(
     (s: number, e: { amount_cents: number | null }) => s + (e.amount_cents ?? 0),
@@ -732,57 +677,19 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         </CardContent>
       </Card>
 
-      {previousActivity.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Previous service & work orders</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {previousActivity.map((item) => {
-              if (item.kind === 'maintenance') {
-                return (
-                  <Link
-                    key={`m-${item.id}`}
-                    href={`/landlord/properties/${params.id}/appliances/${item.applianceId}/maintenance/${item.id}`}
-                    className="flex items-center justify-between gap-2 border-b py-3 last:border-0 hover:bg-muted/30 tap-44"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{item.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.applianceName ? `${item.applianceName} · ` : ''}
-                        {format(parseISO(item.sortDate), 'MMM d, yyyy')}
-                        {!item.completed ? ' · Past' : ''}
-                      </p>
-                    </div>
-                    {item.completed ? (
-                      <CheckCircle2 size={16} className="shrink-0 text-success" />
-                    ) : (
-                      <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
-                    )}
-                  </Link>
-                );
-              }
-              return (
-                <Link
-                  key={`w-${item.id}`}
-                  href={`/landlord/maintenance/${item.id}`}
-                  className="flex items-center justify-between gap-2 border-b py-3 last:border-0 hover:bg-muted/30 tap-44"
-                >
-                  <div className="min-w-0 flex items-center gap-2">
-                    <Wrench size={14} className="shrink-0 text-muted-foreground" />
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{item.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Work order · Completed {format(parseISO(item.sortDate), 'MMM d, yyyy')}
-                      </p>
-                    </div>
-                  </div>
-                  <CheckCircle2 size={16} className="shrink-0 text-success" />
-                </Link>
-              );
-            })}
-          </CardContent>
-        </Card>
+      {previousActivityCount > 0 ? (
+        <Link href={`/landlord/properties/${params.id}/history`}>
+          <Card className="transition hover:bg-muted/30">
+            <CardContent className="flex items-center gap-3 p-3">
+              <FolderOpen size={18} className="shrink-0 text-muted-foreground" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Previous service & work orders</p>
+                <p className="text-xs text-muted-foreground">{previousActivityCount} completed</p>
+              </div>
+              <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
       ) : null}
     </div>
   );
