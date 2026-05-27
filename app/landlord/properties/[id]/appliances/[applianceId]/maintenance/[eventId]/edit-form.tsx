@@ -115,8 +115,8 @@ export default function EditMaintenanceEventPage({
 
   const [title, setTitle] = useState(initial.title);
   const [date, setDate] = useState(initial.scheduled_date);
-  const [time, setTime] = useState(initial.scheduled_time ?? '');
-  const [timeEnd, setTimeEnd] = useState(initial.scheduled_time_end ?? '');
+  const [time, setTime] = useState((initial.scheduled_time ?? '').slice(0, 5));
+  const [timeEnd, setTimeEnd] = useState((initial.scheduled_time_end ?? '').slice(0, 5));
   const [notes, setNotes] = useState(initial.notes ?? '');
   const [reminders, setReminders] = useState<ReminderUIRow[]>(
     loadReminders(initial.reminders, initial.scheduled_date),
