@@ -3,7 +3,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { syncRemindersForLandlord } from '@/lib/reminders-run';
 import { sendPushToUser } from '@/lib/push';
 import { createNotification, type NotificationType } from '@/lib/notifications';
-import { addDays, getDaysInMonth, setDate, format, parseISO } from 'date-fns';
+import { addDays, getDaysInMonth, setDate, format, parseISO, subDays } from 'date-fns';
 
 /**
  * Daily cron. Vercel triggers this via vercel.json. To prevent random hits,
@@ -252,5 +252,117 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ seedCount, pushed, due: dueToday?.length ?? 0, lateFeeCount });
+  // ---- Maintenance event reminders ----
+  // For each unsent maintenance_reminder, check if today is
+  // (scheduled_date - days_before). If so, notify landlord and/or tenant.
+  const { data: pendingMaintenanceReminders } = await supabase
+    .from('maintenance_reminders')
+    .select(
+      'id, days_before, notify_landlord, notify_tenant, ' +
+      'maintenance_events:event_id(id, title, scheduled_date, scheduled_time, property_id, completed_at, ' +
+      'properties:property_id(owner_id))',
+    )
+    .is('sent_at', null);
+
+  type MaintenanceReminderRow = {
+    id: string;
+    days_before: number;
+    notify_landlord: boolean;
+    notify_tenant: boolean;
+    maintenance_events:
+      | {
+          id: string;
+          title: string;
+          scheduled_date: string;
+          scheduled_time: string | null;
+          property_id: string;
+          completed_at: string | null;
+          properties: { owner_id: string } | { owner_id: string }[] | null;
+        }
+      | null;
+  };
+
+  let maintenanceReminderCount = 0;
+
+  for (const mr of (pendingMaintenanceReminders ?? []) as unknown as MaintenanceReminderRow[]) {
+    const event = mr.maintenance_events;
+    if (!event || event.completed_at) continue;
+
+    // Fire when today == scheduled_date - days_before
+    const triggerDate = format(subDays(parseISO(event.scheduled_date), mr.days_before), 'yyyy-MM-dd');
+    if (triggerDate !== today) continue;
+
+    const prop = Array.isArray(event.properties) ? event.properties[0] : event.properties;
+    if (!prop?.owner_id) continue;
+
+    const dayLabel =
+      mr.days_before === 0
+        ? 'today'
+        : mr.days_before === 1
+          ? 'tomorrow'
+          : `in ${mr.days_before} days`;
+    const timeStr = event.scheduled_time
+      ? ` at ${(() => {
+          const [h, m] = event.scheduled_time.split(':').map(Number);
+          const ampm = h >= 12 ? 'PM' : 'AM';
+          return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${ampm}`;
+        })()}`
+      : '';
+    const body = `"${event.title}" is scheduled ${dayLabel}${timeStr}.`;
+
+    if (mr.notify_landlord) {
+      await createNotification(supabase, prop.owner_id, {
+        type: 'maintenance_reminder',
+        title: 'Maintenance reminder',
+        body,
+        url: `/landlord/properties/${event.property_id}`,
+        related_id: event.id,
+      });
+      await sendPushToUser(prop.owner_id, {
+        title: 'Maintenance reminder',
+        body,
+        url: `/landlord/properties/${event.property_id}`,
+        tag: `maint-${mr.id}`,
+      });
+    }
+
+    if (mr.notify_tenant) {
+      // Find active tenants for this property.
+      const { data: activeLeases } = await supabase
+        .from('leases')
+        .select('lease_tenants(user_id)')
+        .eq('property_id', event.property_id)
+        .eq('status', 'active');
+
+      const tenantIds = (activeLeases ?? []).flatMap((l: { lease_tenants: { user_id: string }[] | null }) =>
+        Array.isArray(l.lease_tenants) ? l.lease_tenants.map((t) => t.user_id) : [],
+      );
+
+      for (const tenantId of tenantIds) {
+        await createNotification(supabase, tenantId, {
+          type: 'maintenance_reminder',
+          title: 'Maintenance reminder',
+          body,
+          url: '/tenant/pay',
+          related_id: event.id,
+        });
+        await sendPushToUser(tenantId, {
+          title: 'Maintenance reminder',
+          body,
+          url: '/tenant/pay',
+          tag: `maint-${mr.id}`,
+        });
+      }
+    }
+
+    // Mark this reminder as sent.
+    await supabase
+      .from('maintenance_reminders')
+      .update({ sent_at: new Date().toISOString() })
+      .eq('id', mr.id);
+
+    maintenanceReminderCount++;
+  }
+
+  return NextResponse.json({ seedCount, pushed, due: dueToday?.length ?? 0, lateFeeCount, maintenanceReminderCount });
 }
