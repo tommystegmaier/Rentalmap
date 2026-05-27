@@ -11,12 +11,14 @@ import { format, parseISO } from 'date-fns';
 import { Wrench, Home as HomeIcon, ChevronLeft } from 'lucide-react';
 
 function woStatus(status: string) {
-  const label = status === 'closed' ? 'Completed' : status.replace('_', ' ');
-  const cls =
-    status === 'closed'
-      ? 'border-transparent bg-success/10 text-success'
-      : 'border-transparent bg-destructive/10 text-destructive';
-  return { label, cls };
+  if (status === 'closed') {
+    return { label: 'Completed', cls: 'border-transparent bg-success/10 text-success' };
+  }
+  if (status === 'in_progress') {
+    return { label: 'In Progress', cls: 'border-transparent bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200' };
+  }
+  // open
+  return { label: 'Open', cls: 'border-transparent bg-muted text-muted-foreground' };
 }
 
 interface OrderRow {
@@ -195,6 +197,44 @@ function PropertyGrid({
   );
 }
 
+function OrderCard({
+  w,
+  showProperty,
+  showUrgency,
+}: {
+  w: OrderRow;
+  showProperty: boolean;
+  showUrgency: boolean;
+}) {
+  const props = Array.isArray(w.properties) ? w.properties[0] : w.properties;
+  const sub = Array.isArray(w.submitter) ? w.submitter[0] : w.submitter;
+  const urg = URGENCY_LABELS[w.urgency];
+  const s = woStatus(w.status);
+  return (
+    <Link href={`/landlord/maintenance/${w.id}`}>
+      <Card className="transition hover:bg-muted/30">
+        <CardContent className="space-y-2 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate text-sm font-medium">{w.request_type}</p>
+            {showUrgency ? (
+              <Badge className={`border-transparent ${urg.color}`}>{urg.label}</Badge>
+            ) : null}
+          </div>
+          <p className="line-clamp-2 text-xs text-muted-foreground">{w.description}</p>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">
+              {showProperty ? `${props?.address ?? '—'} · ` : ''}
+              {format(parseISO(w.submitted_at), 'MMM d')}
+              {sub ? ` · ${sub.name ?? sub.email}` : ''}
+            </span>
+            <Badge className={s.cls}>{s.label}</Badge>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
 function OrderList({
   orders,
   showProperty,
@@ -202,6 +242,9 @@ function OrderList({
   orders: OrderRow[];
   showProperty: boolean;
 }) {
+  const active = orders.filter((w) => w.status !== 'closed');
+  const past = orders.filter((w) => w.status === 'closed');
+
   if (orders.length === 0) {
     return (
       <EmptyState
@@ -218,34 +261,27 @@ function OrderList({
   }
 
   return (
-    <div className="space-y-2">
-      {orders.map((w) => {
-        const props = Array.isArray(w.properties) ? w.properties[0] : w.properties;
-        const sub = Array.isArray(w.submitter) ? w.submitter[0] : w.submitter;
-        const urg = URGENCY_LABELS[w.urgency];
-        const s = woStatus(w.status);
-        return (
-          <Link key={w.id} href={`/landlord/maintenance/${w.id}`}>
-            <Card className="transition hover:bg-muted/30">
-              <CardContent className="space-y-2 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="truncate text-sm font-medium">{w.request_type}</p>
-                  <Badge className={`border-transparent ${urg.color}`}>{urg.label}</Badge>
-                </div>
-                <p className="line-clamp-2 text-xs text-muted-foreground">{w.description}</p>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">
-                    {showProperty ? `${props?.address ?? '—'} · ` : ''}
-                    {format(parseISO(w.submitted_at), 'MMM d')}
-                    {sub ? ` · ${sub.name ?? sub.email}` : ''}
-                  </span>
-                  <Badge className={s.cls}>{s.label}</Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        );
-      })}
+    <div className="space-y-4">
+      {active.length > 0 ? (
+        <div className="space-y-2">
+          {active.map((w) => (
+            <OrderCard key={w.id} w={w} showProperty={showProperty} showUrgency={true} />
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground text-center py-4">No open work orders.</p>
+      )}
+
+      {past.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Past Work Orders
+          </p>
+          {past.map((w) => (
+            <OrderCard key={w.id} w={w} showProperty={showProperty} showUrgency={false} />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
