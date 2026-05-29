@@ -12,6 +12,7 @@ import { Sparkles, MapPin, Search } from 'lucide-react';
 import { parseDollarsToCents, formatCents } from '@/lib/utils';
 import { prepareScanUpload } from '@/lib/scan-upload';
 import { buildDepreciationSchedule } from '@/lib/depreciation';
+import { BusyBar } from '@/components/busy-bar';
 import { saveDepreciation } from './actions';
 
 function centsToInput(cents: number | null): string {
@@ -212,6 +213,7 @@ export function DepreciationForm({ propertyId, initial }: Props) {
             <Search size={14} />
             {looking ? 'Looking up…' : 'Find last sale from public records'}
           </Button>
+          <BusyBar active={looking} />
           {lookupNote ? <p className="text-xs text-muted-foreground">{lookupNote}</p> : null}
         </CardContent>
       </Card>
@@ -232,10 +234,13 @@ export function DepreciationForm({ propertyId, initial }: Props) {
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
           {file ? (
-            <Button type="button" variant="outline" onClick={handleScan} disabled={scanning} className="w-full">
-              <Sparkles size={14} />
-              {scanning ? 'Reading document…' : 'Scan document'}
-            </Button>
+            <>
+              <Button type="button" variant="outline" onClick={handleScan} disabled={scanning} className="w-full">
+                <Sparkles size={14} />
+                {scanning ? 'Reading document…' : 'Scan document'}
+              </Button>
+              <BusyBar active={scanning} />
+            </>
           ) : null}
         </CardContent>
       </Card>
@@ -273,6 +278,7 @@ export function DepreciationForm({ propertyId, initial }: Props) {
             <MapPin size={13} />
             {landBusy ? 'Looking up…' : 'Find land value automatically'}
           </Button>
+          <BusyBar active={landBusy} />
           {landNote ? <p className="text-xs text-muted-foreground">{landNote}</p> : null}
         </div>
 
@@ -351,9 +357,12 @@ export function DepreciationForm({ propertyId, initial }: Props) {
         </CardContent>
       </Card>
 
-      <Button onClick={handleSave} disabled={saving || !summary} className="w-full">
-        {saving ? 'Saving…' : 'Save depreciation'}
-      </Button>
+      <div>
+        <Button onClick={handleSave} disabled={saving || !summary} className="w-full">
+          {saving ? 'Saving…' : 'Save depreciation'}
+        </Button>
+        <BusyBar active={saving} />
+      </div>
     </div>
   );
 }

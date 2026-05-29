@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { formatCents } from '@/lib/utils';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 import { computeTaxReportData } from '@/lib/tax-report-data';
@@ -13,6 +12,7 @@ import {
   TaxPropertyPicker,
   TaxScheduleSettings,
   DeleteTaxReportButton,
+  GenerateReportButton,
 } from './controls';
 
 export default async function TaxCenterPage({
@@ -108,12 +108,7 @@ export default async function TaxCenterPage({
       ) : null}
 
       <div className="space-y-1">
-        <Button asChild className="w-full">
-          <a href={generateUrl}>
-            <Download size={16} className="mr-2" />
-            Generate {year} tax report (PDF)
-          </a>
-        </Button>
+        <GenerateReportButton href={generateUrl} year={year} />
         <p className="text-center text-xs text-muted-foreground">
           {selectedAddress ? (
             <>Scoped to {selectedAddress}. </>

@@ -6,8 +6,26 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Download } from 'lucide-react';
+import { BusyBar } from '@/components/busy-bar';
 import { saveTaxSchedule, deleteTaxReport } from './actions';
+
+// Generate button kicks off a server-side PDF build then redirects back here,
+// so a full navigation ends the busy state automatically.
+export function GenerateReportButton({ href, year }: { href: string; year: number }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <div>
+      <Button asChild className="w-full">
+        <a href={href} onClick={() => setBusy(true)}>
+          <Download size={16} className="mr-2" />
+          {busy ? `Generating ${year} report…` : `Generate ${year} tax report (PDF)`}
+        </a>
+      </Button>
+      <BusyBar active={busy} />
+    </div>
+  );
+}
 
 export function DeleteTaxReportButton({ id }: { id: string }) {
   const router = useRouter();
