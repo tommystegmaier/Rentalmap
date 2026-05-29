@@ -9,7 +9,7 @@ import { PayButton } from './pay-button';
 import { AutopayControls } from './autopay-controls';
 import { getStripe } from '@/lib/stripe';
 import { AlertCircle, ClipboardList, ChevronRight } from 'lucide-react';
-import { P2P_METHODS, P2P_LABELS, handleForMethod, type LandlordHandles } from '@/lib/p2p';
+import { P2P_METHODS, P2P_LABELS } from '@/lib/p2p';
 
 export default async function PayRentPage({
   searchParams,
@@ -55,18 +55,11 @@ export default async function PayRentPage({
   let landlordHasAccount = false;
   let achFeePayer: 'landlord' | 'tenant' = 'landlord';
   let cardFeePayer: 'landlord' | 'tenant' = 'tenant';
-  let landlordHandles: LandlordHandles = {
-    venmo_handle: null,
-    cashapp_cashtag: null,
-    zelle_handle: null,
-  };
   if (prop?.owner_id) {
     const admin = createServiceRoleClient();
     const { data: landlord } = await admin
       .from('users')
-      .select(
-        'stripe_connect_account_id, ach_fee_payer, card_fee_payer, venmo_handle, cashapp_cashtag, zelle_handle',
-      )
+      .select('stripe_connect_account_id, ach_fee_payer, card_fee_payer')
       .eq('id', prop.owner_id)
       .maybeSingle();
     if (landlord?.stripe_connect_account_id) {
@@ -81,17 +74,7 @@ export default async function PayRentPage({
     }
     if (landlord?.ach_fee_payer) achFeePayer = landlord.ach_fee_payer as 'landlord' | 'tenant';
     if (landlord?.card_fee_payer) cardFeePayer = landlord.card_fee_payer as 'landlord' | 'tenant';
-    if (landlord) {
-      landlordHandles = {
-        venmo_handle: landlord.venmo_handle ?? null,
-        cashapp_cashtag: landlord.cashapp_cashtag ?? null,
-        zelle_handle: landlord.zelle_handle ?? null,
-      };
-    }
   }
-
-  // Which P2P methods the landlord has set up (and so we can surface to the tenant).
-  const availableP2P = P2P_METHODS.filter((m) => handleForMethod(m, landlordHandles));
 
   const ACH_FEE_CENTS = 80;
   const achTotalCents = lease
@@ -254,25 +237,18 @@ export default async function PayRentPage({
               </p>
             </div>
 
-            {availableP2P.length > 0 ? (
-              <div className="space-y-2">
-                {availableP2P.map((m) => (
-                  <Link
-                    key={m}
-                    href={`/tenant/pay/p2p?method=${m}`}
-                    className="flex items-center justify-between gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition hover:bg-muted/30"
-                  >
-                    <span>Pay with {P2P_LABELS[m]}</span>
-                    <ChevronRight size={16} className="text-muted-foreground" />
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Your landlord hasn&apos;t added Venmo, Cash App, or Zelle details yet. Once they
-                do, you&apos;ll be able to pay and confirm here.
-              </p>
-            )}
+            <div className="space-y-2">
+              {P2P_METHODS.map((m) => (
+                <Link
+                  key={m}
+                  href={`/tenant/pay/p2p?method=${m}`}
+                  className="flex items-center justify-between gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition hover:bg-muted/30"
+                >
+                  <span>Pay with {P2P_LABELS[m]}</span>
+                  <ChevronRight size={16} className="text-muted-foreground" />
+                </Link>
+              ))}
+            </div>
           </CardContent>
         </Card>
       ) : null}

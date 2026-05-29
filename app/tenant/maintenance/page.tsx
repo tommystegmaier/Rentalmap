@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
 import { Wrench, FolderOpen, ChevronRight } from 'lucide-react';
+import { MarkAllWorkOrderUpdatesRead } from './mark-read';
 
 function woStatus(status: string) {
   const label = status === 'closed' ? 'Completed' : status.replace('_', ' ');
@@ -66,6 +67,7 @@ export default async function TenantMaintenancePage() {
 
   return (
     <div className="space-y-6">
+      <MarkAllWorkOrderUpdatesRead />
       <PageHeader
         title="Work Orders"
         action={

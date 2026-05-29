@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
 import { ChevronLeft } from 'lucide-react';
+import { MarkWorkOrderUpdatesRead } from '../mark-read';
 
 export default async function TenantWorkOrderDetail({
   params,
@@ -38,6 +39,7 @@ export default async function TenantWorkOrderDetail({
 
   return (
     <div className="space-y-6">
+      <MarkWorkOrderUpdatesRead workOrderId={params.id} />
       <Link
         href="/tenant/maintenance"
         className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
