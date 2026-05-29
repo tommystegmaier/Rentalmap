@@ -3,7 +3,6 @@ import './globals.css';
 import { APP_NAME } from '@/lib/constants';
 import { ServiceWorkerRegister } from '@/components/sw-register';
 import { ThemeProvider } from '@/components/theme-provider';
-import { SplashScreen } from '@/components/splash-screen';
 
 export const metadata: Metadata = {
   title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
@@ -46,7 +45,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ServiceWorkerRegister />
-        <SplashScreen />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

@@ -5,11 +5,10 @@ import { Logo } from '@/components/logo';
 
 type Phase = 'in' | 'out' | 'done';
 
-export function SplashScreen() {
+export function SplashScreen({ subtitle }: { subtitle?: string }) {
   const [phase, setPhase] = useState<Phase | null>(null);
 
   useEffect(() => {
-    // Only show once per session (each PWA launch = new session).
     if (sessionStorage.getItem('splash-shown')) {
       setPhase('done');
       return;
@@ -17,15 +16,14 @@ export function SplashScreen() {
     sessionStorage.setItem('splash-shown', '1');
     setPhase('in');
 
-    const outTimer = setTimeout(() => setPhase('out'), 1200);
-    const doneTimer = setTimeout(() => setPhase('done'), 1650);
+    const outTimer = setTimeout(() => setPhase('out'), 1400);
+    const doneTimer = setTimeout(() => setPhase('done'), 1850);
     return () => {
       clearTimeout(outTimer);
       clearTimeout(doneTimer);
     };
   }, []);
 
-  // Render nothing until effect runs (avoids SSR flash).
   if (phase === null || phase === 'done') return null;
 
   return (
@@ -37,7 +35,7 @@ export function SplashScreen() {
           : undefined
       }
     >
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-4 px-8 text-center">
         <div
           style={{
             animation: 'splash-logo-in 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) forwards',
@@ -54,6 +52,17 @@ export function SplashScreen() {
         >
           It Rents
         </span>
+        {subtitle && (
+          <span
+            className="text-sm font-medium text-muted-foreground"
+            style={{
+              opacity: 0,
+              animation: 'splash-wordmark-in 0.4s ease-out 0.6s forwards',
+            }}
+          >
+            {subtitle}
+          </span>
+        )}
       </div>
     </div>
   );

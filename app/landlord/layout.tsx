@@ -6,6 +6,7 @@ import { HeaderBell } from '@/components/header-bell';
 import { AppBadgeSync } from '@/components/app-badge-sync';
 import { Home, Building2, Wallet, Wrench, MoreHorizontal } from 'lucide-react';
 import { Toaster } from 'sonner';
+import { SplashScreen } from '@/components/splash-screen';
 
 export default async function LandlordLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -75,6 +76,7 @@ export default async function LandlordLayout({ children }: { children: React.Rea
 
   return (
     <div className="mx-auto min-h-screen max-w-md pb-20">
+      <SplashScreen subtitle="Rental management the easy way" />
       <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 px-4 py-3 backdrop-blur">
         <Logo size={28} showWordmark />
         <div className="flex items-center gap-3">
