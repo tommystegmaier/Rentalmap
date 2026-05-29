@@ -27,7 +27,7 @@ export function SplashScreen() {
     sessionStorage.setItem('splash-shown', '1');
 
     const outTimer = setTimeout(() => setPhase('out'), 2800);
-    const doneTimer = setTimeout(() => setPhase('done'), 3700);
+    const doneTimer = setTimeout(() => setPhase('done'), 3250);
     return () => {
       clearTimeout(outTimer);
       clearTimeout(doneTimer);
@@ -41,7 +41,7 @@ export function SplashScreen() {
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-background"
       style={
         phase === 'out'
-          ? { animation: 'splash-fade-out 0.9s ease-in forwards' }
+          ? { animation: 'splash-fade-out 0.45s ease-in forwards' }
           : undefined
       }
     >
