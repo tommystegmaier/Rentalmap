@@ -5,12 +5,21 @@ import { Logo } from '@/components/logo';
 
 type Phase = 'in' | 'out' | 'done';
 
-export function SplashScreen({ subtitle }: { subtitle?: string }) {
-  // Default to 'in' so the overlay is present on the very first render,
-  // preventing any flash of the home screen behind it.
+function subtitleFromPath(path: string) {
+  if (path.startsWith('/landlord')) return 'Rental management the easy way';
+  if (path.startsWith('/tenant')) return 'Welcome home';
+  return undefined;
+}
+
+export function SplashScreen() {
+  // Default to 'in' so the opaque overlay is in the very first render,
+  // blocking any flash of the page behind it.
   const [phase, setPhase] = useState<Phase>('in');
+  const [subtitle, setSubtitle] = useState<string | undefined>(undefined);
 
   useEffect(() => {
+    setSubtitle(subtitleFromPath(window.location.pathname));
+
     if (sessionStorage.getItem('splash-shown')) {
       setPhase('done');
       return;
