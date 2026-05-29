@@ -26,7 +26,7 @@ import {
 export const metadata: Metadata = {
   title: 'Run your rentals like a pro',
   description:
-    'It Rents is rental property management made simple. Collect rent, stay tax-ready, and keep every lease, inspection, and receipt in one place.',
+    'It Rents is rental management made easy. Collect rent, stay tax-ready, and keep every lease, inspection, and receipt in one place.',
 };
 
 export default function TourPage() {
@@ -312,7 +312,7 @@ export default function TourPage() {
           <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
             <Logo size={24} showWordmark />
             <p className="text-xs text-muted-foreground">
-              {APP_NAME} · Rental property management made simple.
+              {APP_NAME} · Rental management made easy.
             </p>
             <Link
               href="/login"
