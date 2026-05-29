@@ -7,6 +7,7 @@ export const IRS_MILEAGE_RATE_CENTS: Record<number, number> = {
   2023: 65.5,
   2024: 67,
   2025: 70,
+  2026: 72.5,
 };
 
 // Best rate for a year: exact match if known, otherwise the most recent known
