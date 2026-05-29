@@ -8,19 +8,21 @@ import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { ReceiptText } from 'lucide-react';
 import { ExpensePropertyFilter } from '@/components/expense-property-filter';
+import { ExpenseSortToggle } from '@/components/expense-sort-toggle';
 
 export default async function ExpensesPage({
   searchParams,
 }: {
-  searchParams: { property_id?: string };
+  searchParams: { property_id?: string; sort?: string };
 }) {
   const supabase = createClient();
   const propertyId = searchParams.property_id;
+  const sortBy = searchParams.sort === 'expense' ? 'date' : 'created_at';
 
   let query = supabase
     .from('expenses')
-    .select('*, properties:property_id(address)')
-    .order('created_at', { ascending: false })
+    .select('id, vendor, category, date, created_at, amount_cents, properties:property_id(address)')
+    .order(sortBy, { ascending: false })
     .limit(100);
   if (propertyId) query = query.eq('property_id', propertyId);
 
@@ -57,9 +59,12 @@ export default async function ExpensesPage({
         🏦 Log a mortgage payment
       </Link>
 
-      {propertyList.length > 0 ? (
-        <ExpensePropertyFilter properties={propertyList} current={propertyId ?? null} />
-      ) : null}
+      <div className="space-y-2">
+        {propertyList.length > 0 ? (
+          <ExpensePropertyFilter properties={propertyList} current={propertyId ?? null} />
+        ) : null}
+        <ExpenseSortToggle />
+      </div>
 
       {expenses && expenses.length > 0 ? (
         <div className="space-y-2">
@@ -68,11 +73,15 @@ export default async function ExpensesPage({
             vendor: string | null;
             category: string;
             date: string;
+            created_at: string;
             amount_cents: number;
             properties: { address: string } | { address: string }[] | null;
           }) => {
             const propObj = Array.isArray(e.properties) ? e.properties[0] : e.properties;
             const addr = propObj?.address ?? '—';
+            const expenseDate = format(parseISO(e.date), 'MMM d, yyyy');
+            const entryDate = format(parseISO(e.created_at), 'MMM d, yyyy');
+            const datesMatch = e.date === e.created_at.slice(0, 10);
             return (
               <Link key={e.id} href={`/landlord/expenses/${e.id}`}>
                 <Card className="transition hover:bg-muted/30">
@@ -82,8 +91,15 @@ export default async function ExpensesPage({
                         {e.vendor ?? e.category}
                       </p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {e.category} · {format(parseISO(e.date), 'MMM d, yyyy')}
-                        {propertyId ? '' : ` · ${addr}`}
+                        {e.category}{propertyId ? '' : ` · ${addr}`}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Expense date: {expenseDate}
+                        {!datesMatch ? (
+                          <span className="ml-2 text-muted-foreground/60">
+                            · Added {entryDate}
+                          </span>
+                        ) : null}
                       </p>
                     </div>
                     <p className="shrink-0 text-sm font-semibold">
