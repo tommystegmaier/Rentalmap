@@ -55,6 +55,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   function setTheme(t: Theme) {
     localStorage.setItem('theme', t);
+    // Cookie lets the server pre-render the correct theme on next load,
+    // eliminating the flash of light mode when the user prefers dark.
+    document.cookie = `theme=${t};path=/;max-age=31536000;SameSite=Lax`;
     setThemeState(t);
   }
 

@@ -4,6 +4,7 @@ import { APP_NAME } from '@/lib/constants';
 import { ServiceWorkerRegister } from '@/components/sw-register';
 import { ThemeProvider } from '@/components/theme-provider';
 import { SplashScreen } from '@/components/splash-screen';
+import { cookies } from 'next/headers';
 
 export const metadata: Metadata = {
   title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
@@ -34,8 +35,11 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const themeCookie = cookies().get('theme')?.value;
+  const isDark = themeCookie === 'dark';
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={isDark ? 'dark' : ''} suppressHydrationWarning>
       <head>
         {/* Runs before first paint to prevent flash of wrong theme */}
         <script
