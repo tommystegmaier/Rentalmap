@@ -153,20 +153,20 @@ export default function TourPage() {
           />
 
           {/* Tax & money — spotlight with checklist */}
-          <div className="rounded-3xl border bg-card p-8 sm:p-10">
-            <div className="grid items-center gap-10 sm:grid-cols-2">
+          <div className="rounded-3xl border bg-card p-5 sm:p-10">
+            <div className="grid grid-cols-[1fr_auto] items-center gap-4 sm:grid-cols-2 sm:gap-10">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-primary sm:text-xs">
                   Tax &amp; money
                 </p>
-                <h2 className="mt-2 text-3xl font-semibold tracking-tight">
+                <h2 className="mt-1.5 text-lg font-semibold leading-tight tracking-tight sm:mt-2 sm:text-3xl">
                   Be ready for tax season — all year.
                 </h2>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                <p className="mt-3 hidden text-sm leading-relaxed text-muted-foreground sm:block">
                   Snap a receipt and it files itself into the right IRS category. At tax time,
                   your Schedule E report is one tap away.
                 </p>
-                <ul className="mt-6 space-y-4">
+                <ul className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
                   {[
                     {
                       title: 'Snap-a-receipt AI scanning',
@@ -185,20 +185,28 @@ export default function TourPage() {
                       body: 'Every dollar in and out, tracked per property, so you know what each rental actually earns.',
                     },
                   ].map((f) => (
-                    <li key={f.title} className="flex gap-3">
-                      <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-success" />
+                    <li key={f.title} className="flex gap-2 sm:gap-3">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success sm:h-5 sm:w-5" />
                       <div>
-                        <p className="text-sm font-semibold">{f.title}</p>
-                        <p className="text-sm leading-relaxed text-muted-foreground">{f.body}</p>
+                        <p className="text-xs font-semibold sm:text-sm">{f.title}</p>
+                        <p className="text-[11px] leading-snug text-muted-foreground sm:text-sm sm:leading-relaxed">
+                          {f.body}
+                        </p>
                       </div>
                     </li>
                   ))}
                 </ul>
               </div>
               <div className="flex justify-center">
-                <PhoneFrame>
-                  <PhoneTax />
-                </PhoneFrame>
+                {/* Phone is drawn at a fixed size — scale it down on mobile so it
+                    fits beside the checklist, full size on sm+. */}
+                <div className="h-[286px] w-[140px] shrink-0 overflow-hidden sm:h-auto sm:w-auto sm:overflow-visible">
+                  <div className="origin-top-left scale-[0.56] sm:origin-center sm:scale-100">
+                    <PhoneFrame>
+                      <PhoneTax />
+                    </PhoneFrame>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
