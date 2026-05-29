@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { receiptToPdf } from '@/lib/receipt-pdf';
+import { resizeForUpload } from '@/lib/image';
+import { formatCents } from '@/lib/utils';
 import { ReceiptViewer } from '@/components/receipt-viewer';
 import { setWorkOrderReceipt, removeWorkOrderReceipt } from '@/app/landlord/maintenance/[id]/actions';
 import { X } from 'lucide-react';
@@ -36,6 +38,34 @@ export function WorkOrderReceipt({
     setError(null);
     try {
       const supabase = createClient();
+
+      // Best-effort AI scan to auto-fill total cost & vendor (empty fields only).
+      let scanned: { totalCostCents: number | null; vendorName: string | null } | undefined;
+      try {
+        let scanBlob: Blob = file;
+        try {
+          scanBlob = await resizeForUpload(file);
+        } catch {
+          // fall back to the original
+        }
+        const fd = new FormData();
+        fd.append('file', scanBlob, 'receipt.jpg');
+        const res = await fetch('/api/expenses/scan', { method: 'POST', body: fd });
+        if (res.ok) {
+          const json = await res.json();
+          scanned = {
+            totalCostCents:
+              typeof json.amount === 'number' && Number.isFinite(json.amount)
+                ? Math.round(json.amount * 100)
+                : null,
+            vendorName:
+              typeof json.vendor === 'string' && json.vendor.trim() ? json.vendor.trim() : null,
+          };
+        }
+      } catch {
+        // Scanning is optional — proceed with the upload regardless.
+      }
+
       // Archive the receipt as a PDF for cleaner tax documentation.
       const { blob, ext, contentType } = await receiptToPdf(file);
       const path = `${propertyId}/wo-${workOrderId}-${Date.now()}.${ext}`;
@@ -44,8 +74,14 @@ export function WorkOrderReceipt({
         .upload(path, blob, { upsert: false, contentType });
       if (upErr) throw upErr;
 
-      await setWorkOrderReceipt(workOrderId, path);
-      toast.success('Receipt attached');
+      await setWorkOrderReceipt(workOrderId, path, scanned);
+
+      const filled: string[] = [];
+      if (scanned?.totalCostCents != null) filled.push(formatCents(scanned.totalCostCents));
+      if (scanned?.vendorName) filled.push(scanned.vendorName);
+      toast.success(
+        filled.length ? `Receipt attached · filled ${filled.join(' · ')}` : 'Receipt attached',
+      );
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
@@ -90,8 +126,8 @@ export function WorkOrderReceipt({
         </div>
       ) : (
         <p className="text-xs text-muted-foreground">
-          Attach a receipt for this repair. When the work order is completed, it&apos;s logged
-          as an expense automatically.
+          Attach a receipt for this repair. We&apos;ll read it to auto-fill the total cost and
+          vendor, and once the work order is completed it&apos;s logged as an expense automatically.
         </p>
       )}
 
@@ -111,6 +147,9 @@ export function WorkOrderReceipt({
         />
       </div>
 
+      {busy ? (
+        <p className="text-xs text-muted-foreground">Reading receipt &amp; uploading…</p>
+      ) : null}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
   );

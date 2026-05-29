@@ -118,20 +118,41 @@ export async function updateWorkOrder(id: string, formData: FormData) {
   revalidatePath('/tenant/maintenance');
 }
 
-// Saves a receipt path on the work order. If the order is already completed and
-// has no expense yet, this also creates the expense — so the receipt produces
-// an expense regardless of whether it was added before or after completion.
-export async function setWorkOrderReceipt(id: string, receiptPath: string) {
+// Saves a receipt path on the work order. Optionally fills the total cost and
+// vendor from an AI receipt scan — but only when those fields are still empty,
+// so it never clobbers values the landlord already entered. If the order is
+// already completed (and now has a cost), this also creates the expense, so the
+// receipt produces an expense regardless of the order in which things happen.
+export async function setWorkOrderReceipt(
+  id: string,
+  receiptPath: string,
+  scanned?: { totalCostCents?: number | null; vendorName?: string | null },
+) {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { error } = await supabase
+  const { data: current } = await supabase
     .from('work_orders')
-    .update({ receipt_url: receiptPath })
-    .eq('id', id);
+    .select('total_cost_cents, vendor_name')
+    .eq('id', id)
+    .maybeSingle();
+
+  const updates: Record<string, unknown> = { receipt_url: receiptPath };
+  if (
+    scanned?.totalCostCents != null &&
+    scanned.totalCostCents > 0 &&
+    (current?.total_cost_cents == null || current.total_cost_cents === 0)
+  ) {
+    updates.total_cost_cents = scanned.totalCostCents;
+  }
+  if (scanned?.vendorName && !current?.vendor_name) {
+    updates.vendor_name = scanned.vendorName;
+  }
+
+  const { error } = await supabase.from('work_orders').update(updates).eq('id', id);
   if (error) throw error;
 
   await maybeCreateWorkOrderExpense(supabase, id, user.id);
@@ -241,6 +262,7 @@ async function maybeCreateWorkOrderExpense(
   if (!wo) return;
   if (wo.status !== 'closed') return;
   if (!wo.receipt_url) return;
+  if (!wo.total_cost_cents || wo.total_cost_cents <= 0) return; // wait for a cost
   if (wo.expense_id) return; // already mirrored
 
   const date = wo.closed_at
