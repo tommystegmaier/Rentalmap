@@ -21,7 +21,9 @@ import {
   CheckCircle2,
   AlertCircle,
   FolderOpen,
+  TrendingUp,
 } from 'lucide-react';
+import { MarketRentWidget } from '@/components/market-rent-widget';
 import { removeTenantFromLease } from './tenants/actions';
 
 type DepositStatus =
@@ -282,10 +284,34 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp size={16} className="text-muted-foreground" />
+            Market rent intelligence
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MarketRentWidget
+            propertyId={params.id}
+            askingRentCents={property.asking_rent_cents ?? null}
+            initialMarketRentCents={property.market_rent_cents ?? null}
+            initialFetchedAt={property.market_rent_fetched_at ?? null}
+          />
+        </CardContent>
+      </Card>
+
       {activeLease ? (
         <Card>
           <CardHeader>
-            <CardTitle>Current lease</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Current lease</span>
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/landlord/properties/${params.id}/leases/${activeLease.id}`}>
+                  <FileSignature size={14} /> View / Sign
+                </Link>
+              </Button>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="grid grid-cols-2 gap-3">

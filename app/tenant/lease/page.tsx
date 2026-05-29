@@ -2,10 +2,12 @@ import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
-import { FileText } from 'lucide-react';
+import { CheckCircle2, Clock, Download, FileText, PenLine } from 'lucide-react';
+import { TenantSignForm } from './sign/form';
 
 export default async function LeasePage() {
   const supabase = createClient();
@@ -22,6 +24,7 @@ export default async function LeasePage() {
   const leaseRow = Array.isArray(rawLease) ? rawLease[0] : rawLease;
   const lease = leaseRow as
     | {
+        id: string;
         monthly_rent_cents: number;
         due_day: number;
         late_after_day: number;
@@ -31,6 +34,10 @@ export default async function LeasePage() {
         end_date: string;
         pets_allowed: boolean;
         terms_notes: string | null;
+        landlord_signed_at: string | null;
+        landlord_signed_name: string | null;
+        tenant_signed_at: string | null;
+        tenant_signed_name: string | null;
         properties:
           | { address: string; id: string; photo_url: string | null }
           | { address: string; id: string; photo_url: string | null }[]
@@ -61,9 +68,24 @@ export default async function LeasePage() {
     ? supabase.storage.from('property-photos').getPublicUrl(prop.photo_url).data.publicUrl
     : null;
 
+  const landlordSigned = !!lease.landlord_signed_at;
+  const tenantSigned = !!lease.tenant_signed_at;
+  const needsMySignature = landlordSigned && !tenantSigned;
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Lease summary" description={prop?.address ?? ''} />
+      <PageHeader
+        title="Lease summary"
+        description={prop?.address ?? ''}
+        action={
+          <a href={`/api/lease/${lease.id}/pdf`} download>
+            <Button size="sm" variant="outline">
+              <Download size={14} />
+              PDF
+            </Button>
+          </a>
+        }
+      />
 
       {photoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -73,6 +95,63 @@ export default async function LeasePage() {
           className="aspect-video w-full rounded-2xl border object-cover"
         />
       ) : null}
+
+      {/* Signature status */}
+      <div className="flex flex-wrap gap-2">
+        <Badge
+          className={
+            landlordSigned
+              ? 'border-transparent bg-green-100 text-green-700'
+              : 'border-transparent bg-muted text-muted-foreground'
+          }
+        >
+          {landlordSigned ? (
+            <>
+              <CheckCircle2 size={12} className="mr-1" /> Landlord signed
+            </>
+          ) : (
+            <>
+              <Clock size={12} className="mr-1" /> Awaiting landlord
+            </>
+          )}
+        </Badge>
+        <Badge
+          className={
+            tenantSigned
+              ? 'border-transparent bg-green-100 text-green-700'
+              : 'border-transparent bg-yellow-100 text-yellow-700'
+          }
+        >
+          {tenantSigned ? (
+            <>
+              <CheckCircle2 size={12} className="mr-1" /> You signed
+            </>
+          ) : (
+            <>
+              <Clock size={12} className="mr-1" /> Your signature needed
+            </>
+          )}
+        </Badge>
+      </div>
+
+      {/* Sign form */}
+      {needsMySignature && (
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PenLine size={16} />
+              Sign this lease
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-3 text-sm text-muted-foreground">
+              Your landlord has signed. Review the terms below, then add your signature to finalize
+              this lease.
+            </p>
+            <TenantSignForm leaseId={lease.id} />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
