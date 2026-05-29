@@ -16,6 +16,7 @@ import { isIsoDate } from '@/lib/image';
 import { prepareScanUpload } from '@/lib/scan-upload';
 import { receiptToPdf } from '@/lib/receipt-pdf';
 import { ReceiptViewer } from '@/components/receipt-viewer';
+import { format, parseISO } from 'date-fns';
 import { deleteExpense, updateExpense } from './actions';
 
 interface EditExpenseFormProps {
@@ -23,6 +24,7 @@ interface EditExpenseFormProps {
     id: string;
     property_id: string;
     date: string;
+    created_at: string;
     amount_cents: number;
     category: string;
     vendor: string | null;
@@ -304,6 +306,20 @@ export function EditExpenseForm({
           </span>
         </span>
       </label>
+
+      <div className="rounded-lg border bg-muted/30 px-3 py-2 space-y-0.5">
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Expense date</span>{' '}
+          {format(parseISO(expense.date), 'MMM d, yyyy')}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Added</span>{' '}
+          {format(parseISO(expense.created_at), 'MMM d, yyyy')}
+          {expense.date !== expense.created_at.slice(0, 10) ? (
+            <span className="ml-1 text-muted-foreground/60">(different from expense date)</span>
+          ) : null}
+        </p>
+      </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
