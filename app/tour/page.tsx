@@ -9,7 +9,6 @@ import {
   Bell,
   Clock,
   ScanLine,
-  Car,
   FileBarChart,
   FileSignature,
   ClipboardCheck,
@@ -138,44 +137,56 @@ export default function TourPage() {
             ]}
           />
 
-          <Pillar
-            eyebrow="Tax & money"
-            title="Be ready for tax season — all year."
-            blurb="Snap a receipt and it files itself into the right IRS category. At tax time, your Schedule E report is one tap away."
-            spotlight={
-              <div className="mx-auto flex max-w-sm flex-col items-center rounded-3xl border bg-gradient-to-br from-primary/10 to-primary/5 px-8 py-10">
+          {/* Tax & money — spotlight with checklist */}
+          <div className="rounded-3xl border bg-card p-8 sm:p-10">
+            <div className="grid items-center gap-10 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                  Tax &amp; money
+                </p>
+                <h2 className="mt-2 text-3xl font-semibold tracking-tight">
+                  Be ready for tax season — all year.
+                </h2>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                  Snap a receipt and it files itself into the right IRS category. At tax time,
+                  your Schedule E report is one tap away.
+                </p>
+                <ul className="mt-6 space-y-4">
+                  {[
+                    {
+                      title: 'Snap-a-receipt AI scanning',
+                      body: 'AI reads the vendor, amount, and date, and sorts it into the right Schedule E category automatically.',
+                    },
+                    {
+                      title: 'Mileage tracking',
+                      body: 'Tap "Start trip" and GPS logs the drive at the current IRS standard rate — the deduction books itself.',
+                    },
+                    {
+                      title: 'One-tap tax reports',
+                      body: 'A complete Schedule E P&L packet — income, expenses, depreciation, and a full ledger — as a clean PDF.',
+                    },
+                    {
+                      title: 'Income & expenses per property',
+                      body: 'Every dollar in and out, tracked per property, so you know what each rental actually earns.',
+                    },
+                  ].map((f) => (
+                    <li key={f.title} className="flex gap-3">
+                      <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-success" />
+                      <div>
+                        <p className="text-sm font-semibold">{f.title}</p>
+                        <p className="text-sm leading-relaxed text-muted-foreground">{f.body}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="flex justify-center">
                 <PhoneFrame>
                   <PhoneTax />
                 </PhoneFrame>
-                <p className="mt-6 text-center text-xs text-muted-foreground">
-                  Your Schedule E — a full year of rent, receipts, and mileage, generated as a
-                  clean PDF in one tap.
-                </p>
               </div>
-            }
-            features={[
-              {
-                icon: <ScanLine size={18} />,
-                title: 'Snap-a-receipt AI scanning',
-                body: 'Photograph any receipt and AI reads the vendor, amount, date, and sorts it into the right Schedule E category automatically.',
-              },
-              {
-                icon: <Car size={18} />,
-                title: 'Mileage tracking',
-                body: 'Tap "Start trip" and GPS logs the drive to your property. It applies the current IRS standard rate and books the deduction for you.',
-              },
-              {
-                icon: <FileBarChart size={18} />,
-                title: 'One-tap tax reports',
-                body: 'A complete Schedule E profit & loss packet — income, deductible expenses, depreciation, and a full ledger — as a clean PDF for you or your accountant.',
-              },
-              {
-                icon: <TrendingUp size={18} />,
-                title: 'Income & expenses per property',
-                body: 'Every dollar in and out, tracked per property, so you always know what each rental actually earns.',
-              },
-            ]}
-          />
+            </div>
+          </div>
 
           <Pillar
             eyebrow="Stay organized"
@@ -302,13 +313,11 @@ function Pillar({
   title,
   blurb,
   features,
-  spotlight,
 }: {
   eyebrow: string;
   title: string;
   blurb: string;
   features: { icon: React.ReactNode; title: string; body: string }[];
-  spotlight?: React.ReactNode;
 }) {
   return (
     <div>
@@ -319,7 +328,6 @@ function Pillar({
         <h2 className="mt-2 text-3xl font-semibold tracking-tight">{title}</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{blurb}</p>
       </div>
-      {spotlight ? <div className="mt-10">{spotlight}</div> : null}
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {features.map((f) => (
           <div
