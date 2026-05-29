@@ -6,7 +6,8 @@ import { formatCents } from '@/lib/utils';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 import { computeTaxReportData } from '@/lib/tax-report-data';
 import { format, parseISO } from 'date-fns';
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, Car, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import { TaxYearPicker, TaxScheduleSettings, DeleteTaxReportButton } from './controls';
 
 export default async function TaxCenterPage({
@@ -114,6 +115,28 @@ export default async function TaxCenterPage({
               </tr>
             </tbody>
           </table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-0">
+          <Link
+            href="/landlord/mileage"
+            className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/30 tap-44"
+          >
+            <span className="flex items-center gap-3">
+              <span className="text-primary" aria-hidden>
+                <Car size={20} />
+              </span>
+              <span className="text-sm">
+                <span className="font-medium">Mileage</span>
+                <span className="block text-xs text-muted-foreground">
+                  Log deductible miles — they roll into Auto and Travel above.
+                </span>
+              </span>
+            </span>
+            <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
+          </Link>
         </CardContent>
       </Card>
 

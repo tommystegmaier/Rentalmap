@@ -1,5 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
+import { tripDeductionCents } from '@/lib/mileage';
+
+const AUTO_TRAVEL_CATEGORY = 'Auto and Travel';
 
 export interface TaxPropertyColumn {
   id: string;
@@ -68,20 +71,27 @@ export async function computeTaxReportData(
   };
   if (propIds.length === 0) return empty;
 
-  const [{ data: leases }, { data: payments }, { data: expenses }] = await Promise.all([
-    client.from('leases').select('id, property_id').in('property_id', propIds),
-    client
-      .from('rent_payments')
-      .select('lease_id, amount_cents, status, received_date')
-      .gte('received_date', start)
-      .lte('received_date', end),
-    client
-      .from('expenses')
-      .select('property_id, date, amount_cents, category, vendor, tax_deductible, receipt_url')
-      .gte('date', start)
-      .lte('date', end)
-      .in('property_id', propIds),
-  ]);
+  const [{ data: leases }, { data: payments }, { data: expenses }, { data: mileage }] =
+    await Promise.all([
+      client.from('leases').select('id, property_id').in('property_id', propIds),
+      client
+        .from('rent_payments')
+        .select('lease_id, amount_cents, status, received_date')
+        .gte('received_date', start)
+        .lte('received_date', end),
+      client
+        .from('expenses')
+        .select('property_id, date, amount_cents, category, vendor, tax_deductible, receipt_url')
+        .gte('date', start)
+        .lte('date', end)
+        .in('property_id', propIds),
+      client
+        .from('mileage_trips')
+        .select('property_id, trip_date, miles, rate_cents, purpose')
+        .gte('trip_date', start)
+        .lte('trip_date', end)
+        .in('property_id', propIds),
+    ]);
 
   const leaseToProp = new Map<string, string>(
     (leases ?? []).map((l: { id: string; property_id: string }) => [l.id, l.property_id]),
@@ -98,8 +108,23 @@ export async function computeTaxReportData(
     tax_deductible: boolean | null;
     receipt_url: string | null;
   };
+  type MileageRow = {
+    property_id: string;
+    trip_date: string;
+    miles: number;
+    rate_cents: number;
+    purpose: string | null;
+  };
   const payRows = (payments ?? []) as PayRow[];
   const expRows = (expenses ?? []) as ExpRow[];
+  const mileageRows = (mileage ?? []) as MileageRow[];
+
+  // Roll mileage up per property so it lands in the "Auto and Travel" column.
+  const mileageByProp = new Map<string, number>();
+  for (const m of mileageRows) {
+    const cents = tripDeductionCents(Number(m.miles), Number(m.rate_cents));
+    mileageByProp.set(m.property_id, (mileageByProp.get(m.property_id) ?? 0) + cents);
+  }
 
   const columns: TaxPropertyColumn[] = propsArr.map((p) => {
     const incomeCents = payRows
@@ -121,6 +146,12 @@ export async function computeTaxReportData(
       }
     }
 
+    // Mileage is deductible auto/travel expense.
+    const mileageCents = mileageByProp.get(p.id) ?? 0;
+    if (mileageCents > 0) {
+      byCategory[AUTO_TRAVEL_CATEGORY] = (byCategory[AUTO_TRAVEL_CATEGORY] ?? 0) + mileageCents;
+    }
+
     return {
       id: p.id,
       address: p.address,
@@ -128,6 +159,21 @@ export async function computeTaxReportData(
       byCategory,
       depreciationCents: p.annual_depreciation_cents ?? 0,
       nonDeductibleCents,
+    };
+  });
+
+  const mileageLedgerRows: TaxExpenseRow[] = mileageRows.map((m) => {
+    const miles = Number(m.miles);
+    return {
+      date: m.trip_date,
+      propertyAddress: addrById.get(m.property_id) ?? '',
+      category: AUTO_TRAVEL_CATEGORY,
+      vendor: `${miles.toLocaleString('en-US', { maximumFractionDigits: 1 })}mi${
+        m.purpose ? ` · ${m.purpose}` : ''
+      }`,
+      amountCents: tripDeductionCents(miles, Number(m.rate_cents)),
+      deductible: true,
+      receiptPath: null,
     };
   });
 
@@ -141,6 +187,7 @@ export async function computeTaxReportData(
       deductible: e.tax_deductible !== false,
       receiptPath: e.receipt_url,
     }))
+    .concat(mileageLedgerRows)
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 
   const totalIncomeCents = columns.reduce((s, c) => s + c.incomeCents, 0);

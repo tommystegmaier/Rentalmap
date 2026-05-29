@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   ChevronRight,
   Calculator,
+  Car,
 } from 'lucide-react';
 
 type NavItem = { href: string; label: string; icon: React.ReactNode; badge?: number };
@@ -30,6 +31,7 @@ const groups: { title: string; items: NavItem[] }[] = [
     title: 'Financial',
     items: [
       { href: '/landlord/expenses', label: 'Expenses', icon: <ReceiptText size={20} /> },
+      { href: '/landlord/mileage', label: 'Mileage', icon: <Car size={20} /> },
       { href: '/landlord/late-fees', label: 'Late fees', icon: <CircleDollarSign size={20} /> },
       { href: '/landlord/deposits', label: 'Security deposits', icon: <ShieldCheck size={20} /> },
       { href: '/landlord/utilities', label: 'Utilities', icon: <Zap size={20} /> },
