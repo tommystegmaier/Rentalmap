@@ -3,7 +3,8 @@ import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cardChargeCents, formatCents } from '@/lib/utils';
-import { addMonths, format, parseISO, setDate } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { currentRentPeriodDue } from '@/lib/rent-period';
 import { PayButton } from './pay-button';
 import { AutopayControls } from './autopay-controls';
 import { getStripe } from '@/lib/stripe';
@@ -131,9 +132,8 @@ export default async function PayRentPage({
   const totalLateFeesCents = lateFees.reduce((s, f) => s + f.amount_cents, 0);
 
   const today = new Date();
-  let nextDue = lease ? setDate(today, lease.due_day) : today;
-  if (lease && nextDue < today) nextDue = addMonths(nextDue, 1);
-  const expectedDate = format(nextDue, 'yyyy-MM-dd');
+  const periodDue = lease ? currentRentPeriodDue(lease.due_day, today) : today;
+  const expectedDate = format(periodDue, 'yyyy-MM-dd');
 
   return (
     <div className="space-y-6">
@@ -154,7 +154,7 @@ export default async function PayRentPage({
             {lease ? formatCents(lease.monthly_rent_cents) : '—'}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Next due {format(nextDue, 'MMMM d, yyyy')}
+            For {format(periodDue, 'MMMM yyyy')} · due {format(periodDue, 'MMMM d')}
           </p>
           {totalLateFeesCents > 0 ? (
             <div className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">

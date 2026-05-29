@@ -3,6 +3,8 @@ import { getStripe } from '@/lib/stripe';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { sendPushToLandlord, sendPushToUser } from '@/lib/push';
 import { formatCents } from '@/lib/utils';
+import { currentRentPeriodDue } from '@/lib/rent-period';
+import { format } from 'date-fns';
 
 export const runtime = 'nodejs';
 
@@ -212,10 +214,23 @@ export async function POST(request: Request) {
         if (existing) break;
       }
 
+      const { data: l } = await supabase
+        .from('leases')
+        .select('property_id, due_day, properties:property_id(address)')
+        .eq('id', autopay.lease_id)
+        .maybeSingle();
+
+      // Attribute the auto-pay charge to the current rent period's due date so
+      // it lands in the right month and matches the late-fee period lookup.
+      const today = new Date();
+      const expectedDate = l?.due_day
+        ? format(currentRentPeriodDue(l.due_day, today), 'yyyy-MM-dd')
+        : today.toISOString().slice(0, 10);
+
       await supabase.from('rent_payments').insert({
         lease_id: autopay.lease_id,
-        expected_date: new Date().toISOString().slice(0, 10),
-        received_date: new Date().toISOString().slice(0, 10),
+        expected_date: expectedDate,
+        received_date: today.toISOString().slice(0, 10),
         amount_cents: invoice.amount_paid,
         method: 'ach',
         stripe_payment_intent_id: piId,
@@ -224,11 +239,6 @@ export async function POST(request: Request) {
         notes: 'Auto-pay (Stripe subscription)',
       });
 
-      const { data: l } = await supabase
-        .from('leases')
-        .select('property_id, properties:property_id(address)')
-        .eq('id', autopay.lease_id)
-        .maybeSingle();
       const addr =
         (Array.isArray(l?.properties) ? l?.properties[0] : l?.properties)?.address ?? '';
       if (l?.property_id) {

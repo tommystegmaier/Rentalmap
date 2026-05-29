@@ -4,7 +4,8 @@ import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCents } from '@/lib/utils';
-import { addMonths, format, setDate } from 'date-fns';
+import { format } from 'date-fns';
+import { currentRentPeriodDue } from '@/lib/rent-period';
 import { ChevronLeft } from 'lucide-react';
 import {
   P2P_LABELS,
@@ -75,10 +76,9 @@ export default async function P2PClaimPage({
   }
 
   const today = new Date();
-  let nextDue = setDate(today, lease.due_day);
-  if (nextDue < today) nextDue = addMonths(nextDue, 1);
-  const expectedDate = format(nextDue, 'yyyy-MM-dd');
-  const periodLabel = format(nextDue, 'MMMM yyyy');
+  const periodDue = currentRentPeriodDue(lease.due_day, today);
+  const expectedDate = format(periodDue, 'yyyy-MM-dd');
+  const periodLabel = format(periodDue, 'MMMM yyyy');
   const note = `${periodLabel} rent${prop?.address ? ` · ${prop.address}` : ''}`;
 
   // Check for an existing pending claim for this period (any method)
@@ -114,7 +114,7 @@ export default async function P2PClaimPage({
           <p className="font-medium">Amount</p>
           <p className="text-2xl font-semibold">{formatCents(lease.monthly_rent_cents)}</p>
           <p className="text-xs text-muted-foreground">
-            For {periodLabel} · due {format(nextDue, 'MMMM d')}
+            For {periodLabel} · due {format(periodDue, 'MMMM d')}
           </p>
         </CardContent>
       </Card>
