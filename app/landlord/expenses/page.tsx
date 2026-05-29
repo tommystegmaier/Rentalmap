@@ -20,7 +20,7 @@ export default async function ExpensesPage({
   let query = supabase
     .from('expenses')
     .select('*, properties:property_id(address)')
-    .order('date', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(100);
   if (propertyId) query = query.eq('property_id', propertyId);
 
