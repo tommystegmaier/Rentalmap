@@ -43,17 +43,57 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-export function TaxYearPicker({ year, years }: { year: number; years: number[] }) {
+function buildTaxUrl(year: number | string, propertyId: string | null) {
+  const params = new URLSearchParams({ year: String(year) });
+  if (propertyId) params.set('property_id', propertyId);
+  return `/landlord/tax?${params.toString()}`;
+}
+
+export function TaxYearPicker({
+  year,
+  years,
+  propertyId = null,
+}: {
+  year: number;
+  years: number[];
+  propertyId?: string | null;
+}) {
   const router = useRouter();
   return (
     <Select
       aria-label="Tax year"
       value={String(year)}
-      onChange={(e) => router.push(`/landlord/tax?year=${e.target.value}`)}
+      onChange={(e) => router.push(buildTaxUrl(e.target.value, propertyId))}
     >
       {years.map((y) => (
         <option key={y} value={y}>
           {y}
+        </option>
+      ))}
+    </Select>
+  );
+}
+
+export function TaxPropertyPicker({
+  year,
+  propertyId,
+  properties,
+}: {
+  year: number;
+  propertyId: string | null;
+  properties: { id: string; address: string }[];
+}) {
+  const router = useRouter();
+  return (
+    <Select
+      aria-label="Property"
+      value={propertyId ?? ''}
+      onChange={(e) => router.push(buildTaxUrl(year, e.target.value || null))}
+    >
+      <option value="">All properties</option>
+      {properties.map((p) => (
+        <option key={p.id} value={p.id}>
+          {p.address}
         </option>
       ))}
     </Select>

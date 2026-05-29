@@ -42,6 +42,7 @@ export async function computeTaxReportData(
   client: SupabaseClient,
   ownerId: string,
   year: number,
+  propertyId?: string | null,
 ): Promise<TaxReportData> {
   const start = `${year}-01-01`;
   const end = `${year}-12-31`;
@@ -52,11 +53,13 @@ export async function computeTaxReportData(
     .eq('owner_id', ownerId)
     .order('created_at');
 
-  const propsArr = (properties ?? []) as {
+  let propsArr = (properties ?? []) as {
     id: string;
     address: string;
     annual_depreciation_cents: number | null;
   }[];
+  // Optionally scope the whole report to a single property.
+  if (propertyId) propsArr = propsArr.filter((p) => p.id === propertyId);
   const propIds = propsArr.map((p) => p.id);
 
   const empty: TaxReportData = {

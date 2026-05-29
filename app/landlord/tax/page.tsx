@@ -8,12 +8,17 @@ import { computeTaxReportData } from '@/lib/tax-report-data';
 import { format, parseISO } from 'date-fns';
 import { FileText, Download, Car, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { TaxYearPicker, TaxScheduleSettings, DeleteTaxReportButton } from './controls';
+import {
+  TaxYearPicker,
+  TaxPropertyPicker,
+  TaxScheduleSettings,
+  DeleteTaxReportButton,
+} from './controls';
 
 export default async function TaxCenterPage({
   searchParams,
 }: {
-  searchParams: { year?: string; generated?: string };
+  searchParams: { year?: string; generated?: string; property_id?: string };
 }) {
   const supabase = createClient();
   const {
@@ -24,21 +29,36 @@ export default async function TaxCenterPage({
   const currentYear = new Date().getFullYear();
   const year = Number(searchParams.year ?? currentYear) || currentYear;
   const years = Array.from({ length: 6 }, (_, i) => currentYear - i);
+  const propertyId = searchParams.property_id || null;
 
-  const [{ data: profile }, data, { data: reports }] = await Promise.all([
-    supabase
-      .from('users')
-      .select('tax_report_enabled, tax_report_month, tax_report_day')
-      .eq('id', user.id)
-      .maybeSingle(),
-    computeTaxReportData(supabase, user.id, year),
-    supabase
-      .from('tax_reports')
-      .select('id, year, generated_at, generated_by, net_cents')
-      .eq('owner_id', user.id)
-      .order('generated_at', { ascending: false })
-      .limit(12),
-  ]);
+  const [{ data: profile }, data, { data: reports }, { data: propertyList }] =
+    await Promise.all([
+      supabase
+        .from('users')
+        .select('tax_report_enabled, tax_report_month, tax_report_day')
+        .eq('id', user.id)
+        .maybeSingle(),
+      computeTaxReportData(supabase, user.id, year, propertyId),
+      supabase
+        .from('tax_reports')
+        .select('id, year, generated_at, generated_by, net_cents, property_label')
+        .eq('owner_id', user.id)
+        .order('generated_at', { ascending: false })
+        .limit(12),
+      supabase
+        .from('properties')
+        .select('id, address')
+        .eq('owner_id', user.id)
+        .order('created_at'),
+    ]);
+
+  const properties = (propertyList ?? []) as { id: string; address: string }[];
+  const selectedAddress = propertyId
+    ? properties.find((p) => p.id === propertyId)?.address ?? null
+    : null;
+  const generateUrl = `/api/tax-report?year=${year}${
+    propertyId ? `&property_id=${propertyId}` : ''
+  }`;
 
   const categoryTotals: Record<string, number> = {};
   for (const c of EXPENSE_CATEGORIES) categoryTotals[c] = 0;
@@ -57,9 +77,17 @@ export default async function TaxCenterPage({
         </div>
       ) : null}
 
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Tax year</span>
-        <TaxYearPicker year={year} years={years} />
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="w-16 shrink-0 text-sm text-muted-foreground">Tax year</span>
+          <TaxYearPicker year={year} years={years} propertyId={propertyId} />
+        </div>
+        {properties.length > 1 ? (
+          <div className="flex items-center gap-2">
+            <span className="w-16 shrink-0 text-sm text-muted-foreground">Property</span>
+            <TaxPropertyPicker year={year} propertyId={propertyId} properties={properties} />
+          </div>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-3 gap-2">
@@ -81,12 +109,15 @@ export default async function TaxCenterPage({
 
       <div className="space-y-1">
         <Button asChild className="w-full">
-          <a href={`/api/tax-report?year=${year}`}>
+          <a href={generateUrl}>
             <Download size={16} className="mr-2" />
             Generate {year} tax report (PDF)
           </a>
         </Button>
         <p className="text-center text-xs text-muted-foreground">
+          {selectedAddress ? (
+            <>Scoped to {selectedAddress}. </>
+          ) : null}
           A single PDF: P&amp;L summary, Schedule E, expense ledger, and every receipt on file.
           Saved below when ready.
         </p>
@@ -165,6 +196,7 @@ export default async function TaxCenterPage({
               generated_at: string;
               generated_by: string;
               net_cents: number;
+              property_label: string | null;
             }[]).map((r) => (
               <div
                 key={r.id}
@@ -178,7 +210,10 @@ export default async function TaxCenterPage({
                 >
                   <FileText size={16} className="shrink-0 text-muted-foreground" />
                   <span className="min-w-0">
-                    <span className="font-medium">{r.year} tax report</span>
+                    <span className="font-medium">
+                      {r.year} tax report
+                      {r.property_label ? ` · ${r.property_label}` : ''}
+                    </span>
                     <span className="block text-xs text-muted-foreground">
                       {format(parseISO(r.generated_at), 'MMM d, yyyy')} ·{' '}
                       {r.generated_by === 'scheduled' ? 'scheduled' : 'manual'}

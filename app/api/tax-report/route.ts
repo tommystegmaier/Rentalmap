@@ -17,15 +17,21 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const year = Number(url.searchParams.get('year') ?? new Date().getFullYear());
+  const propertyId = url.searchParams.get('property_id') || null;
 
   const { data: profile } = await supabase
     .from('users')
     .select('name, email')
     .eq('id', user.id)
     .maybeSingle();
-  const ownerLabel = profile?.name ?? profile?.email ?? 'Landlord';
+  const baseLabel = profile?.name ?? profile?.email ?? 'Landlord';
 
-  const data = await computeTaxReportData(supabase, user.id, year);
+  const data = await computeTaxReportData(supabase, user.id, year, propertyId);
+
+  // When scoped to one property, label the report by its address.
+  const propertyLabel = propertyId ? data.properties[0]?.address ?? null : null;
+  const ownerLabel = propertyLabel ? `${baseLabel} · ${propertyLabel}` : baseLabel;
+
   const pdf = await buildTaxReportPacket(supabase, data, ownerLabel);
 
   // Persist (service role — the tax-reports bucket has no per-user policy).
@@ -45,10 +51,12 @@ export async function GET(request: Request) {
       total_nondeductible_cents: data.totalNonDeductibleCents,
       net_cents: data.netCents,
       generated_by: 'manual',
+      property_label: propertyLabel,
     });
   }
 
-  return NextResponse.redirect(
-    new URL(`/landlord/tax?year=${year}&generated=1`, request.url),
-  );
+  const redirectUrl = `/landlord/tax?year=${year}&generated=1${
+    propertyId ? `&property_id=${propertyId}` : ''
+  }`;
+  return NextResponse.redirect(new URL(redirectUrl, request.url));
 }
