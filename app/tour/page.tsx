@@ -95,9 +95,9 @@ export default function TourPage() {
                 <PhoneScan />
               </PhoneFrame>
             </Figure>
-            <Figure caption="A Schedule E tax report in one tap.">
+            <Figure caption="Get pinged the moment something breaks.">
               <PhoneFrame>
-                <PhoneTax />
+                <PhoneWorkOrder />
               </PhoneFrame>
             </Figure>
             <Figure caption="Your tenant pays in two taps.">
@@ -108,31 +108,30 @@ export default function TourPage() {
           </div>
         </section>
 
-        {/* Spotlight: work orders & alerts */}
+        {/* Spotlight: tax reporting */}
         <section className="mt-24 rounded-3xl border bg-card p-8 sm:p-10">
           <div className="grid items-center gap-10 sm:grid-cols-2">
             <div>
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Wrench size={22} />
+                <FileBarChart size={22} />
               </span>
               <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-primary">
-                Maintenance &amp; alerts
+                Tax &amp; money
               </p>
               <h2 className="mt-1 text-2xl font-semibold tracking-tight">
-                Never miss an emergency.
+                Tax season, already done.
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                The moment a tenant reports a problem, you get an instant push notification —
-                with photos and an urgency level — so a burst pipe never sits unread in an
-                inbox. Track every request from open to closed and log the repair cost straight
-                to your expenses.
+                Every receipt, mile, and payment is categorized the moment you log it — so when
+                tax time comes, your Schedule E is one tap away. Hand your accountant a clean
+                PDF instead of a shoebox, and see exactly what each property earns.
               </p>
               <ul className="mt-4 space-y-2.5 text-sm">
                 {[
-                  'Instant push the second something breaks',
-                  'Photos + urgency, from emergency to low',
-                  'Track open → in progress → closed',
-                  'Repair costs flow into expenses & taxes',
+                  'Snap receipts — AI files them into IRS categories',
+                  'GPS mileage at the current IRS standard rate',
+                  'One-tap Schedule E report, ready for your accountant',
+                  'Income, expenses & net — per property',
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2.5">
                     <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-success" />
@@ -143,7 +142,7 @@ export default function TourPage() {
             </div>
             <div className="flex justify-center">
               <PhoneFrame>
-                <PhoneWorkOrder />
+                <PhoneTax />
               </PhoneFrame>
             </div>
           </div>
