@@ -14,6 +14,7 @@ import { MarkNotificationRead } from '@/components/mark-notification-read';
 import { DeleteWorkOrderButton } from '@/components/delete-work-order-button';
 import { SuccessToast } from '@/components/success-toast';
 import { WorkOrderReceipt } from '@/components/work-order-receipt';
+import { WorkOrderRepairPhotos } from '@/components/work-order-repair-photos';
 
 interface WorkOrderDetailRow {
   id: string;
@@ -25,6 +26,7 @@ interface WorkOrderDetailRow {
   submitted_at: string;
   closed_at: string | null;
   photo_urls: string[];
+  repair_photo_urls: string[];
   receipt_url: string | null;
   vendor_name: string | null;
   vendor_phone: string | null;
@@ -74,6 +76,17 @@ export default async function WorkOrderDetail({
         .from('work-order-photos')
         .createSignedUrl(path, 3600);
       if (signed?.signedUrl) photoSignedUrls.push(signed.signedUrl);
+    }
+  }
+
+  // Signed URLs for landlord-uploaded repair photos (private bucket).
+  const repairPhotos: { path: string; signedUrl: string }[] = [];
+  if (wo.repair_photo_urls?.length) {
+    for (const path of wo.repair_photo_urls) {
+      const { data: signed } = await admin.storage
+        .from('work-order-photos')
+        .createSignedUrl(path, 3600);
+      if (signed?.signedUrl) repairPhotos.push({ path, signedUrl: signed.signedUrl });
     }
   }
 
@@ -251,6 +264,15 @@ export default async function WorkOrderDetail({
 
       <Card>
         <CardHeader>
+          <CardTitle>Repair photos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <WorkOrderRepairPhotos workOrderId={wo.id} photos={repairPhotos} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Receipt</CardTitle>
         </CardHeader>
         <CardContent>
@@ -258,6 +280,7 @@ export default async function WorkOrderDetail({
             workOrderId={wo.id}
             propertyId={wo.property_id}
             receiptSignedUrl={receiptSignedUrl}
+            receiptPath={wo.receipt_url}
             hasReceipt={!!wo.receipt_url}
           />
         </CardContent>

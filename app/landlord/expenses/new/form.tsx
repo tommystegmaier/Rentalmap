@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 import { parseDollarsToCents } from '@/lib/utils';
 import { isIsoDate, resizeForUpload } from '@/lib/image';
+import { receiptToPdf } from '@/lib/receipt-pdf';
 
 interface ExpenseFormProps {
   properties: { id: string; address: string }[];
@@ -111,11 +112,12 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
 
       let receipt_url: string | null = null;
       if (receipt) {
-        const ext = receipt.name.split('.').pop() ?? 'jpg';
+        // Archive the receipt as a PDF for cleaner tax documentation.
+        const { blob, ext, contentType } = await receiptToPdf(receipt);
         const path = `${propertyId}/${Date.now()}.${ext}`;
         const { error: uploadErr } = await supabase.storage
           .from('receipts')
-          .upload(path, receipt, { upsert: false });
+          .upload(path, blob, { upsert: false, contentType });
         if (uploadErr) throw uploadErr;
         receipt_url = path;
       }

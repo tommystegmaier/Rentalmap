@@ -35,6 +35,17 @@ export default async function TenantWorkOrderDetail({
     }
   }
 
+  // Repair photos the landlord added (read-only for the tenant).
+  const repairSignedUrls: string[] = [];
+  if (wo.repair_photo_urls?.length) {
+    for (const path of wo.repair_photo_urls as string[]) {
+      const { data: signed } = await admin.storage
+        .from('work-order-photos')
+        .createSignedUrl(path, 3600);
+      if (signed?.signedUrl) repairSignedUrls.push(signed.signedUrl);
+    }
+  }
+
   const urg = URGENCY_LABELS[wo.urgency as Urgency];
 
   return (
@@ -92,6 +103,28 @@ export default async function TenantWorkOrderDetail({
           ) : null}
         </CardContent>
       </Card>
+
+      {repairSignedUrls.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Repair photos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-2">
+              {repairSignedUrls.map((url, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={i}
+                  src={url}
+                  alt={`Repair photo ${i + 1}`}
+                  className="aspect-square w-full rounded-lg border object-cover"
+                  loading="lazy"
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {wo.landlord_notes_shared ? (
         <Card>

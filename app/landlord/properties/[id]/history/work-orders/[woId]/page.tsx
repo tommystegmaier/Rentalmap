@@ -9,6 +9,7 @@ import { format, parseISO } from 'date-fns';
 import { ChevronLeft } from 'lucide-react';
 import { formatCents, one } from '@/lib/utils';
 import { DeleteWorkOrderButton } from '@/components/delete-work-order-button';
+import { ReceiptViewer } from '@/components/receipt-viewer';
 
 interface WorkOrderRow {
   id: string;
@@ -20,6 +21,8 @@ interface WorkOrderRow {
   submitted_at: string;
   closed_at: string | null;
   photo_urls: string[];
+  repair_photo_urls: string[];
+  receipt_url: string | null;
   vendor_name: string | null;
   vendor_phone: string | null;
   total_cost_cents: number | null;
@@ -59,6 +62,24 @@ export default async function HistoryWorkOrderView({
         .createSignedUrl(path, 3600);
       if (signed?.signedUrl) photoSignedUrls.push(signed.signedUrl);
     }
+  }
+
+  const repairSignedUrls: string[] = [];
+  if (wo.repair_photo_urls?.length) {
+    for (const path of wo.repair_photo_urls) {
+      const { data: signed } = await admin.storage
+        .from('work-order-photos')
+        .createSignedUrl(path, 3600);
+      if (signed?.signedUrl) repairSignedUrls.push(signed.signedUrl);
+    }
+  }
+
+  let receiptSignedUrl: string | null = null;
+  if (wo.receipt_url) {
+    const { data: signed } = await admin.storage
+      .from('receipts')
+      .createSignedUrl(wo.receipt_url, 3600);
+    receiptSignedUrl = signed?.signedUrl ?? null;
   }
 
   const urg = URGENCY_LABELS[wo.urgency];
@@ -135,6 +156,39 @@ export default async function HistoryWorkOrderView({
           ) : null}
         </CardContent>
       </Card>
+
+      {repairSignedUrls.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Repair photos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-2">
+              {repairSignedUrls.map((url, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={i}
+                  src={url}
+                  alt={`Repair photo ${i + 1}`}
+                  className="aspect-square w-full rounded-lg border object-cover"
+                  loading="lazy"
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {receiptSignedUrl ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Receipt</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ReceiptViewer signedUrl={receiptSignedUrl} path={wo.receipt_url} />
+          </CardContent>
+        </Card>
+      ) : null}
 
       {wo.vendor_name || wo.vendor_phone || wo.total_cost_cents != null ? (
         <Card>

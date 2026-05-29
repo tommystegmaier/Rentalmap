@@ -145,12 +145,25 @@ export async function removeWorkOrderReceipt(id: string) {
 
   const { data: wo } = await supabase
     .from('work_orders')
-    .select('receipt_url')
+    .select('receipt_url, expense_id')
     .eq('id', id)
     .maybeSingle();
 
   if (wo?.receipt_url) {
-    await supabase.storage.from('receipts').remove([wo.receipt_url]);
+    // Keep the file in storage if the auto-created expense still points at it,
+    // so detaching the receipt here doesn't break the expense's record.
+    let stillReferenced = false;
+    if (wo.expense_id) {
+      const { data: exp } = await supabase
+        .from('expenses')
+        .select('receipt_url')
+        .eq('id', wo.expense_id)
+        .maybeSingle();
+      stillReferenced = exp?.receipt_url === wo.receipt_url;
+    }
+    if (!stillReferenced) {
+      await supabase.storage.from('receipts').remove([wo.receipt_url]);
+    }
   }
 
   const { error } = await supabase
@@ -160,6 +173,54 @@ export async function removeWorkOrderReceipt(id: string) {
   if (error) throw error;
 
   revalidatePath(`/landlord/maintenance/${id}`);
+}
+
+// Append landlord-uploaded repair photos to a work order.
+export async function addRepairPhotos(id: string, newPaths: string[]) {
+  if (!newPaths.length) return;
+  const supabase = createClient();
+
+  const { data: wo } = await supabase
+    .from('work_orders')
+    .select('repair_photo_urls')
+    .eq('id', id)
+    .maybeSingle();
+
+  const existing: string[] = wo?.repair_photo_urls ?? [];
+  const merged = [...existing, ...newPaths];
+
+  const { error } = await supabase
+    .from('work_orders')
+    .update({ repair_photo_urls: merged })
+    .eq('id', id);
+  if (error) throw error;
+
+  revalidatePath(`/landlord/maintenance/${id}`);
+  revalidatePath('/tenant/maintenance');
+}
+
+export async function removeRepairPhoto(id: string, path: string) {
+  const supabase = createClient();
+
+  const { data: wo } = await supabase
+    .from('work_orders')
+    .select('repair_photo_urls')
+    .eq('id', id)
+    .maybeSingle();
+
+  const existing: string[] = wo?.repair_photo_urls ?? [];
+  const next = existing.filter((p) => p !== path);
+
+  await supabase.storage.from('work-order-photos').remove([path]);
+
+  const { error } = await supabase
+    .from('work_orders')
+    .update({ repair_photo_urls: next })
+    .eq('id', id);
+  if (error) throw error;
+
+  revalidatePath(`/landlord/maintenance/${id}`);
+  revalidatePath('/tenant/maintenance');
 }
 
 // Creates an expense from a completed work order that has a receipt, guarding

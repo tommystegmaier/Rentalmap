@@ -13,6 +13,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { EXPENSE_CATEGORIES, type ExpenseCategory } from '@/lib/constants';
 import { parseDollarsToCents } from '@/lib/utils';
 import { isIsoDate, resizeForUpload } from '@/lib/image';
+import { receiptToPdf } from '@/lib/receipt-pdf';
+import { ReceiptViewer } from '@/components/receipt-viewer';
 import { deleteExpense, updateExpense } from './actions';
 
 interface EditExpenseFormProps {
@@ -120,11 +122,11 @@ export function EditExpenseForm({
 
       // If they uploaded a new file, swap it in and delete the old.
       if (newReceipt) {
-        const ext = newReceipt.name.split('.').pop() ?? 'jpg';
+        const { blob, ext, contentType } = await receiptToPdf(newReceipt);
         const path = `${propertyId}/${Date.now()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from('receipts')
-          .upload(path, newReceipt, { upsert: false });
+          .upload(path, blob, { upsert: false, contentType });
         if (upErr) throw upErr;
         if (expense.receipt_url) {
           await supabase.storage.from('receipts').remove([expense.receipt_url]);
@@ -176,12 +178,10 @@ export function EditExpenseForm({
         <Label>Receipt</Label>
         {hasExistingReceipt && receiptSignedUrl ? (
           <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={receiptSignedUrl}
+            <ReceiptViewer
+              signedUrl={receiptSignedUrl}
+              path={expense.receipt_url}
               alt="Current receipt"
-              className="aspect-video w-full rounded-md object-contain bg-white"
-              loading="lazy"
             />
             <Button
               type="button"
