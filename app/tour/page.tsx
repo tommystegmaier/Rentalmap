@@ -84,7 +84,7 @@ export default function TourPage() {
               on any phone.
             </p>
           </div>
-          <div className="mt-12 grid gap-10 sm:grid-cols-3">
+          <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <Figure caption="See what's paid at a glance.">
               <PhoneFrame>
                 <PhoneRent />
@@ -93,6 +93,11 @@ export default function TourPage() {
             <Figure caption="Snap a receipt — AI files it for taxes.">
               <PhoneFrame>
                 <PhoneScan />
+              </PhoneFrame>
+            </Figure>
+            <Figure caption="A Schedule E tax report in one tap.">
+              <PhoneFrame>
+                <PhoneTax />
               </PhoneFrame>
             </Figure>
             <Figure caption="Your tenant pays in two taps.">
@@ -461,6 +466,57 @@ function PhoneScan() {
 
       <div className="flex items-center gap-1.5 rounded-lg bg-success/10 px-2.5 py-2 text-[10px] font-medium text-success">
         <CheckCircle2 size={11} /> Saved &amp; tagged for taxes
+      </div>
+    </div>
+  );
+}
+
+function MiniTile({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className={`rounded-lg p-1.5 text-center ${accent ? 'bg-primary/10' : 'bg-muted/50'}`}>
+      <p className="text-[7px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={`text-[11px] font-semibold ${accent ? 'text-primary' : ''}`}>{value}</p>
+    </div>
+  );
+}
+
+function PhoneTax() {
+  return (
+    <div className="space-y-3 text-left">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold">Tax report</p>
+        <span className="text-[10px] text-muted-foreground">2026</span>
+      </div>
+
+      <div className="grid grid-cols-3 gap-1.5">
+        <MiniTile label="Income" value="$34.8k" />
+        <MiniTile label="Deduct." value="$12.4k" />
+        <MiniTile label="Net" value="$22.4k" accent />
+      </div>
+
+      <div className="rounded-xl border bg-card p-3">
+        <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Schedule E
+        </p>
+        <div className="mt-1">
+          <FieldMini label="Repairs" value="$3,210" />
+          <FieldMini label="Supplies" value="$1,840" />
+          <FieldMini label="Auto &amp; Travel" value="$612" />
+          <FieldMini label="Insurance" value="$2,150" />
+          <FieldMini label="Depreciation" value="$4,600" />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center gap-1.5 rounded-lg bg-primary py-2.5 text-center text-xs font-semibold text-primary-foreground">
+        <FileBarChart size={12} /> Download Schedule E PDF
       </div>
     </div>
   );
