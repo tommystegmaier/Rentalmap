@@ -22,6 +22,7 @@ import {
   AlertCircle,
   FolderOpen,
   TrendingUp,
+  Calculator,
 } from 'lucide-react';
 import { MarketRentWidget } from '@/components/market-rent-widget';
 import { removeTenantFromLease } from './tenants/actions';
@@ -263,7 +264,14 @@ export default async function PropertyDetail({ params }: { params: { id: string 
 
       <Card>
         <CardHeader>
-          <CardTitle>Rent & purchase</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>Rent & purchase</span>
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/landlord/properties/${params.id}/depreciation`}>
+                <Calculator size={14} /> Depreciation
+              </Link>
+            </Button>
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-3 text-sm">
           <Field

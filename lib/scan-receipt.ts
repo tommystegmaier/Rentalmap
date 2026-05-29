@@ -274,3 +274,88 @@ export async function scanReceipt(
       (raw as { is_mortgage_statement?: boolean }).is_mortgage_statement === true,
   };
 }
+
+export interface ParsedPurchaseDoc {
+  purchasePrice: number | null; // dollars
+  closingDate: string | null; // yyyy-mm-dd (placed in service)
+  landValue: number | null; // dollars, only if explicitly shown
+}
+
+const PURCHASE_SYSTEM_PROMPT = `You read a real-estate closing / settlement statement (e.g. ALTA, HUD-1,
+Closing Disclosure), a purchase agreement, or a property tax bill for a landlord
+setting up depreciation on a rental property. Extract:
+
+- purchasePrice: the total sale / contract price the buyer paid for the property
+- closingDate: the date the purchase closed / settled (the placed-in-service date)
+- landValue: ONLY if the document explicitly states an assessed or allocated
+  land / lot value — otherwise null
+
+Report money as plain numbers in dollars (e.g. 312500.00). Use null for anything
+not clearly shown. Do not guess the land value if it isn't stated.`;
+
+export async function scanPurchaseDocument(
+  imageBase64: string,
+  mediaType: string,
+): Promise<ParsedPurchaseDoc> {
+  const client = getClient();
+
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 1024,
+    system: PURCHASE_SYSTEM_PROMPT,
+    tools: [
+      {
+        name: 'record_purchase',
+        description: 'Record the purchase details extracted from the document.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            purchasePrice: {
+              type: ['number', 'null'],
+              description: 'Total purchase price in dollars, or null if not shown.',
+            },
+            closingDate: {
+              type: ['string', 'null'],
+              description: 'Closing / settlement date in YYYY-MM-DD, or null.',
+            },
+            landValue: {
+              type: ['number', 'null'],
+              description: 'Stated land / lot value in dollars if explicitly shown, else null.',
+            },
+          },
+          required: ['purchasePrice'],
+        },
+      },
+    ],
+    tool_choice: { type: 'tool', name: 'record_purchase' },
+    messages: [
+      {
+        role: 'user',
+        content: [
+          fileSourceBlock(imageBase64, mediaType),
+          {
+            type: 'text',
+            text: 'Extract the purchase details using the record_purchase tool.',
+          },
+        ],
+      },
+    ],
+  });
+
+  const toolUse = response.content.find(
+    (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
+  );
+  if (!toolUse) {
+    throw new Error('Could not read the purchase document');
+  }
+  const raw = toolUse.input as Partial<ParsedPurchaseDoc>;
+  const num = (v: unknown): number | null => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+  return {
+    purchasePrice: num(raw.purchasePrice),
+    closingDate: typeof raw.closingDate === 'string' && raw.closingDate ? raw.closingDate : null,
+    landValue: num(raw.landValue),
+  };
+}

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 import { tripDeductionCents } from '@/lib/mileage';
+import { depreciationForYear } from '@/lib/depreciation';
 
 const AUTO_TRAVEL_CATEGORY = 'Auto and Travel';
 
@@ -49,7 +50,9 @@ export async function computeTaxReportData(
 
   const { data: properties } = await client
     .from('properties')
-    .select('id, address, annual_depreciation_cents')
+    .select(
+      'id, address, annual_depreciation_cents, depreciable_basis_cents, placed_in_service, depreciation_years',
+    )
     .eq('owner_id', ownerId)
     .order('created_at');
 
@@ -57,6 +60,9 @@ export async function computeTaxReportData(
     id: string;
     address: string;
     annual_depreciation_cents: number | null;
+    depreciable_basis_cents: number | null;
+    placed_in_service: string | null;
+    depreciation_years: number | null;
   }[];
   // Optionally scope the whole report to a single property.
   if (propertyId) propsArr = propsArr.filter((p) => p.id === propertyId);
@@ -159,12 +165,28 @@ export async function computeTaxReportData(
       byCategory[AUTO_TRAVEL_CATEGORY] = (byCategory[AUTO_TRAVEL_CATEGORY] ?? 0) + mileageCents;
     }
 
+    // Depreciation for THIS tax year: when we have the basis + placed-in-service
+    // date, compute the schedule (prorated first year, $0 after the recovery
+    // period ends). Fall back to the stored flat annual amount for legacy
+    // properties that predate the calculator.
+    let depreciationCents: number;
+    if (p.depreciable_basis_cents && p.placed_in_service) {
+      depreciationCents = depreciationForYear(
+        p.depreciable_basis_cents,
+        p.placed_in_service,
+        Number(p.depreciation_years ?? 27.5),
+        year,
+      );
+    } else {
+      depreciationCents = p.annual_depreciation_cents ?? 0;
+    }
+
     return {
       id: p.id,
       address: p.address,
       incomeCents,
       byCategory,
-      depreciationCents: p.annual_depreciation_cents ?? 0,
+      depreciationCents,
       nonDeductibleCents,
     };
   });
