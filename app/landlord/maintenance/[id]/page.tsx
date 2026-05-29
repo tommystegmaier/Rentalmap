@@ -13,9 +13,11 @@ import { updateWorkOrder } from './actions';
 import { MarkNotificationRead } from '@/components/mark-notification-read';
 import { DeleteWorkOrderButton } from '@/components/delete-work-order-button';
 import { SuccessToast } from '@/components/success-toast';
+import { WorkOrderReceipt } from '@/components/work-order-receipt';
 
 interface WorkOrderDetailRow {
   id: string;
+  property_id: string;
   request_type: string;
   description: string;
   urgency: Urgency;
@@ -23,6 +25,7 @@ interface WorkOrderDetailRow {
   submitted_at: string;
   closed_at: string | null;
   photo_urls: string[];
+  receipt_url: string | null;
   vendor_name: string | null;
   vendor_phone: string | null;
   total_cost_cents: number | null;
@@ -72,6 +75,15 @@ export default async function WorkOrderDetail({
         .createSignedUrl(path, 3600);
       if (signed?.signedUrl) photoSignedUrls.push(signed.signedUrl);
     }
+  }
+
+  // Signed URL for the landlord's attached receipt (private `receipts` bucket).
+  let receiptSignedUrl: string | null = null;
+  if (wo.receipt_url) {
+    const { data: signed } = await supabase.storage
+      .from('receipts')
+      .createSignedUrl(wo.receipt_url, 3600);
+    receiptSignedUrl = signed?.signedUrl ?? null;
   }
 
   const urg = URGENCY_LABELS[wo.urgency];
@@ -234,6 +246,20 @@ export default async function WorkOrderDetail({
               Save changes
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Receipt</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <WorkOrderReceipt
+            workOrderId={wo.id}
+            propertyId={wo.property_id}
+            receiptSignedUrl={receiptSignedUrl}
+            hasReceipt={!!wo.receipt_url}
+          />
         </CardContent>
       </Card>
 

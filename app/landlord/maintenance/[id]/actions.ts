@@ -43,6 +43,10 @@ export async function updateWorkOrder(id: string, formData: FormData) {
     .eq('id', id)
     .maybeSingle();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const updates: Record<string, unknown> = {
     status,
     vendor_name,
@@ -102,9 +106,104 @@ export async function updateWorkOrder(id: string, formData: FormData) {
     }
   }
 
+  // If the order just moved to completed and a receipt is attached, mirror it
+  // into the expense ledger (once).
+  if (status === 'closed' && user) {
+    await maybeCreateWorkOrderExpense(supabase, id, user.id);
+  }
+
   revalidatePath('/landlord/maintenance');
   revalidatePath(`/landlord/maintenance/${id}`);
+  revalidatePath('/landlord/expenses');
   revalidatePath('/tenant/maintenance');
+}
+
+// Saves a receipt path on the work order. If the order is already completed and
+// has no expense yet, this also creates the expense — so the receipt produces
+// an expense regardless of whether it was added before or after completion.
+export async function setWorkOrderReceipt(id: string, receiptPath: string) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('work_orders')
+    .update({ receipt_url: receiptPath })
+    .eq('id', id);
+  if (error) throw error;
+
+  await maybeCreateWorkOrderExpense(supabase, id, user.id);
+
+  revalidatePath(`/landlord/maintenance/${id}`);
+  revalidatePath('/landlord/expenses');
+}
+
+export async function removeWorkOrderReceipt(id: string) {
+  const supabase = createClient();
+
+  const { data: wo } = await supabase
+    .from('work_orders')
+    .select('receipt_url')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (wo?.receipt_url) {
+    await supabase.storage.from('receipts').remove([wo.receipt_url]);
+  }
+
+  const { error } = await supabase
+    .from('work_orders')
+    .update({ receipt_url: null })
+    .eq('id', id);
+  if (error) throw error;
+
+  revalidatePath(`/landlord/maintenance/${id}`);
+}
+
+// Creates an expense from a completed work order that has a receipt, guarding
+// against duplicates via work_orders.expense_id.
+async function maybeCreateWorkOrderExpense(
+  supabase: ReturnType<typeof createClient>,
+  workOrderId: string,
+  userId: string,
+) {
+  const { data: wo } = await supabase
+    .from('work_orders')
+    .select(
+      'id, status, property_id, receipt_url, expense_id, total_cost_cents, vendor_name, request_type, closed_at',
+    )
+    .eq('id', workOrderId)
+    .maybeSingle();
+
+  if (!wo) return;
+  if (wo.status !== 'closed') return;
+  if (!wo.receipt_url) return;
+  if (wo.expense_id) return; // already mirrored
+
+  const date = wo.closed_at
+    ? new Date(wo.closed_at).toISOString().slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
+
+  const { data: expense, error } = await supabase
+    .from('expenses')
+    .insert({
+      property_id: wo.property_id,
+      date,
+      amount_cents: wo.total_cost_cents ?? 0,
+      category: 'Repairs',
+      vendor: wo.vendor_name ?? null,
+      notes: `Work order: ${wo.request_type}`,
+      receipt_url: wo.receipt_url,
+      work_order_id: wo.id,
+      created_by: userId,
+    })
+    .select('id')
+    .maybeSingle();
+  if (error || !expense) return;
+
+  await supabase.from('work_orders').update({ expense_id: expense.id }).eq('id', wo.id);
 }
 
 export async function deleteWorkOrder(id: string) {

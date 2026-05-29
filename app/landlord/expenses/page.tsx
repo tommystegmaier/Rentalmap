@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
-import { ReceiptText, X } from 'lucide-react';
+import { ReceiptText } from 'lucide-react';
+import { ExpensePropertyFilter } from '@/components/expense-property-filter';
 
 export default async function ExpensesPage({
   searchParams,
@@ -22,18 +23,16 @@ export default async function ExpensesPage({
     .order('date', { ascending: false })
     .limit(100);
   if (propertyId) query = query.eq('property_id', propertyId);
-  const { data: expenses } = await query;
 
-  // When filtered, pull the property address for the header description.
-  let filterAddress: string | null = null;
-  if (propertyId) {
-    const { data: prop } = await supabase
-      .from('properties')
-      .select('address')
-      .eq('id', propertyId)
-      .maybeSingle();
-    filterAddress = prop?.address ?? null;
-  }
+  const [{ data: expenses }, { data: properties }] = await Promise.all([
+    query,
+    supabase.from('properties').select('id, address').order('created_at'),
+  ]);
+
+  const propertyList = (properties ?? []) as { id: string; address: string }[];
+  const filterAddress = propertyId
+    ? propertyList.find((p) => p.id === propertyId)?.address ?? null
+    : null;
 
   const addUrl = propertyId
     ? `/landlord/expenses/new?property_id=${propertyId}`
@@ -51,13 +50,8 @@ export default async function ExpensesPage({
         }
       />
 
-      {filterAddress ? (
-        <Link
-          href="/landlord/expenses"
-          className="inline-flex items-center gap-1 rounded-full border bg-muted/30 px-3 py-1 text-xs text-muted-foreground hover:bg-muted"
-        >
-          <X size={12} /> Clear filter
-        </Link>
+      {propertyList.length > 0 ? (
+        <ExpensePropertyFilter properties={propertyList} current={propertyId ?? null} />
       ) : null}
 
       {expenses && expenses.length > 0 ? (

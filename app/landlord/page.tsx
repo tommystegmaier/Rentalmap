@@ -69,7 +69,11 @@ export default async function LandlordDashboard() {
 
       <div className="grid grid-cols-3 gap-2">
         <StatTile label="YTD Income" value={formatCents(ytdIncomeCents)} />
-        <StatTile label="YTD Expenses" value={formatCents(ytdExpenseCents)} />
+        <StatTile
+          label="YTD Expenses"
+          value={formatCents(ytdExpenseCents)}
+          href="/landlord/expenses"
+        />
         <StatTile
           label="Net Cash Flow"
           value={formatCents(ytdNet)}
@@ -184,29 +188,38 @@ function StatTile({
   label,
   value,
   accent,
+  href,
 }: {
   label: string;
   value: string;
   accent?: 'success' | 'destructive';
+  href?: string;
 }) {
-  return (
-    <Card>
-      <CardContent className="p-3">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p
-          className={`mt-1 text-base font-semibold ${
-            accent === 'success'
-              ? 'text-success'
-              : accent === 'destructive'
-                ? 'text-destructive'
-                : ''
-          }`}
-        >
-          {value}
-        </p>
-      </CardContent>
-    </Card>
+  const inner = (
+    <CardContent className="p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p
+        className={`mt-1 text-base font-semibold ${
+          accent === 'success'
+            ? 'text-success'
+            : accent === 'destructive'
+              ? 'text-destructive'
+              : ''
+        }`}
+      >
+        {value}
+      </p>
+    </CardContent>
   );
+
+  if (href) {
+    return (
+      <Link href={href}>
+        <Card className="h-full transition hover:bg-muted/30">{inner}</Card>
+      </Link>
+    );
+  }
+  return <Card>{inner}</Card>;
 }
 
 function QuickAction({
