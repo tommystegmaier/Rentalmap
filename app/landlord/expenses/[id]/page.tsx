@@ -13,7 +13,7 @@ export default async function EditExpensePage({
   const supabase = createClient();
   const { data: expense } = await supabase
     .from('expenses')
-    .select('id, property_id, date, amount_cents, category, vendor, notes, receipt_url')
+    .select('id, property_id, date, amount_cents, category, vendor, notes, receipt_url, tax_deductible')
     .eq('id', params.id)
     .maybeSingle();
   if (!expense) notFound();

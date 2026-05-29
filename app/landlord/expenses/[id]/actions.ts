@@ -13,6 +13,7 @@ interface UpdateExpenseInput {
   vendor: string | null;
   notes: string | null;
   receipt_url: string | null;
+  tax_deductible: boolean;
 }
 
 export async function updateExpense(input: UpdateExpenseInput) {
@@ -27,6 +28,7 @@ export async function updateExpense(input: UpdateExpenseInput) {
       vendor: input.vendor,
       notes: input.notes,
       receipt_url: input.receipt_url,
+      tax_deductible: input.tax_deductible,
     })
     .eq('id', input.id);
   if (error) throw error;

@@ -31,6 +31,7 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
   const [category, setCategory] = useState<(typeof EXPENSE_CATEGORIES)[number]>('Repairs');
   const [vendor, setVendor] = useState('');
   const [notes, setNotes] = useState('');
+  const [taxDeductible, setTaxDeductible] = useState(true);
   const [receipt, setReceipt] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -130,6 +131,7 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
         vendor: vendor || null,
         notes: notes || null,
         receipt_url,
+        tax_deductible: taxDeductible,
         created_by: user.id,
       });
       if (insertErr) throw insertErr;
@@ -251,6 +253,22 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
           onChange={(e) => setNotes(e.target.value)}
         />
       </div>
+
+      <label className="flex items-center gap-3 rounded-lg border p-3 tap-44">
+        <input
+          type="checkbox"
+          checked={taxDeductible}
+          onChange={(e) => setTaxDeductible(e.target.checked)}
+          className="h-4 w-4"
+        />
+        <span className="flex-1 text-sm">
+          <span className="font-medium">Tax deductible</span>
+          <span className="block text-xs text-muted-foreground">
+            Counts toward your deductible total for tax reports. Uncheck for non-deductible
+            costs (e.g. mortgage principal).
+          </span>
+        </span>
+      </label>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 

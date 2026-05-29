@@ -50,6 +50,13 @@ export default async function ExpensesPage({
         }
       />
 
+      <Link
+        href="/landlord/expenses/mortgage/new"
+        className="block rounded-lg border bg-muted/30 px-4 py-2.5 text-center text-sm font-medium transition hover:bg-muted/50"
+      >
+        🏦 Log a mortgage payment
+      </Link>
+
       {propertyList.length > 0 ? (
         <ExpensePropertyFilter properties={propertyList} current={propertyId ?? null} />
       ) : null}

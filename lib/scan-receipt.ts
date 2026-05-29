@@ -54,6 +54,113 @@ function normalizeMediaType(input: string): SupportedMediaType {
   return 'image/jpeg';
 }
 
+export interface ParsedMortgageStatement {
+  lender: string;
+  date: string | null;
+  principal: number;
+  interest: number;
+  escrowTaxes: number;
+  escrowInsurance: number;
+  total: number;
+}
+
+const MORTGAGE_SYSTEM_PROMPT = `You read a monthly mortgage statement for a landlord doing rental-property
+accounting. Extract the breakdown of the payment so the deductible and
+non-deductible portions can be recorded separately for IRS Schedule E:
+
+- principal — the principal portion of the payment (NOT tax-deductible)
+- interest — the mortgage interest portion (tax-deductible, Schedule E line 12)
+- escrowTaxes — property taxes paid from escrow this period (deductible, line 16)
+- escrowInsurance — hazard/homeowner insurance paid from escrow (deductible, line 9)
+- total — the total payment amount
+
+Use the current period / this statement's amounts (not year-to-date totals).
+Report every amount in dollars as a number (e.g. 1234.56). Use 0 for anything
+not shown. If escrow isn't itemized into taxes vs insurance, put the escrow
+amount under escrowTaxes and 0 for insurance.`;
+
+export async function scanMortgageStatement(
+  imageBase64: string,
+  mediaType: string,
+): Promise<ParsedMortgageStatement> {
+  const client = getClient();
+
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 1024,
+    system: MORTGAGE_SYSTEM_PROMPT,
+    tools: [
+      {
+        name: 'record_mortgage_statement',
+        description: 'Record the payment breakdown from the mortgage statement.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            lender: { type: 'string', description: 'Mortgage lender / servicer name.' },
+            date: {
+              type: ['string', 'null'],
+              description: 'Statement or payment date in YYYY-MM-DD, or null.',
+            },
+            principal: { type: 'number', description: 'Principal portion in dollars.' },
+            interest: { type: 'number', description: 'Interest portion in dollars.' },
+            escrowTaxes: {
+              type: 'number',
+              description: 'Property taxes paid from escrow this period, in dollars.',
+            },
+            escrowInsurance: {
+              type: 'number',
+              description: 'Insurance paid from escrow this period, in dollars.',
+            },
+            total: { type: 'number', description: 'Total payment in dollars.' },
+          },
+          required: ['lender', 'principal', 'interest', 'escrowTaxes', 'escrowInsurance', 'total'],
+        },
+      },
+    ],
+    tool_choice: { type: 'tool', name: 'record_mortgage_statement' },
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: normalizeMediaType(mediaType),
+              data: imageBase64,
+            },
+          },
+          {
+            type: 'text',
+            text: 'Extract the mortgage payment breakdown using the record_mortgage_statement tool.',
+          },
+        ],
+      },
+    ],
+  });
+
+  const toolUse = response.content.find(
+    (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
+  );
+  if (!toolUse) {
+    throw new Error('Mortgage statement could not be parsed');
+  }
+  const raw = toolUse.input as Partial<ParsedMortgageStatement>;
+  const num = (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  };
+  return {
+    lender: (raw.lender ?? '').trim() || 'Mortgage',
+    date: raw.date ?? null,
+    principal: num(raw.principal),
+    interest: num(raw.interest),
+    escrowTaxes: num(raw.escrowTaxes),
+    escrowInsurance: num(raw.escrowInsurance),
+    total: num(raw.total),
+  };
+}
+
 export async function scanReceipt(
   imageBase64: string,
   mediaType: string,

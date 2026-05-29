@@ -14,7 +14,8 @@ export type NotificationType =
   | 'venmo_claim_submitted'
   | 'venmo_claim_reviewed'
   | 'late_fee_applied'
-  | 'maintenance_reminder';
+  | 'maintenance_reminder'
+  | 'tax_report_ready';
 
 export interface NewNotification {
   type: NotificationType;

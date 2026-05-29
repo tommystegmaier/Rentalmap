@@ -27,6 +27,7 @@ interface EditExpenseFormProps {
     vendor: string | null;
     notes: string | null;
     receipt_url: string | null;
+    tax_deductible: boolean;
   };
   receiptSignedUrl: string | null;
   properties: { id: string; address: string }[];
@@ -49,6 +50,7 @@ export function EditExpenseForm({
   const [category, setCategory] = useState<ExpenseCategory>(initialCategory);
   const [vendor, setVendor] = useState(expense.vendor ?? '');
   const [notes, setNotes] = useState(expense.notes ?? '');
+  const [taxDeductible, setTaxDeductible] = useState(expense.tax_deductible);
   const [newReceipt, setNewReceipt] = useState<File | null>(null);
   const [removeExistingReceipt, setRemoveExistingReceipt] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -148,6 +150,7 @@ export function EditExpenseForm({
         vendor: vendor || null,
         notes: notes || null,
         receipt_url,
+        tax_deductible: taxDeductible,
       });
 
       toast.success('Expense saved');
@@ -290,6 +293,21 @@ export function EditExpenseForm({
         <Label htmlFor="notes">Notes</Label>
         <Textarea id="notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
+
+      <label className="flex items-center gap-3 rounded-lg border p-3 tap-44">
+        <input
+          type="checkbox"
+          checked={taxDeductible}
+          onChange={(e) => setTaxDeductible(e.target.checked)}
+          className="h-4 w-4"
+        />
+        <span className="flex-1 text-sm">
+          <span className="font-medium">Tax deductible</span>
+          <span className="block text-xs text-muted-foreground">
+            Counts toward your deductible total for tax reports.
+          </span>
+        </span>
+      </label>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 

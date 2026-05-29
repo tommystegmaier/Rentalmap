@@ -53,7 +53,7 @@ export async function GET(request: Request) {
       .lte('received_date', end),
     supabase
       .from('expenses')
-      .select('property_id, date, amount_cents, category, vendor, notes, receipt_url')
+      .select('property_id, date, amount_cents, category, vendor, notes, receipt_url, tax_deductible')
       .gte('date', start)
       .lte('date', end)
       .in('property_id', propIds),
@@ -80,7 +80,8 @@ export async function GET(request: Request) {
       const byCategory: Record<string, number> = {};
       for (const c of EXPENSE_CATEGORIES) byCategory[c] = 0;
       for (const e of (expenses ?? []).filter(
-        (x: { property_id: string }) => x.property_id === p.id,
+        (x: { property_id: string; tax_deductible?: boolean | null }) =>
+          x.property_id === p.id && x.tax_deductible !== false,
       ) as { category: string; amount_cents: number }[]) {
         byCategory[e.category] = (byCategory[e.category] ?? 0) + e.amount_cents;
       }
@@ -107,6 +108,7 @@ export async function GET(request: Request) {
         property_id: e.property_id,
         amount: ((e.amount_cents as number) / 100).toFixed(2),
         category: e.category,
+        tax_deductible: e.tax_deductible === false ? 'no' : 'yes',
         vendor: e.vendor ?? '',
         notes: e.notes ?? '',
         receipt: e.receipt_url ?? '',

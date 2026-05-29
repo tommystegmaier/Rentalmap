@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { syncRemindersForLandlord } from '@/lib/reminders-run';
+import { runScheduledTaxReports } from '@/lib/tax-report-run';
 import { sendPushToUser } from '@/lib/push';
 import { createNotification, type NotificationType } from '@/lib/notifications';
 import { addDays, getDaysInMonth, setDate, format, parseISO, subDays } from 'date-fns';
@@ -382,5 +383,20 @@ export async function GET(request: Request) {
     maintenanceReminderCount++;
   }
 
-  return NextResponse.json({ seedCount, pushed, due: dueToday?.length ?? 0, lateFeeCount, maintenanceReminderCount });
+  // Generate any scheduled tax reports due today (best-effort; never blocks).
+  let taxReportsGenerated = 0;
+  try {
+    taxReportsGenerated = await runScheduledTaxReports(supabase);
+  } catch (err) {
+    console.error('[cron] scheduled tax reports failed:', err);
+  }
+
+  return NextResponse.json({
+    seedCount,
+    pushed,
+    due: dueToday?.length ?? 0,
+    lateFeeCount,
+    maintenanceReminderCount,
+    taxReportsGenerated,
+  });
 }

@@ -15,7 +15,11 @@ export default async function ReportsPage() {
       .from('rent_payments')
       .select('amount_cents, status, received_date')
       .gte('received_date', yearStart),
-    supabase.from('expenses').select('amount_cents, category').gte('date', yearStart),
+    supabase
+      .from('expenses')
+      .select('amount_cents, category')
+      .eq('tax_deductible', true)
+      .gte('date', yearStart),
     supabase.from('properties').select('annual_depreciation_cents'),
   ]);
 

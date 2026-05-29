@@ -20,6 +20,7 @@ import {
   Wrench,
   ShieldCheck,
   ChevronRight,
+  Calculator,
 } from 'lucide-react';
 
 type NavItem = { href: string; label: string; icon: React.ReactNode; badge?: number };
@@ -46,6 +47,7 @@ const groups: { title: string; items: NavItem[] }[] = [
   {
     title: 'Reports & Account',
     items: [
+      { href: '/landlord/tax', label: 'Tax Center', icon: <Calculator size={20} /> },
       { href: '/landlord/reports', label: 'Reports', icon: <BarChart3 size={20} /> },
       { href: '/landlord/owners', label: 'Property owners', icon: <Users size={20} /> },
       { href: '/landlord/invite', label: 'Invite tenant', icon: <UserPlus size={20} /> },
