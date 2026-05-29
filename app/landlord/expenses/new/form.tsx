@@ -183,17 +183,19 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
           <strong>Scan receipt</strong> below to auto-fill amount, vendor, and category.
         </p>
         {receipt ? (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleScan}
-            disabled={scanning}
-            className="w-full"
-          >
-            <Sparkles size={14} />
-            {scanning ? 'Reading receipt…' : 'Scan receipt'}
-          </Button>
-          <BusyBar active={scanning} />
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleScan}
+              disabled={scanning}
+              className="w-full"
+            >
+              <Sparkles size={14} />
+              {scanning ? 'Reading receipt…' : 'Scan receipt'}
+            </Button>
+            <BusyBar active={scanning} />
+          </>
         ) : null}
         {isMortgage ? (
           <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200">

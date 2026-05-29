@@ -216,17 +216,19 @@ export function EditExpenseForm({
           }}
         />
         {newReceipt ? (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleScan}
-            disabled={scanning}
-            className="w-full"
-          >
-            <Sparkles size={14} />
-            {scanning ? 'Reading receipt…' : 'Re-scan with the new photo'}
-          </Button>
-          <BusyBar active={scanning} />
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleScan}
+              disabled={scanning}
+              className="w-full"
+            >
+              <Sparkles size={14} />
+              {scanning ? 'Reading receipt…' : 'Re-scan with the new photo'}
+            </Button>
+            <BusyBar active={scanning} />
+          </>
         ) : null}
         {scanMessage ? (
           <p className="rounded-lg border border-success/30 bg-success/5 p-2 text-xs text-success">
