@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { receiptToPdf } from '@/lib/receipt-pdf';
-import { resizeForUpload } from '@/lib/image';
+import { prepareScanUpload } from '@/lib/scan-upload';
 import { formatCents } from '@/lib/utils';
 import { ReceiptViewer } from '@/components/receipt-viewer';
 import { setWorkOrderReceipt, removeWorkOrderReceipt } from '@/app/landlord/maintenance/[id]/actions';
@@ -42,14 +42,9 @@ export function WorkOrderReceipt({
       // Best-effort AI scan to auto-fill total cost & vendor (empty fields only).
       let scanned: { totalCostCents: number | null; vendorName: string | null } | undefined;
       try {
-        let scanBlob: Blob = file;
-        try {
-          scanBlob = await resizeForUpload(file);
-        } catch {
-          // fall back to the original
-        }
+        const { blob: scanBlob, filename } = await prepareScanUpload(file);
         const fd = new FormData();
-        fd.append('file', scanBlob, 'receipt.jpg');
+        fd.append('file', scanBlob, filename);
         const res = await fetch('/api/expenses/scan', { method: 'POST', body: fd });
         if (res.ok) {
           const json = await res.json();

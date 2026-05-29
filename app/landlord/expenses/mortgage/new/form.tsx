@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { parseDollarsToCents } from '@/lib/utils';
-import { resizeForUpload } from '@/lib/image';
+import { prepareScanUpload } from '@/lib/scan-upload';
 import { receiptToPdf } from '@/lib/receipt-pdf';
 import { createMortgageExpenses } from './actions';
 
@@ -45,14 +45,9 @@ export function MortgageForm({ properties, initialPropertyId }: Props) {
     setError(null);
     setScanMessage(null);
     try {
-      let blob: Blob = statement;
-      try {
-        blob = await resizeForUpload(statement);
-      } catch {
-        // fall back to original
-      }
+      const { blob, filename } = await prepareScanUpload(statement);
       const fd = new FormData();
-      fd.append('file', blob, 'statement.jpg');
+      fd.append('file', blob, filename);
       const res = await fetch('/api/expenses/scan-mortgage', { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Scan failed');

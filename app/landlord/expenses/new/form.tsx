@@ -12,7 +12,8 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 import { parseDollarsToCents } from '@/lib/utils';
-import { isIsoDate, resizeForUpload } from '@/lib/image';
+import { isIsoDate } from '@/lib/image';
+import { prepareScanUpload } from '@/lib/scan-upload';
 import { receiptToPdf } from '@/lib/receipt-pdf';
 
 interface ExpenseFormProps {
@@ -54,17 +55,10 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
     setScanMessage(null);
     setIsMortgage(false);
     try {
-      // Resize before sending — iPhone photos are way bigger than the OCR
-      // needs and routinely exceed Anthropic's 5MB API limit.
-      let blob: Blob = receipt;
-      try {
-        blob = await resizeForUpload(receipt);
-      } catch {
-        // Fall back to original on any resize failure.
-      }
-
+      // Downsize images before sending; PDFs pass through untouched.
+      const { blob, filename } = await prepareScanUpload(receipt);
       const fd = new FormData();
-      fd.append('file', blob, 'receipt.jpg');
+      fd.append('file', blob, filename);
       const res = await fetch('/api/expenses/scan', { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Scan failed');

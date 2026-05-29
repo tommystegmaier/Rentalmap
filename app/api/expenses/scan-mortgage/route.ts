@@ -7,6 +7,20 @@ export const maxDuration = 30;
 
 const MAX_RAW_BYTES = Math.floor((5 * 1024 * 1024) / 1.34);
 
+// Resolve the media type from the browser-provided MIME, falling back to the
+// filename extension (mobile uploads often report an empty type).
+function resolveMediaType(file: File): string {
+  const t = (file.type || '').toLowerCase();
+  if (t === 'application/pdf') return 'application/pdf';
+  if (t.startsWith('image/')) return t;
+  const name = (file.name || '').toLowerCase();
+  if (name.endsWith('.pdf')) return 'application/pdf';
+  if (name.endsWith('.png')) return 'image/png';
+  if (name.endsWith('.webp')) return 'image/webp';
+  if (name.endsWith('.gif')) return 'image/gif';
+  return 'image/jpeg';
+}
+
 export async function POST(request: Request) {
   const supabase = createClient();
   const {
@@ -45,7 +59,7 @@ export async function POST(request: Request) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const base64 = buffer.toString('base64');
-  const mediaType = file.type || 'image/jpeg';
+  const mediaType = resolveMediaType(file);
 
   try {
     const result = await scanMortgageStatement(base64, mediaType);

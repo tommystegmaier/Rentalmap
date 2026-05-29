@@ -12,7 +12,8 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EXPENSE_CATEGORIES, type ExpenseCategory } from '@/lib/constants';
 import { parseDollarsToCents } from '@/lib/utils';
-import { isIsoDate, resizeForUpload } from '@/lib/image';
+import { isIsoDate } from '@/lib/image';
+import { prepareScanUpload } from '@/lib/scan-upload';
 import { receiptToPdf } from '@/lib/receipt-pdf';
 import { ReceiptViewer } from '@/components/receipt-viewer';
 import { deleteExpense, updateExpense } from './actions';
@@ -66,14 +67,9 @@ export function EditExpenseForm({
     setError(null);
     setScanMessage(null);
     try {
-      let blob: Blob = newReceipt;
-      try {
-        blob = await resizeForUpload(newReceipt);
-      } catch {
-        // Fall back to the original on resize failure.
-      }
+      const { blob, filename } = await prepareScanUpload(newReceipt);
       const fd = new FormData();
-      fd.append('file', blob, 'receipt.jpg');
+      fd.append('file', blob, filename);
       const res = await fetch('/api/expenses/scan', { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Scan failed');
