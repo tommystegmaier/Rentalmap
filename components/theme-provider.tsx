@@ -19,14 +19,15 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system');
-
-  useEffect(() => {
+  // Lazy initializer runs only on the client, so we get the correct theme
+  // immediately on first render without waiting for a useEffect — this
+  // prevents the provider from ever briefly applying 'system' when the
+  // user has explicitly chosen 'dark'.
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'system';
     const stored = localStorage.getItem('theme') as Theme | null;
-    if (stored === 'light' || stored === 'dark' || stored === 'system') {
-      setThemeState(stored);
-    }
-  }, []);
+    return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+  });
 
   useEffect(() => {
     const root = document.documentElement;
