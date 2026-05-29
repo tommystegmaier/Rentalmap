@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendPushToUser } from '@/lib/push';
 import { createNotification } from '@/lib/notifications';
+import { isP2PMethod, P2P_LABELS } from '@/lib/p2p';
 
 export async function approveClaim(claimId: string) {
   const supabase = createClient();
@@ -15,7 +16,7 @@ export async function approveClaim(claimId: string) {
   const admin = createServiceRoleClient();
   const { data: claim } = await admin
     .from('venmo_payment_claims')
-    .select('id, lease_id, tenant_user_id, amount_cents, expected_date')
+    .select('id, lease_id, tenant_user_id, amount_cents, expected_date, method')
     .eq('id', claimId)
     .eq('status', 'pending')
     .maybeSingle();
@@ -29,6 +30,8 @@ export async function approveClaim(claimId: string) {
   const prop = Array.isArray(lease?.properties) ? lease.properties[0] : lease?.properties;
   if (prop?.owner_id !== user.id) throw new Error('Forbidden');
 
+  const claimMethod = isP2PMethod(claim.method) ? claim.method : 'venmo';
+  const methodLabel = P2P_LABELS[claimMethod];
   const today = new Date().toISOString().split('T')[0];
 
   await Promise.all([
@@ -37,7 +40,7 @@ export async function approveClaim(claimId: string) {
       expected_date: claim.expected_date,
       received_date: today,
       amount_cents: claim.amount_cents,
-      method: 'venmo',
+      method: claimMethod,
       status: 'manual',
       recorded_by: user.id,
     }),
@@ -47,8 +50,8 @@ export async function approveClaim(claimId: string) {
       .eq('id', claimId),
     createNotification(admin, claim.tenant_user_id, {
       type: 'venmo_claim_reviewed',
-      title: 'Venmo payment confirmed',
-      body: 'Your landlord confirmed receipt of your Venmo payment. Rent is logged as paid.',
+      title: `${methodLabel} payment confirmed`,
+      body: `Your landlord confirmed receipt of your ${methodLabel} payment. Rent is logged as paid.`,
       url: '/tenant/pay',
       related_id: claimId,
     }),
@@ -62,10 +65,10 @@ export async function approveClaim(claimId: string) {
   ]);
 
   await sendPushToUser(claim.tenant_user_id, {
-    title: 'Venmo payment confirmed ✓',
-    body: 'Your landlord confirmed receipt of your Venmo payment. Rent is logged as paid.',
+    title: `${methodLabel} payment confirmed ✓`,
+    body: `Your landlord confirmed receipt of your ${methodLabel} payment. Rent is logged as paid.`,
     url: '/tenant/pay',
-    tag: `venmo-approved-${claimId}`,
+    tag: `p2p-approved-${claimId}`,
   });
 
   revalidatePath('/landlord/rent');
@@ -111,7 +114,7 @@ export async function denyClaim(claimId: string, reason?: string) {
       .eq('id', claimId),
     createNotification(admin, claim.tenant_user_id, {
       type: 'venmo_claim_reviewed',
-      title: 'Venmo payment not confirmed',
+      title: 'Payment not confirmed',
       body: notifBody,
       url: '/tenant/pay',
       related_id: claimId,

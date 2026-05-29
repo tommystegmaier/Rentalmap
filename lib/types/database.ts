@@ -8,6 +8,7 @@ export type PaymentMethod =
   | 'card'
   | 'zelle'
   | 'venmo'
+  | 'cashapp'
   | 'check'
   | 'cash'
   | 'other';

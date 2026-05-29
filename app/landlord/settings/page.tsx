@@ -7,6 +7,7 @@ import { StripeConnectButton } from './connect-button';
 import { NotificationSettings } from './notification-settings';
 import { PushTypeToggles } from './push-type-toggles';
 import { FeePayerToggles } from './fee-payer-toggles';
+import { PaymentHandles } from './payment-handles';
 import { getStripe } from '@/lib/stripe';
 
 export default async function SettingsPage({
@@ -22,7 +23,7 @@ export default async function SettingsPage({
   const { data: profile } = await supabase
     .from('users')
     .select(
-      'stripe_connect_account_id, tenant_rent_reminder_enabled, tenant_rent_reminder_days_before, notify_appliance_service, notify_hvac_filter, notify_maintenance_requests, notify_messages, ach_fee_payer, card_fee_payer',
+      'stripe_connect_account_id, tenant_rent_reminder_enabled, tenant_rent_reminder_days_before, notify_appliance_service, notify_hvac_filter, notify_maintenance_requests, notify_messages, ach_fee_payer, card_fee_payer, venmo_handle, cashapp_cashtag, zelle_handle',
     )
     .eq('id', user!.id)
     .maybeSingle();
@@ -52,6 +53,9 @@ export default async function SettingsPage({
   const notifyMessages = profile?.notify_messages ?? true;
   const achFeePayer = (profile?.ach_fee_payer as 'landlord' | 'tenant' | undefined) ?? 'landlord';
   const cardFeePayer = (profile?.card_fee_payer as 'landlord' | 'tenant' | undefined) ?? 'tenant';
+  const venmoHandle = profile?.venmo_handle ?? '';
+  const cashappCashtag = profile?.cashapp_cashtag ?? '';
+  const zelleHandle = profile?.zelle_handle ?? '';
 
   return (
     <div className="space-y-6">
@@ -113,6 +117,24 @@ export default async function SettingsPage({
               your bank. Takes about 5–10 minutes.
             </p>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Venmo · Cash App · Zelle</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Add your peer-to-peer payment handles so tenants can pay you fee-free. They send the
+            money, then confirm it here — you approve it and it&apos;s logged as paid. Leave a field
+            blank to hide that option from tenants.
+          </p>
+          <PaymentHandles
+            initialVenmo={venmoHandle}
+            initialCashapp={cashappCashtag}
+            initialZelle={zelleHandle}
+          />
         </CardContent>
       </Card>
 

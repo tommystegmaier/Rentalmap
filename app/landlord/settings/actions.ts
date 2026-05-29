@@ -103,3 +103,33 @@ export async function saveFeePayerSettings(
 
   revalidatePath('/landlord/settings');
 }
+
+export async function savePaymentHandles(handles: {
+  venmo_handle: string;
+  cashapp_cashtag: string;
+  zelle_handle: string;
+}) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  // Normalize: strip leading @ / $ and surrounding whitespace; empty → null.
+  const clean = (v: string) => {
+    const t = v.trim().replace(/^[@$]/, '');
+    return t.length > 0 ? t : null;
+  };
+
+  const { error } = await supabase
+    .from('users')
+    .update({
+      venmo_handle: clean(handles.venmo_handle),
+      cashapp_cashtag: clean(handles.cashapp_cashtag),
+      zelle_handle: handles.zelle_handle.trim() || null,
+    })
+    .eq('id', user.id);
+  if (error) throw error;
+
+  revalidatePath('/landlord/settings');
+}

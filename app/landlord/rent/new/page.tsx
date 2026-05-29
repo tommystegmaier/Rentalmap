@@ -92,6 +92,7 @@ export default async function NewRentPaymentPage() {
           >
             <option value="zelle">Zelle</option>
             <option value="venmo">Venmo</option>
+            <option value="cashapp">Cash App</option>
             <option value="check">Check</option>
             <option value="cash">Cash</option>
             <option value="other">Other</option>

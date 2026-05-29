@@ -4,8 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { createNotification } from '@/lib/notifications';
 import { sendPushToUser } from '@/lib/push';
+import { isP2PMethod, P2P_LABELS } from '@/lib/p2p';
 
-export async function submitVenmoClaim(formData: FormData) {
+export async function submitP2PClaim(formData: FormData) {
   const supabase = createClient();
   const {
     data: { user },
@@ -15,7 +16,9 @@ export async function submitVenmoClaim(formData: FormData) {
   const lease_id = String(formData.get('lease_id'));
   const amount_cents = parseInt(String(formData.get('amount_cents')), 10);
   const expected_date = String(formData.get('expected_date'));
-  const venmo_note = String(formData.get('venmo_note') ?? '').trim() || null;
+  const methodRaw = String(formData.get('method') ?? 'venmo');
+  const method = isP2PMethod(methodRaw) ? methodRaw : 'venmo';
+  const venmo_note = String(formData.get('note') ?? '').trim() || null;
 
   if (!lease_id || !amount_cents || !expected_date) throw new Error('Missing required fields');
 
@@ -35,11 +38,14 @@ export async function submitVenmoClaim(formData: FormData) {
       tenant_user_id: user.id,
       amount_cents,
       expected_date,
+      method,
       venmo_note,
     })
     .select('id')
     .maybeSingle();
   if (error) throw error;
+
+  const methodLabel = P2P_LABELS[method];
 
   // Notify the landlord via service role (tenant can't read landlord row).
   const admin = createServiceRoleClient();
@@ -57,8 +63,8 @@ export async function submitVenmoClaim(formData: FormData) {
       .eq('id', user.id)
       .maybeSingle();
     const tenantName = tenant?.name ?? tenant?.email ?? 'Your tenant';
-    const title = `Venmo payment claim — ${prop.address ?? 'property'}`;
-    const body = `${tenantName} says they sent a Venmo payment. Tap to approve or deny.`;
+    const title = `${methodLabel} payment claim — ${prop.address ?? 'property'}`;
+    const body = `${tenantName} says they sent a ${methodLabel} payment. Tap to approve or deny.`;
     const url = '/landlord/rent';
 
     try {
@@ -71,7 +77,7 @@ export async function submitVenmoClaim(formData: FormData) {
       });
     } catch {}
 
-    await sendPushToUser(prop.owner_id, { title, body, url, tag: `venmo-claim-${lease_id}` });
+    await sendPushToUser(prop.owner_id, { title, body, url, tag: `p2p-claim-${lease_id}` });
   }
 
   revalidatePath('/tenant/pay');

@@ -11,6 +11,7 @@ import { DeletePaymentButton } from '@/components/delete-payment-button';
 import { formatCents, one } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Wallet } from 'lucide-react';
+import { isP2PMethod } from '@/lib/p2p';
 
 export default async function RentPage() {
   const supabase = createClient();
@@ -33,7 +34,7 @@ export default async function RentPage() {
     supabase
       .from('venmo_payment_claims')
       .select(
-        'id, amount_cents, expected_date, venmo_note, submitted_at, tenant:tenant_user_id(name, email), lease:lease_id(properties:property_id(address))',
+        'id, amount_cents, expected_date, method, venmo_note, submitted_at, tenant:tenant_user_id(name, email), lease:lease_id(properties:property_id(address))',
       )
       .eq('status', 'pending')
       .order('submitted_at', { ascending: false }),
@@ -78,6 +79,7 @@ export default async function RentPage() {
     id: string;
     amount_cents: number;
     expected_date: string;
+    method: string | null;
     venmo_note: string | null;
     submitted_at: string;
     tenant: { name: string | null; email: string } | { name: string | null; email: string }[] | null;
@@ -90,6 +92,7 @@ export default async function RentPage() {
       id: c.id,
       amount_cents: c.amount_cents,
       expected_date: c.expected_date,
+      method: isP2PMethod(c.method) ? c.method : 'venmo',
       venmo_note: c.venmo_note,
       submitted_at: c.submitted_at,
       tenant_name: t?.name ?? null,
@@ -153,7 +156,7 @@ export default async function RentPage() {
 
       {pendingClaims.length > 0 ? (
         <div className="space-y-2">
-          <p className="text-sm font-medium">Pending Venmo claims</p>
+          <p className="text-sm font-medium">Pending payment claims</p>
           <VenmoClaimsList claims={pendingClaims} />
         </div>
       ) : null}

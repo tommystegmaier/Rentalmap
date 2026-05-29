@@ -8,11 +8,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { approveClaim, denyClaim } from '@/app/landlord/rent/claims/actions';
+import { P2P_LABELS, type P2PMethod } from '@/lib/p2p';
 
 export interface VenmoClaim {
   id: string;
   amount_cents: number;
   expected_date: string;
+  method: P2PMethod;
   venmo_note: string | null;
   submitted_at: string;
   tenant_name: string | null;
@@ -80,7 +82,7 @@ function VenmoClaimCard({ claim }: { claim: VenmoClaim }) {
             ) : null}
           </div>
           <Badge className="shrink-0 border-transparent bg-warning/10 text-warning">
-            Pending
+            {P2P_LABELS[claim.method]} · Pending
           </Badge>
         </div>
 
