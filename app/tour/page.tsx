@@ -83,28 +83,43 @@ export default function TourPage() {
               on any phone.
             </p>
           </div>
-          <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <Figure caption="See what's paid at a glance.">
+          <div className="-mx-6 mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto px-6 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-8 sm:overflow-visible sm:px-0 lg:grid-cols-4">
+            <Figure
+              caption="See what's paid at a glance."
+              className="w-[68%] shrink-0 snap-center sm:w-auto sm:shrink"
+            >
               <PhoneFrame>
                 <PhoneRent />
               </PhoneFrame>
             </Figure>
-            <Figure caption="Snap a receipt — AI files it for taxes.">
+            <Figure
+              caption="Snap a receipt — AI files it for taxes."
+              className="w-[68%] shrink-0 snap-center sm:w-auto sm:shrink"
+            >
               <PhoneFrame>
                 <PhoneScan />
               </PhoneFrame>
             </Figure>
-            <Figure caption="Get pinged the moment something breaks.">
+            <Figure
+              caption="Get pinged the moment something breaks."
+              className="w-[68%] shrink-0 snap-center sm:w-auto sm:shrink"
+            >
               <PhoneFrame>
                 <PhoneWorkOrder />
               </PhoneFrame>
             </Figure>
-            <Figure caption="Your tenant pays in two taps.">
+            <Figure
+              caption="Your tenant pays in two taps."
+              className="w-[68%] shrink-0 snap-center sm:w-auto sm:shrink"
+            >
               <PhoneFrame>
                 <PhoneTenant />
               </PhoneFrame>
             </Figure>
           </div>
+          <p className="mt-3 text-center text-xs text-muted-foreground sm:hidden">
+            Swipe to see more →
+          </p>
         </section>
 
         {/* Three pillars */}
@@ -252,7 +267,7 @@ export default function TourPage() {
         </section>
 
         {/* Bonus row */}
-        <section className="mt-16 grid gap-3 sm:grid-cols-3">
+        <section className="mt-16 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <MiniCard
             icon={<TrendingUp size={18} />}
             title="Market rent intelligence"
@@ -328,7 +343,7 @@ function Pillar({
         <h2 className="mt-2 text-3xl font-semibold tracking-tight">{title}</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{blurb}</p>
       </div>
-      <div className="mt-8 grid gap-3 sm:grid-cols-2">
+      <div className="mt-8 grid grid-cols-2 gap-3">
         {features.map((f) => (
           <div
             key={f.title}
@@ -370,9 +385,17 @@ function MiniCard({
 
 /* ---------- Device showcase ---------- */
 
-function Figure({ caption, children }: { caption: string; children: React.ReactNode }) {
+function Figure({
+  caption,
+  children,
+  className,
+}: {
+  caption: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <figure className="m-0">
+    <figure className={`m-0 ${className ?? ''}`}>
       {children}
       <figcaption className="mt-4 text-center text-xs text-muted-foreground">
         {caption}
