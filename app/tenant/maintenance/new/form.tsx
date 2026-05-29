@@ -13,6 +13,7 @@ import {
   WORK_ORDER_REQUEST_TYPES,
   type WorkOrderRequestType,
 } from '@/lib/constants';
+import { saveWorkOrderPhotos } from './actions';
 
 interface WorkOrderFormProps {
   leaseId: string;
@@ -66,23 +67,26 @@ export function WorkOrderForm({ leaseId, propertyId }: WorkOrderFormProps) {
 
       if (insertErr || !inserted) throw insertErr ?? new Error('Failed to create work order');
 
-      const photoPaths: string[] = [];
-      for (const photo of photos) {
-        const ext = photo.name.split('.').pop() ?? 'jpg';
-        const path = `${inserted.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from('work-order-photos')
-          .upload(path, photo, { upsert: false });
-        if (upErr) throw upErr;
-        photoPaths.push(path);
-      }
-
-      if (photoPaths.length > 0) {
-        const { error: updErr } = await supabase
-          .from('work_orders')
-          .update({ photo_urls: photoPaths })
-          .eq('id', inserted.id);
-        if (updErr) throw updErr;
+      // Upload photos and link them via a server action. Tenants have no UPDATE
+      // policy on work_orders, so the path save must run server-side with the
+      // service role. Photo problems are logged but never block the submission —
+      // the work order already exists and the tenant should still land on it.
+      try {
+        const photoPaths: string[] = [];
+        for (const photo of photos) {
+          const ext = photo.name.split('.').pop() ?? 'jpg';
+          const path = `${inserted.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const { error: upErr } = await supabase.storage
+            .from('work-order-photos')
+            .upload(path, photo, { upsert: false });
+          if (upErr) throw upErr;
+          photoPaths.push(path);
+        }
+        if (photoPaths.length > 0) {
+          await saveWorkOrderPhotos(inserted.id, photoPaths);
+        }
+      } catch (photoErr) {
+        console.error('[work order] photo upload failed:', photoErr);
       }
 
       // keepalive: true ensures the request survives the router.push() navigation

@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO, differenceInCalendarDays, addMonths, setDate } from 'date-fns';
-import { Home as HomeIcon, Wallet, Wrench, FileText, MessageSquare } from 'lucide-react';
+import { Home as HomeIcon, Wallet, Wrench, FileText, MessageSquare, ChevronRight } from 'lucide-react';
+import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 
 export default async function TenantDashboard() {
   const supabase = createClient();
@@ -84,9 +85,10 @@ export default async function TenantDashboard() {
       .limit(5),
     supabase
       .from('work_orders')
-      .select('id, status')
+      .select('id, status, request_type, urgency, submitted_at')
       .eq('submitted_by_user_id', user.id)
-      .neq('status', 'closed'),
+      .neq('status', 'closed')
+      .order('submitted_at', { ascending: false }),
     prop
       ? supabase
           .from('documents')
@@ -276,6 +278,42 @@ export default async function TenantDashboard() {
             {openWorkOrders?.length ?? 0}
           </Badge>
         </div>
+
+        {openWorkOrders && openWorkOrders.length > 0 ? (
+          <div className="space-y-2">
+            {(openWorkOrders as {
+              id: string;
+              status: string;
+              request_type: string;
+              urgency: Urgency;
+              submitted_at: string;
+            }[]).map((w) => {
+              const urg = URGENCY_LABELS[w.urgency];
+              const statusLabel = w.status === 'in_progress' ? 'In progress' : 'Open';
+              return (
+                <Link key={w.id} href={`/tenant/maintenance/${w.id}`}>
+                  <Card className="transition hover:bg-muted/30">
+                    <CardContent className="flex items-center gap-3 p-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{w.request_type}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {statusLabel} · submitted {format(parseISO(w.submitted_at), 'MMM d')}
+                        </p>
+                      </div>
+                      {urg ? (
+                        <Badge className={`shrink-0 border-transparent ${urg.color}`}>
+                          {urg.label}
+                        </Badge>
+                      ) : null}
+                      <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        ) : null}
+
         <Button asChild variant="outline" className="w-full">
           <Link href="/tenant/maintenance/new">
             <Wrench size={16} className="mr-2" />
