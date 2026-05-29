@@ -72,12 +72,17 @@ export default async function TaxCenterPage({
         </p>
       ) : null}
 
-      <Button asChild className="w-full">
-        <a href={`/api/tax-report?year=${year}`} download>
-          <Download size={16} className="mr-2" />
-          Generate {year} tax report (PDF)
-        </a>
-      </Button>
+      <div className="space-y-1">
+        <Button asChild className="w-full">
+          <a href={`/api/tax-report?year=${year}`} download>
+            <Download size={16} className="mr-2" />
+            Generate {year} tax report (PDF)
+          </a>
+        </Button>
+        <p className="text-center text-xs text-muted-foreground">
+          A single PDF: P&amp;L summary, Schedule E, expense ledger, and every receipt on file.
+        </p>
+      </div>
 
       <Card>
         <CardHeader>

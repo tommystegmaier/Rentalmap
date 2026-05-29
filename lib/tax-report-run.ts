@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getDaysInMonth } from 'date-fns';
 import { computeTaxReportData } from '@/lib/tax-report-data';
-import { generateTaxReport } from '@/lib/pdf/tax-report';
+import { buildTaxReportPacket } from '@/lib/pdf/tax-packet';
 import { createNotification } from '@/lib/notifications';
 import { sendPushToUser } from '@/lib/push';
 
@@ -46,7 +46,7 @@ export async function runScheduledTaxReports(admin: SupabaseClient): Promise<num
     try {
       const data = await computeTaxReportData(admin, owner.id, targetYear);
       const ownerLabel = owner.name ?? owner.email ?? 'Landlord';
-      const pdf = generateTaxReport(data, ownerLabel);
+      const pdf = await buildTaxReportPacket(admin, data, ownerLabel);
 
       const filePath = `${owner.id}/${targetYear}-${Date.now()}.pdf`;
       const { error: upErr } = await admin.storage

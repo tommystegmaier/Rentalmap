@@ -17,6 +17,7 @@ export interface TaxExpenseRow {
   vendor: string | null;
   amountCents: number;
   deductible: boolean;
+  receiptPath: string | null;
 }
 
 export interface TaxReportData {
@@ -76,7 +77,7 @@ export async function computeTaxReportData(
       .lte('received_date', end),
     client
       .from('expenses')
-      .select('property_id, date, amount_cents, category, vendor, tax_deductible')
+      .select('property_id, date, amount_cents, category, vendor, tax_deductible, receipt_url')
       .gte('date', start)
       .lte('date', end)
       .in('property_id', propIds),
@@ -95,6 +96,7 @@ export async function computeTaxReportData(
     category: string;
     vendor: string | null;
     tax_deductible: boolean | null;
+    receipt_url: string | null;
   };
   const payRows = (payments ?? []) as PayRow[];
   const expRows = (expenses ?? []) as ExpRow[];
@@ -137,6 +139,7 @@ export async function computeTaxReportData(
       vendor: e.vendor,
       amountCents: e.amount_cents,
       deductible: e.tax_deductible !== false,
+      receiptPath: e.receipt_url,
     }))
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 

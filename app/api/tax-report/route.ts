@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { computeTaxReportData } from '@/lib/tax-report-data';
-import { generateTaxReport } from '@/lib/pdf/tax-report';
+import { buildTaxReportPacket } from '@/lib/pdf/tax-packet';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 export async function GET(request: Request) {
   const supabase = createClient();
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
   const ownerLabel = profile?.name ?? profile?.email ?? 'Landlord';
 
   const data = await computeTaxReportData(supabase, user.id, year);
-  const pdf = generateTaxReport(data, ownerLabel);
+  const pdf = await buildTaxReportPacket(supabase, data, ownerLabel);
 
   return new NextResponse(pdf as unknown as BodyInit, {
     headers: {
