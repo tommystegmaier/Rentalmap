@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PushToggle } from '@/components/push-toggle';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { revalidatePath } from 'next/cache';
 
 export default async function ProfilePage() {
@@ -79,6 +80,18 @@ export default async function ProfilePage() {
           Save profile
         </Button>
       </form>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Choose your preferred color scheme. Auto follows your device setting.
+          </p>
+          <ThemeToggle />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

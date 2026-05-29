@@ -9,6 +9,7 @@ import { PushTypeToggles } from './push-type-toggles';
 import { FeePayerToggles } from './fee-payer-toggles';
 import { PaymentHandles } from './payment-handles';
 import { getStripe } from '@/lib/stripe';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default async function SettingsPage({
   searchParams,
@@ -66,6 +67,18 @@ export default async function SettingsPage({
           Stripe onboarding complete. Tenants can now pay rent in the app.
         </div>
       ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Choose your preferred color scheme. Auto follows your device setting.
+          </p>
+          <ThemeToggle />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
