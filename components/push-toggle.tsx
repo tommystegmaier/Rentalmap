@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { BusyBar } from '@/components/busy-bar';
 
 function urlBase64ToUint8Array(base64: string) {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4);
@@ -111,6 +112,7 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string | null }
           {busy ? 'Working…' : 'Enable notifications'}
         </Button>
       )}
+      <BusyBar active={busy} />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
   );

@@ -11,6 +11,7 @@ import { parseDollarsToCents } from '@/lib/utils';
 import { updateUtilityBill, deleteUtilityBill } from './actions';
 import type { UtilityType, PaidBy } from '../new/actions';
 import { Trash2 } from 'lucide-react';
+import { BusyBar } from '@/components/busy-bar';
 
 const UTILITY_TYPES: { value: UtilityType; label: string }[] = [
   { value: 'electric', label: 'Electric' },
@@ -258,6 +259,7 @@ export function EditUtilityBillForm({ bill, properties }: EditUtilityBillFormPro
       >
         <Trash2 size={14} /> Delete bill
       </Button>
+      <BusyBar active={busy} />
     </form>
   );
 }

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { updateVendor, deleteVendor } from '../actions';
+import { BusyBar } from '@/components/busy-bar';
 
 const EIN_REGEX = /^\d{2}-\d{7}$/;
 
@@ -178,6 +179,7 @@ export function EditVendorForm({ vendor }: EditVendorFormProps) {
       >
         <Trash2 size={14} /> Delete vendor
       </Button>
+      <BusyBar active={isPending} />
     </form>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { BusyBar } from '@/components/busy-bar';
 
 interface PayButtonProps {
   leaseId: string;
@@ -44,6 +45,7 @@ export function PayButton({
       <Button onClick={handlePay} disabled={busy} variant={variant} className="w-full">
         {busy ? 'Opening secure checkout…' : label}
       </Button>
+      <BusyBar active={busy} />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
   );

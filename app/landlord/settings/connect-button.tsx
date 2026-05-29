@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { BusyBar } from '@/components/busy-bar';
 
 type StripeStatus = 'not_connected' | 'restricted' | 'active';
 
@@ -46,6 +47,7 @@ export function StripeConnectButton({
       >
         {label}
       </Button>
+      <BusyBar active={busy} />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
   );

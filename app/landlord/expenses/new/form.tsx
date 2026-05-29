@@ -15,6 +15,7 @@ import { parseDollarsToCents } from '@/lib/utils';
 import { isIsoDate } from '@/lib/image';
 import { prepareScanUpload } from '@/lib/scan-upload';
 import { receiptToPdf } from '@/lib/receipt-pdf';
+import { BusyBar } from '@/components/busy-bar';
 
 interface ExpenseFormProps {
   properties: { id: string; address: string }[];
@@ -192,6 +193,7 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
             <Sparkles size={14} />
             {scanning ? 'Reading receipt…' : 'Scan receipt'}
           </Button>
+          <BusyBar active={scanning} />
         ) : null}
         {isMortgage ? (
           <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200">
@@ -305,6 +307,7 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? 'Saving…' : 'Save expense'}
       </Button>
+      <BusyBar active={busy} />
     </form>
   );
 }

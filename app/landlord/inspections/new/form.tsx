@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { createInspection } from './actions';
+import { BusyBar } from '@/components/busy-bar';
 import { updateInspection } from '../[id]/edit/actions';
 import { Plus, Trash2, Upload } from 'lucide-react';
 
@@ -519,6 +520,7 @@ export function NewInspectionForm({ properties, initialPropertyId, editInspectio
               {busy ? 'Saving…' : editInspectionId ? 'Update inspection' : 'Save inspection'}
             </Button>
           </div>
+          <BusyBar active={busy} />
         </div>
       )}
     </div>

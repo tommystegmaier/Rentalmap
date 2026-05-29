@@ -15,6 +15,7 @@ import {
 } from '@/lib/constants';
 import { parseDollarsToCents } from '@/lib/utils';
 import { StagedPhotoGrid } from '@/components/staged-photo-grid';
+import { BusyBar } from '@/components/busy-bar';
 
 interface Props {
   properties: { id: string; address: string; active_lease_id: string | null }[];
@@ -250,6 +251,7 @@ export function LandlordWorkOrderForm({ properties }: Props) {
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? 'Saving…' : 'Create work order'}
       </Button>
+      <BusyBar active={busy} />
     </form>
   );
 }

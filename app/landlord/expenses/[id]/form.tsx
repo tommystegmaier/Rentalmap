@@ -15,6 +15,7 @@ import { parseDollarsToCents } from '@/lib/utils';
 import { isIsoDate } from '@/lib/image';
 import { prepareScanUpload } from '@/lib/scan-upload';
 import { receiptToPdf } from '@/lib/receipt-pdf';
+import { BusyBar } from '@/components/busy-bar';
 import { ReceiptViewer } from '@/components/receipt-viewer';
 import { format, parseISO } from 'date-fns';
 import { deleteExpense, updateExpense } from './actions';
@@ -225,6 +226,7 @@ export function EditExpenseForm({
             <Sparkles size={14} />
             {scanning ? 'Reading receipt…' : 'Re-scan with the new photo'}
           </Button>
+          <BusyBar active={scanning} />
         ) : null}
         {scanMessage ? (
           <p className="rounded-lg border border-success/30 bg-success/5 p-2 text-xs text-success">
@@ -336,6 +338,7 @@ export function EditExpenseForm({
       >
         <Trash2 size={14} /> Delete expense
       </Button>
+      <BusyBar active={busy} />
     </form>
   );
 }

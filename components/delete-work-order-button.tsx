@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { deleteWorkOrder } from '@/app/landlord/maintenance/[id]/actions';
+import { BusyBar } from '@/components/busy-bar';
 
 export function DeleteWorkOrderButton({
   id,
@@ -43,6 +44,7 @@ export function DeleteWorkOrderButton({
         <Trash2 size={14} className="mr-1" />
         {isPending ? 'Deleting…' : 'Delete work order'}
       </Button>
+      <BusyBar active={isPending} />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
   );

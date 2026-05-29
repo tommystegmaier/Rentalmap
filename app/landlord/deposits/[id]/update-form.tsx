@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Trash2, Plus } from 'lucide-react';
+import { BusyBar } from '@/components/busy-bar';
 import { updateDeposit } from './actions';
 
 type DepositStatus =
@@ -249,6 +250,7 @@ export function UpdateDepositForm({
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? 'Saving…' : 'Save changes'}
       </Button>
+      <BusyBar active={busy} />
     </form>
   );
 }

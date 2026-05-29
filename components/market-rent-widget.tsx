@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { formatCents } from '@/lib/utils';
 import { RefreshCw, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { BusyBar } from '@/components/busy-bar';
 import { formatDistanceToNow } from 'date-fns';
 
 interface MarketRentWidgetProps {
@@ -119,6 +120,7 @@ export function MarketRentWidget({
         <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
         {loading ? 'Fetching…' : marketRentCents != null ? 'Refresh estimate' : 'Get market rent'}
       </Button>
+      <BusyBar active={loading} />
     </div>
   );
 }

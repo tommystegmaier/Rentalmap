@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sparkles, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { prepareScanUpload } from '@/lib/scan-upload';
+import { BusyBar } from '@/components/busy-bar';
 
 interface AnalysisResult {
   summary: string[];
@@ -62,10 +63,13 @@ export function LeaseAnalyzer() {
       </div>
 
       {file ? (
-        <Button onClick={handleAnalyze} disabled={busy} className="w-full">
-          <Sparkles size={14} />
-          {busy ? 'Analyzing lease…' : 'Analyze with AI'}
-        </Button>
+        <>
+          <Button onClick={handleAnalyze} disabled={busy} className="w-full">
+            <Sparkles size={14} />
+            {busy ? 'Analyzing lease…' : 'Analyze with AI'}
+          </Button>
+          <BusyBar active={busy} />
+        </>
       ) : null}
 
       {error ? (

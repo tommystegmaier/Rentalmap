@@ -15,6 +15,7 @@ import {
 } from '@/lib/constants';
 import { saveWorkOrderPhotos } from './actions';
 import { StagedPhotoGrid } from '@/components/staged-photo-grid';
+import { BusyBar } from '@/components/busy-bar';
 
 interface WorkOrderFormProps {
   leaseId: string;
@@ -209,6 +210,7 @@ export function WorkOrderForm({ leaseId, propertyId }: WorkOrderFormProps) {
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? 'Submitting…' : 'Submit work order'}
       </Button>
+      <BusyBar active={busy} />
     </form>
   );
 }

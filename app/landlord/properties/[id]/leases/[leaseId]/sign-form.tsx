@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PenLine } from 'lucide-react';
 import { landlordSignLease } from './actions';
+import { BusyBar } from '@/components/busy-bar';
 
 export function LandlordSignForm({ leaseId }: { leaseId: string }) {
   const [name, setName] = useState('');
@@ -48,6 +49,7 @@ export function LandlordSignForm({ leaseId }: { leaseId: string }) {
         <PenLine size={14} />
         {busy ? 'Signing…' : 'I agree — sign as landlord'}
       </Button>
+      <BusyBar active={busy} />
     </form>
   );
 }

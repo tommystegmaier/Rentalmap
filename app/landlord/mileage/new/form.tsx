@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { TripTracker } from '@/components/trip-tracker';
 import { mileageRateForYear, MILEAGE_PURPOSES } from '@/lib/mileage';
 import { createMileageTrip } from './actions';
+import { BusyBar } from '@/components/busy-bar';
 
 // Per-property distance cache key in localStorage.
 const CACHE_KEY = 'mileage_property_distances';
@@ -249,6 +250,7 @@ export function MileageForm({ properties, initialPropertyId, defaultRate, today 
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? 'Saving…' : 'Save trip'}
       </Button>
+      <BusyBar active={busy} />
     </form>
   );
 }

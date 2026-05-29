@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createVendor } from './actions';
+import { BusyBar } from '@/components/busy-bar';
 
 const EIN_REGEX = /^\d{2}-\d{7}$/;
 
@@ -154,6 +155,7 @@ export function NewVendorForm() {
           Cancel
         </Button>
       </div>
+      <BusyBar active={isPending} />
     </form>
   );
 }

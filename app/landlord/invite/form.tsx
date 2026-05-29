@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { BusyBar } from '@/components/busy-bar';
 
 interface InviteFormProps {
   leases: { id: string; address: string; monthly_rent_cents: number }[];
@@ -74,6 +75,7 @@ export function InviteForm({ leases }: InviteFormProps) {
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? 'Sending…' : 'Send invitation'}
       </Button>
+      <BusyBar active={busy} />
     </form>
   );
 }

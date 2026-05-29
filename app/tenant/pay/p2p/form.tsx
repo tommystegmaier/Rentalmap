@@ -9,6 +9,7 @@ import { ExternalLink, Copy, Check } from 'lucide-react';
 import { formatCents } from '@/lib/utils';
 import { P2P_LABELS, displayHandle, p2pDeepLink, type P2PMethod } from '@/lib/p2p';
 import { submitP2PClaim } from './actions';
+import { BusyBar } from '@/components/busy-bar';
 
 interface Props {
   method: P2PMethod;
@@ -156,6 +157,7 @@ export function P2PClaimForm({
               ? 'Already submitted'
               : `Notify landlord — I sent this ${label} payment`}
         </Button>
+        <BusyBar active={busy} />
       </form>
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { saveFeePayerSettings } from './actions';
+import { BusyBar } from '@/components/busy-bar';
 
 export function FeePayerToggles({
   initialAchFeePayer,
@@ -86,6 +87,7 @@ export function FeePayerToggles({
       <Button onClick={handleSave} disabled={busy} size="sm">
         {busy ? 'Saving…' : 'Save'}
       </Button>
+      <BusyBar active={busy} />
     </div>
   );
 }

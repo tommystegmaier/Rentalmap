@@ -9,6 +9,7 @@ import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { approveClaim, denyClaim } from '@/app/landlord/rent/claims/actions';
 import { P2P_LABELS, type P2PMethod } from '@/lib/p2p';
+import { BusyBar } from '@/components/busy-bar';
 
 export interface VenmoClaim {
   id: string;
@@ -112,20 +113,24 @@ function VenmoClaimCard({ claim }: { claim: VenmoClaim }) {
                 Cancel
               </Button>
             </div>
+            <BusyBar active={busy === 'deny'} />
           </div>
         ) : (
-          <div className="flex gap-2">
-            <Button size="sm" onClick={handleApprove} disabled={!!busy}>
-              {busy === 'approve' ? 'Approving…' : 'Approve'}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowDenyForm(true)}
-              disabled={!!busy}
-            >
-              Deny
-            </Button>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleApprove} disabled={!!busy}>
+                {busy === 'approve' ? 'Approving…' : 'Approve'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowDenyForm(true)}
+                disabled={!!busy}
+              >
+                Deny
+              </Button>
+            </div>
+            <BusyBar active={busy === 'approve'} />
           </div>
         )}
       </CardContent>

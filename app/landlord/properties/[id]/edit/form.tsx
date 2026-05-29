@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { parseDollarsToCents } from '@/lib/utils';
 import { deleteProperty } from '../actions';
+import { BusyBar } from '@/components/busy-bar';
 
 interface Property {
   id: string;
@@ -219,6 +220,7 @@ export function EditPropertyForm({ property }: { property: Property }) {
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? 'Saving…' : 'Save changes'}
       </Button>
+      <BusyBar active={busy} />
 
       <DangerZone propertyId={property.id} address={property.address} />
     </form>
@@ -269,6 +271,7 @@ function DangerZone({ propertyId, address }: { propertyId: string; address: stri
       >
         {busy ? 'Deleting…' : 'Delete property'}
       </Button>
+      <BusyBar active={busy} />
       {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
     </div>
   );

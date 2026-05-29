@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { BusyBar } from '@/components/busy-bar';
 
 interface Props {
   initialEnabled: boolean;
@@ -78,6 +79,7 @@ export function NotificationSettings({ initialEnabled, initialDays }: Props) {
       <Button type="submit" disabled={busy}>
         {busy ? 'Saving…' : 'Save'}
       </Button>
+      <BusyBar active={busy} />
     </form>
   );
 }

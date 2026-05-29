@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { BusyBar } from '@/components/busy-bar';
 
 interface Props {
   leaseId: string;
@@ -60,6 +61,7 @@ export function AutopayControls({ leaseId, autopay, landlordConnected }: Props) 
         <Button variant="outline" onClick={cancel} disabled={busy} className="w-full">
           {busy ? 'Canceling…' : 'Cancel auto-pay'}
         </Button>
+        <BusyBar active={busy} />
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
       </div>
     );
@@ -74,6 +76,7 @@ export function AutopayControls({ leaseId, autopay, landlordConnected }: Props) 
       <Button variant="outline" onClick={setup} disabled={busy} className="w-full">
         {busy ? 'Opening Stripe…' : 'Set up auto-pay'}
       </Button>
+      <BusyBar active={busy} />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
   );

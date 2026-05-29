@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { BusyBar } from '@/components/busy-bar';
 
 const DOC_TYPES = [
   'Lease',
@@ -159,6 +160,7 @@ export function UploadForm({ propertyId, leases }: UploadFormProps) {
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? 'Uploading…' : 'Upload document'}
       </Button>
+      <BusyBar active={busy} />
     </form>
   );
 }

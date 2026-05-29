@@ -13,6 +13,7 @@ import { formatCents } from '@/lib/utils';
 import { ReceiptViewer } from '@/components/receipt-viewer';
 import { setWorkOrderReceipt, removeWorkOrderReceipt } from '@/app/landlord/maintenance/[id]/actions';
 import { X } from 'lucide-react';
+import { BusyBar } from '@/components/busy-bar';
 
 interface Props {
   workOrderId: string;
@@ -142,9 +143,7 @@ export function WorkOrderReceipt({
         />
       </div>
 
-      {busy ? (
-        <p className="text-xs text-muted-foreground">Reading receipt &amp; uploading…</p>
-      ) : null}
+      <BusyBar active={busy} />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
   );

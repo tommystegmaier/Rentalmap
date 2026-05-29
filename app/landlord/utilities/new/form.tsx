@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { parseDollarsToCents } from '@/lib/utils';
 import { createUtilityBill, type UtilityType, type PaidBy } from './actions';
+import { BusyBar } from '@/components/busy-bar';
 
 const UTILITY_TYPES: { value: UtilityType; label: string }[] = [
   { value: 'electric', label: 'Electric' },
@@ -232,6 +233,7 @@ export function UtilityBillForm({ properties, initialPropertyId, returnPropertyI
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? 'Saving…' : 'Save bill'}
       </Button>
+      <BusyBar active={busy} />
     </form>
   );
 }
