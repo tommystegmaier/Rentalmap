@@ -108,46 +108,6 @@ export default function TourPage() {
           </div>
         </section>
 
-        {/* Spotlight: tax reporting */}
-        <section className="mt-24 rounded-3xl border bg-card p-8 sm:p-10">
-          <div className="grid items-center gap-10 sm:grid-cols-2">
-            <div>
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <FileBarChart size={22} />
-              </span>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-primary">
-                Tax &amp; money
-              </p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-tight">
-                Tax season, already done.
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Every receipt, mile, and payment is categorized the moment you log it — so when
-                tax time comes, your Schedule E is one tap away. Hand your accountant a clean
-                PDF instead of a shoebox, and see exactly what each property earns.
-              </p>
-              <ul className="mt-4 space-y-2.5 text-sm">
-                {[
-                  'Snap receipts — AI files them into IRS categories',
-                  'GPS mileage at the current IRS standard rate',
-                  'One-tap Schedule E report, ready for your accountant',
-                  'Income, expenses & net — per property',
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5">
-                    <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-success" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="flex justify-center">
-              <PhoneFrame>
-                <PhoneTax />
-              </PhoneFrame>
-            </div>
-          </div>
-        </section>
-
         {/* Three pillars */}
         <section id="features" className="mt-24 scroll-mt-8 space-y-16">
           <Pillar
@@ -182,6 +142,17 @@ export default function TourPage() {
             eyebrow="Tax & money"
             title="Be ready for tax season — all year."
             blurb="Snap a receipt and it files itself into the right IRS category. At tax time, your Schedule E report is one tap away."
+            spotlight={
+              <div className="mx-auto flex max-w-sm flex-col items-center rounded-3xl border bg-gradient-to-br from-primary/10 to-primary/5 px-8 py-10">
+                <PhoneFrame>
+                  <PhoneTax />
+                </PhoneFrame>
+                <p className="mt-6 text-center text-xs text-muted-foreground">
+                  Your Schedule E — a full year of rent, receipts, and mileage, generated as a
+                  clean PDF in one tap.
+                </p>
+              </div>
+            }
             features={[
               {
                 icon: <ScanLine size={18} />,
@@ -331,11 +302,13 @@ function Pillar({
   title,
   blurb,
   features,
+  spotlight,
 }: {
   eyebrow: string;
   title: string;
   blurb: string;
   features: { icon: React.ReactNode; title: string; body: string }[];
+  spotlight?: React.ReactNode;
 }) {
   return (
     <div>
@@ -346,6 +319,7 @@ function Pillar({
         <h2 className="mt-2 text-3xl font-semibold tracking-tight">{title}</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{blurb}</p>
       </div>
+      {spotlight ? <div className="mt-10">{spotlight}</div> : null}
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {features.map((f) => (
           <div
