@@ -20,6 +20,7 @@ import {
   Smartphone,
   ShieldCheck,
   CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -46,12 +47,8 @@ export default function TourPage() {
         </header>
 
         {/* Hero */}
-        <section className="mx-auto mt-14 max-w-3xl text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
-            <ShieldCheck size={14} className="text-primary" />
-            Built for small landlords — 1 to 20 units
-          </span>
-          <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-5xl">
+        <section className="mx-auto mt-16 max-w-3xl text-center">
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
             Run your rentals like a pro — from your phone.
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
@@ -73,6 +70,37 @@ export default function TourPage() {
           <p className="mt-4 text-xs text-muted-foreground">
             Works on any phone — add it to your home screen, no App Store needed.
           </p>
+        </section>
+
+        {/* Showcase — device-framed app screens */}
+        <section className="mt-24">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+              A peek inside
+            </p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight">See it in action.</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              The same clean, fast experience for you and your tenants — right in the browser,
+              on any phone.
+            </p>
+          </div>
+          <div className="mt-12 grid gap-10 sm:grid-cols-3">
+            <Figure caption="See what's paid at a glance.">
+              <PhoneFrame>
+                <PhoneRent />
+              </PhoneFrame>
+            </Figure>
+            <Figure caption="Snap a receipt — AI files it for taxes.">
+              <PhoneFrame>
+                <PhoneScan />
+              </PhoneFrame>
+            </Figure>
+            <Figure caption="Your tenant pays in two taps.">
+              <PhoneFrame>
+                <PhoneTenant />
+              </PhoneFrame>
+            </Figure>
+          </div>
         </section>
 
         {/* Three pillars */}
@@ -309,6 +337,167 @@ function MiniCard({
       </span>
       <h3 className="mt-4 text-sm font-semibold">{title}</h3>
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{body}</p>
+    </div>
+  );
+}
+
+/* ---------- Device showcase ---------- */
+
+function Figure({ caption, children }: { caption: string; children: React.ReactNode }) {
+  return (
+    <figure className="m-0">
+      {children}
+      <figcaption className="mt-4 text-center text-xs text-muted-foreground">
+        {caption}
+      </figcaption>
+    </figure>
+  );
+}
+
+function PhoneFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mx-auto w-full max-w-[248px]">
+      <div className="rounded-[2.3rem] border-[10px] border-gray-900 bg-gray-900 shadow-xl">
+        <div className="relative h-[486px] overflow-hidden rounded-[1.6rem] bg-background">
+          {/* notch */}
+          <div className="absolute left-1/2 top-0 z-10 h-5 w-24 -translate-x-1/2 rounded-b-2xl bg-gray-900" />
+          <div className="h-full overflow-hidden px-3.5 pb-3 pt-8">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FieldMini({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between border-b border-border/60 py-1.5 last:border-0">
+      <span className="text-[10px] text-muted-foreground">{label}</span>
+      <span className="text-[11px] font-medium">{value}</span>
+    </div>
+  );
+}
+
+function PhoneRent() {
+  return (
+    <div className="space-y-3 text-left">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[10px] text-muted-foreground">Good morning</p>
+          <p className="text-sm font-semibold">Your dashboard</p>
+        </div>
+        <Logo size={22} />
+      </div>
+
+      <div className="rounded-xl bg-primary/10 p-3">
+        <p className="text-[9px] font-semibold uppercase tracking-wide text-primary">
+          Rent · May 2026
+        </p>
+        <p className="mt-1 text-2xl font-semibold">$2,900</p>
+        <p className="text-[10px] text-muted-foreground">collected of $2,900</p>
+        <div className="mt-2 h-1.5 w-full rounded-full bg-primary/20">
+          <div className="h-1.5 w-full rounded-full bg-primary" />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {[
+          { addr: '412 Oak St', sub: 'Paid · May 1' },
+          { addr: '118 Pine Ave', sub: 'Paid · May 1' },
+        ].map((r) => (
+          <div
+            key={r.addr}
+            className="flex items-center justify-between rounded-lg border bg-card px-2.5 py-2"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-[11px] font-medium">{r.addr}</p>
+              <p className="text-[9px] text-muted-foreground">{r.sub}</p>
+            </div>
+            <span className="flex items-center gap-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[9px] font-medium text-success">
+              <CheckCircle2 size={9} /> Paid
+            </span>
+          </div>
+        ))}
+        <div className="flex items-center justify-between rounded-lg border bg-card px-2.5 py-2">
+          <div className="min-w-0">
+            <p className="truncate text-[11px] font-medium">9 Maple Ct</p>
+            <p className="text-[9px] text-muted-foreground">Due in 3 days</p>
+          </div>
+          <span className="rounded-full bg-warning/10 px-1.5 py-0.5 text-[9px] font-medium text-warning">
+            Upcoming
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1.5 rounded-lg bg-muted/50 px-2.5 py-2 text-[10px] text-muted-foreground">
+        <Bell size={11} className="text-primary" /> Reminder sent to 9 Maple Ct
+      </div>
+    </div>
+  );
+}
+
+function PhoneScan() {
+  return (
+    <div className="space-y-3 text-left">
+      <p className="text-sm font-semibold">Add expense</p>
+
+      <div className="flex h-20 items-center justify-center rounded-xl border border-dashed bg-muted/40">
+        <div className="flex flex-col items-center gap-1 text-muted-foreground">
+          <ScanLine size={20} className="text-primary" />
+          <span className="text-[9px]">Receipt photo</span>
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-card p-3">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-primary">
+          <Sparkles size={11} /> Read from your photo
+        </div>
+        <div className="mt-1.5">
+          <FieldMini label="Vendor" value="Lowe's" />
+          <FieldMini label="Amount" value="$39.00" />
+          <FieldMini label="Category" value="Supplies" />
+          <FieldMini label="Date" value="May 29, 2026" />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1.5 rounded-lg bg-success/10 px-2.5 py-2 text-[10px] font-medium text-success">
+        <CheckCircle2 size={11} /> Saved &amp; tagged for taxes
+      </div>
+    </div>
+  );
+}
+
+function PhoneTenant() {
+  return (
+    <div className="space-y-3 text-left">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold">Pay rent</p>
+        <Logo size={20} />
+      </div>
+
+      <div className="rounded-xl border bg-card p-3 text-center">
+        <p className="text-[10px] text-muted-foreground">Due June 1</p>
+        <p className="mt-0.5 text-3xl font-semibold">$1,450</p>
+        <p className="text-[9px] text-muted-foreground">412 Oak St</p>
+      </div>
+
+      <div className="rounded-lg bg-primary py-2.5 text-center text-xs font-semibold text-primary-foreground">
+        Pay with bank · free
+      </div>
+      <div className="rounded-lg border py-2.5 text-center text-xs font-medium">Pay by card</div>
+
+      <div className="flex items-center justify-between rounded-lg border px-2.5 py-2">
+        <div>
+          <p className="text-[11px] font-medium">Autopay</p>
+          <p className="text-[9px] text-muted-foreground">On · pays the 1st</p>
+        </div>
+        <span className="flex h-4 w-7 items-center justify-end rounded-full bg-success px-0.5">
+          <span className="h-3 w-3 rounded-full bg-white" />
+        </span>
+      </div>
+
+      <p className="text-center text-[9px] text-muted-foreground">
+        or pay by Venmo · Cash App · Zelle
+      </p>
     </div>
   );
 }
