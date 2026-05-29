@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { ChevronLeft } from 'lucide-react';
+import { BackButton } from '@/components/back-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatCents, one } from '@/lib/utils';
@@ -121,13 +122,7 @@ export default async function DepositDetailPage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/landlord/deposits"
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft size={16} />
-        Security deposits
-      </Link>
+      <BackButton fallback="/landlord/deposits" label="Security deposits" />
       <PageHeader
         title="Security Deposit"
         description={address}

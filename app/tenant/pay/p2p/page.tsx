@@ -7,6 +7,7 @@ import { formatCents } from '@/lib/utils';
 import { format } from 'date-fns';
 import { currentRentPeriodDue } from '@/lib/rent-period';
 import { ChevronLeft } from 'lucide-react';
+import { BackButton } from '@/components/back-button';
 import {
   P2P_LABELS,
   handleForMethod,
@@ -92,13 +93,7 @@ export default async function P2PClaimPage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/tenant/pay"
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft size={16} />
-        Pay rent
-      </Link>
+      <BackButton fallback="/tenant/pay" label="Pay rent" />
 
       <PageHeader title={`Log ${methodLabel} payment`} description={prop?.address ?? ''} />
 

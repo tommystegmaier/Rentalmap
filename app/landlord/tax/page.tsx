@@ -12,7 +12,7 @@ import { TaxYearPicker, TaxScheduleSettings } from './controls';
 export default async function TaxCenterPage({
   searchParams,
 }: {
-  searchParams: { year?: string };
+  searchParams: { year?: string; generated?: string };
 }) {
   const supabase = createClient();
   const {
@@ -50,6 +50,12 @@ export default async function TaxCenterPage({
     <div className="space-y-6">
       <PageHeader title="Tax Center" description="Profit & loss and deductible totals by year" />
 
+      {searchParams.generated === '1' ? (
+        <div className="rounded-lg border border-success/30 bg-success/5 p-3 text-sm text-success">
+          Report generated and saved below. Tap it to view or download.
+        </div>
+      ) : null}
+
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground">Tax year</span>
         <TaxYearPicker year={year} years={years} />
@@ -74,13 +80,14 @@ export default async function TaxCenterPage({
 
       <div className="space-y-1">
         <Button asChild className="w-full">
-          <a href={`/api/tax-report?year=${year}`} download>
+          <a href={`/api/tax-report?year=${year}`}>
             <Download size={16} className="mr-2" />
             Generate {year} tax report (PDF)
           </a>
         </Button>
         <p className="text-center text-xs text-muted-foreground">
           A single PDF: P&amp;L summary, Schedule E, expense ledger, and every receipt on file.
+          Saved below when ready.
         </p>
       </div>
 
@@ -139,6 +146,8 @@ export default async function TaxCenterPage({
               <a
                 key={r.id}
                 href={`/api/tax-reports/${r.id}/download`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2 transition hover:bg-muted/30"
               >
                 <span className="flex items-center gap-2">

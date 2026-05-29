@@ -8,6 +8,7 @@ import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
 import { ChevronLeft } from 'lucide-react';
 import { MarkWorkOrderUpdatesRead } from '../mark-read';
+import { BackButton } from '@/components/back-button';
 
 export default async function TenantWorkOrderDetail({
   params,
@@ -51,13 +52,7 @@ export default async function TenantWorkOrderDetail({
   return (
     <div className="space-y-6">
       <MarkWorkOrderUpdatesRead workOrderId={params.id} />
-      <Link
-        href="/tenant/maintenance"
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft size={16} />
-        Work orders
-      </Link>
+      <BackButton fallback="/tenant/maintenance" label="Work orders" />
 
       <PageHeader title={wo.request_type} />
 

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { AlertCircle, ChevronLeft, FileText, Pencil, ReceiptText } from 'lucide-react';
+import { BackButton } from '@/components/back-button';
 
 const THRESHOLD_CENTS = 60_000; // $600.00
 
@@ -99,13 +100,7 @@ export default async function VendorDetailPage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/landlord/vendors"
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft size={16} />
-        Vendors
-      </Link>
+      <BackButton fallback="/landlord/vendors" label="Vendors" />
       <PageHeader
         title={v.name}
         action={

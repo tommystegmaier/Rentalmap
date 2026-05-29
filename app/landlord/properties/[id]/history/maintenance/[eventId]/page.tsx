@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { ChevronLeft, CheckCircle2, CalendarClock } from 'lucide-react';
+import { BackButton } from '@/components/back-button';
 
 function formatTime(t: string | null): string {
   if (!t) return '';
@@ -47,13 +48,10 @@ export default async function HistoryMaintenanceEventView({
     <div className="space-y-6">
       <PageHeader title={event.title} description="Read-only · Previous service" />
 
-      <Link
-        href={`/landlord/properties/${params.id}/history`}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft size={16} />
-        Back to previous service & work orders
-      </Link>
+      <BackButton
+        fallback={`/landlord/properties/${params.id}/history`}
+        label="Back to previous service & work orders"
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         {isCompleted ? (

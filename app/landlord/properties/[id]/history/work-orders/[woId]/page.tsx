@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
 import { ChevronLeft } from 'lucide-react';
+import { BackButton } from '@/components/back-button';
 import { formatCents, one } from '@/lib/utils';
 import { DeleteWorkOrderButton } from '@/components/delete-work-order-button';
 import { ReceiptViewer } from '@/components/receipt-viewer';
@@ -89,13 +90,10 @@ export default async function HistoryWorkOrderView({
     <div className="space-y-6">
       <PageHeader title={wo.request_type} description="Read-only · Previous work order" />
 
-      <Link
-        href={`/landlord/properties/${params.id}/history`}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft size={16} />
-        Back to previous service & work orders
-      </Link>
+      <BackButton
+        fallback={`/landlord/properties/${params.id}/history`}
+        label="Back to previous service & work orders"
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         <Badge className={`border-transparent ${urg.color}`}>{urg.label}</Badge>

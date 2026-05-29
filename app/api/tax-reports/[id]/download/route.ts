@@ -31,7 +31,7 @@ export async function GET(
   return new NextResponse(arr as unknown as BodyInit, {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="tax-report-${report.year}.pdf"`,
+      'Content-Disposition': `inline; filename="tax-report-${report.year}.pdf"`,
     },
   });
 }

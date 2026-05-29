@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
 import { ChevronLeft } from 'lucide-react';
+import { BackButton } from '@/components/back-button';
 import { one } from '@/lib/utils';
 import { updateWorkOrder } from './actions';
 import { MarkNotificationRead } from '@/components/mark-notification-read';
@@ -114,13 +115,7 @@ export default async function WorkOrderDetail({
       <MarkNotificationRead workOrderId={params.id} />
       <SuccessToast show={searchParams.saved === '1'} message="Work order updated" />
 
-      <Link
-        href="/landlord/maintenance"
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft size={16} />
-        Work orders
-      </Link>
+      <BackButton fallback="/landlord/maintenance" label="Work orders" />
 
       <PageHeader title={wo.request_type} description={propAddr ?? undefined} />
 

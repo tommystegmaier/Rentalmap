@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { format, parseISO } from 'date-fns';
 import { ChevronLeft, CheckCircle2, Wrench, FolderOpen } from 'lucide-react';
+import { BackButton } from '@/components/back-button';
 
 type MaintenanceRow = {
   id: string;
@@ -118,13 +119,7 @@ export default async function TenantHistoryPage() {
     <div className="space-y-4">
       <PageHeader title="Previous service & work orders" description={propRaw.address} />
 
-      <Link
-        href="/tenant/maintenance"
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft size={16} />
-        Back to work orders
-      </Link>
+      <BackButton fallback="/tenant/maintenance" label="Back to work orders" />
 
       {items.length === 0 ? (
         <Card>

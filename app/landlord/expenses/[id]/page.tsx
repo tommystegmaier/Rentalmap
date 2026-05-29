@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { ChevronLeft } from 'lucide-react';
+import { BackButton } from '@/components/back-button';
 import { EditExpenseForm } from './form';
 
 export default async function EditExpensePage({
@@ -37,13 +38,7 @@ export default async function EditExpensePage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/landlord/expenses"
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft size={16} />
-        Expenses
-      </Link>
+      <BackButton fallback="/landlord/expenses" label="Expenses" />
       <PageHeader title="Edit expense" />
       <EditExpenseForm
         expense={expense}
