@@ -16,11 +16,14 @@ import { createMortgageExpenses } from './actions';
 
 interface Props {
   properties: { id: string; address: string }[];
+  initialPropertyId?: string;
 }
 
-export function MortgageForm({ properties }: Props) {
+export function MortgageForm({ properties, initialPropertyId }: Props) {
   const router = useRouter();
-  const [propertyId, setPropertyId] = useState(properties[0]?.id ?? '');
+  const [propertyId, setPropertyId] = useState(
+    initialPropertyId ?? properties[0]?.id ?? '',
+  );
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [lender, setLender] = useState('');
   const [interest, setInterest] = useState('');

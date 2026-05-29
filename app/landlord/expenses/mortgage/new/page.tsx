@@ -4,7 +4,11 @@ import { PageHeader } from '@/components/page-header';
 import { ChevronLeft } from 'lucide-react';
 import { MortgageForm } from './form';
 
-export default async function NewMortgagePaymentPage() {
+export default async function NewMortgagePaymentPage({
+  searchParams,
+}: {
+  searchParams: { property_id?: string };
+}) {
   const supabase = createClient();
   const {
     data: { user },
@@ -28,7 +32,10 @@ export default async function NewMortgagePaymentPage() {
         title="Mortgage payment"
         description="Record interest, principal, taxes & insurance from your statement"
       />
-      <MortgageForm properties={(properties ?? []) as { id: string; address: string }[]} />
+      <MortgageForm
+        properties={(properties ?? []) as { id: string; address: string }[]}
+        initialPropertyId={searchParams.property_id}
+      />
     </div>
   );
 }

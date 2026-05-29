@@ -7,6 +7,7 @@ export interface ParsedReceipt {
   date: string | null;
   category: ExpenseCategory;
   description: string;
+  isMortgageStatement: boolean;
 }
 
 const SYSTEM_PROMPT = `You parse receipt photos for a landlord doing rental-property accounting. The
@@ -30,7 +31,13 @@ category from this list:
 - Other — anything that doesn't fit clearly
 
 If a receipt is for both supplies AND a repair (e.g. parts at Home Depot), pick
-the dominant intent: lumber/tools → Supplies; a hired technician's bill → Repairs.`;
+the dominant intent: lumber/tools → Supplies; a hired technician's bill → Repairs.
+
+IMPORTANT: If the document is a mortgage statement or mortgage payment coupon
+(it shows a payment broken into principal + interest, and often escrow for
+taxes/insurance), set is_mortgage_statement to true. In that case the "amount"
+you report is the TOTAL payment — it should be split separately — so do not try
+to force it all into one category.`;
 
 let _client: Anthropic | null = null;
 function getClient(): Anthropic {
@@ -203,6 +210,11 @@ export async function scanReceipt(
               description:
                 'Brief one-sentence summary of what was purchased or serviced.',
             },
+            is_mortgage_statement: {
+              type: 'boolean',
+              description:
+                'True if this document is a mortgage statement / payment coupon (principal + interest, often escrow). False for ordinary receipts.',
+            },
           },
           required: ['amount', 'vendor', 'category', 'description'],
         },
@@ -254,5 +266,7 @@ export async function scanReceipt(
     date: raw.date ?? null,
     category,
     description: (raw.description ?? '').trim(),
+    isMortgageStatement:
+      (raw as { is_mortgage_statement?: boolean }).is_mortgage_statement === true,
   };
 }

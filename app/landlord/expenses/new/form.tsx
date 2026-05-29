@@ -1,8 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Landmark } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,7 +37,12 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [isMortgage, setIsMortgage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const mortgageHref = `/landlord/expenses/mortgage/new${
+    propertyId ? `?property_id=${propertyId}` : ''
+  }`;
 
   async function handleScan() {
     if (!receipt) {
@@ -46,6 +52,7 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
     setScanning(true);
     setError(null);
     setScanMessage(null);
+    setIsMortgage(false);
     try {
       // Resize before sending — iPhone photos are way bigger than the OCR
       // needs and routinely exceed Anthropic's 5MB API limit.
@@ -82,6 +89,7 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
           prev ? `${prev}\n${json.description.trim()}` : json.description.trim(),
         );
       }
+      setIsMortgage(json.isMortgageStatement === true);
       setScanMessage(
         'Fields filled in from the photo. Review and tweak anything that looks off before saving.',
       );
@@ -151,6 +159,17 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <Link
+        href={mortgageHref}
+        className="flex items-center gap-2 rounded-lg border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground transition hover:bg-muted/40"
+      >
+        <Landmark size={14} className="shrink-0" />
+        <span>
+          Paying a mortgage? <span className="font-medium text-foreground">Log it as a mortgage payment</span>{' '}
+          to split interest, principal, taxes &amp; insurance.
+        </span>
+      </Link>
+
       <div className="space-y-2">
         <Label htmlFor="receipt">Receipt photo (optional)</Label>
         <Input
@@ -160,6 +179,7 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
           onChange={(e) => {
             setReceipt(e.target.files?.[0] ?? null);
             setScanMessage(null);
+            setIsMortgage(false);
             setError(null);
           }}
         />
@@ -179,7 +199,23 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
             {scanning ? 'Reading receipt…' : 'Scan receipt'}
           </Button>
         ) : null}
-        {scanMessage ? (
+        {isMortgage ? (
+          <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200">
+            <p className="font-medium">This looks like a mortgage statement.</p>
+            <p>
+              The amount above is your <strong>total payment</strong> — recording it as one
+              expense would overstate your interest deduction. Use the mortgage tool to split it
+              into interest, principal, taxes &amp; insurance.
+            </p>
+            <Link
+              href={mortgageHref}
+              className="inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-3 py-1.5 font-medium text-white hover:bg-amber-700"
+            >
+              <Landmark size={13} />
+              Log as a mortgage payment
+            </Link>
+          </div>
+        ) : scanMessage ? (
           <p className="rounded-lg border border-success/30 bg-success/5 p-2 text-xs text-success">
             {scanMessage}
           </p>
