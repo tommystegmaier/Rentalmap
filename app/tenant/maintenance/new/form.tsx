@@ -14,6 +14,7 @@ import {
   type WorkOrderRequestType,
 } from '@/lib/constants';
 import { saveWorkOrderPhotos } from './actions';
+import { StagedPhotoGrid } from '@/components/staged-photo-grid';
 
 interface WorkOrderFormProps {
   leaseId: string;
@@ -33,8 +34,14 @@ export function WorkOrderForm({ leaseId, propertyId }: WorkOrderFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []).slice(0, 5);
-    setPhotos(files);
+    const incoming = Array.from(e.target.files ?? []);
+    setPhotos((prev) => [...prev, ...incoming].slice(0, 5));
+    // Reset so picking the same file again still fires onChange.
+    e.target.value = '';
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -173,9 +180,12 @@ export function WorkOrderForm({ leaseId, propertyId }: WorkOrderFormProps) {
           onChange={handleFiles}
         />
         {photos.length > 0 ? (
-          <p className="text-xs text-muted-foreground">
-            {photos.length} photo{photos.length === 1 ? '' : 's'} selected
-          </p>
+          <>
+            <p className="text-xs text-muted-foreground">
+              {photos.length} photo{photos.length === 1 ? '' : 's'} selected · tap ✕ to remove
+            </p>
+            <StagedPhotoGrid photos={photos} onRemove={removePhoto} />
+          </>
         ) : null}
       </div>
 

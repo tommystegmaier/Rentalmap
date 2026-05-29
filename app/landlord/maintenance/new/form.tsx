@@ -14,6 +14,7 @@ import {
   type WorkOrderRequestType,
 } from '@/lib/constants';
 import { parseDollarsToCents } from '@/lib/utils';
+import { StagedPhotoGrid } from '@/components/staged-photo-grid';
 
 interface Props {
   properties: { id: string; address: string; active_lease_id: string | null }[];
@@ -40,8 +41,14 @@ export function LandlordWorkOrderForm({ properties }: Props) {
   const selectedProperty = properties.find((p) => p.id === propertyId);
 
   function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []).slice(0, 5);
-    setPhotos(files);
+    const incoming = Array.from(e.target.files ?? []);
+    setPhotos((prev) => [...prev, ...incoming].slice(0, 5));
+    // Reset so picking the same file again still fires onChange.
+    e.target.value = '';
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -229,9 +236,12 @@ export function LandlordWorkOrderForm({ properties }: Props) {
           onChange={handleFiles}
         />
         {photos.length > 0 ? (
-          <p className="text-xs text-muted-foreground">
-            {photos.length} photo{photos.length === 1 ? '' : 's'} selected
-          </p>
+          <>
+            <p className="text-xs text-muted-foreground">
+              {photos.length} photo{photos.length === 1 ? '' : 's'} selected · tap ✕ to remove
+            </p>
+            <StagedPhotoGrid photos={photos} onRemove={removePhoto} />
+          </>
         ) : null}
       </div>
 
