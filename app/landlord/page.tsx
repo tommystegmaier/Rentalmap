@@ -8,7 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { StripeSetupBanner } from '@/components/stripe-setup-banner';
 import { formatCents } from '@/lib/utils';
 import { differenceInDays, parseISO } from 'date-fns';
-import { Wrench, ReceiptText, Send, MessageSquare, Home as HomeIcon, Car } from 'lucide-react';
+import { Wrench, ReceiptText, Send, MessageSquare, Home as HomeIcon, Car, Calculator } from 'lucide-react';
 
 export default async function LandlordDashboard() {
   const supabase = createClient();
@@ -97,6 +97,7 @@ export default async function LandlordDashboard() {
           badge={unreadMessages ?? 0}
         />
         <QuickAction href="/landlord/invite" icon={<Send size={20} />} label="Invite tenant" />
+        <QuickAction href="/landlord/tax" icon={<Calculator size={20} />} label="Tax Center" />
       </div>
 
       <section className="space-y-3">
