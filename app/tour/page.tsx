@@ -26,7 +26,7 @@ import {
 export const metadata: Metadata = {
   title: 'Run your rentals like a pro',
   description:
-    'It Rents is rental property management built for small landlords (1–20 units). Collect rent, stay tax-ready, and keep every lease, inspection, and receipt in one place.',
+    'It Rents is rental property management built for small landlords. Collect rent, stay tax-ready, and keep every lease, inspection, and receipt in one place.',
 };
 
 export default function TourPage() {
