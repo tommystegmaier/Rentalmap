@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { StripeRentSection } from '@/components/stripe-rent-section';
 import { VenmoClaimsList, type VenmoClaim } from '@/components/venmo-claims-list';
 import { DeletePaymentButton } from '@/components/delete-payment-button';
+import { PaymentHandles } from '@/app/landlord/settings/payment-handles';
 import { formatCents, one } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Wallet } from 'lucide-react';
@@ -25,7 +26,11 @@ export default async function RentPage() {
   const monthEnd = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
   const monthLabel = format(now, 'MMMM yyyy');
 
-  const [{ data: payments }, { data: rawClaims }, { data: rawLeases }] = await Promise.all([
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [{ data: payments }, { data: rawClaims }, { data: rawLeases }, { data: handles }] = await Promise.all([
     supabase
       .from('rent_payments')
       .select('*, leases:lease_id(properties:property_id(address))')
@@ -45,6 +50,13 @@ export default async function RentPage() {
       )
       .eq('status', 'active')
       .order('created_at'),
+    user
+      ? supabase
+          .from('users')
+          .select('venmo_handle, cashapp_cashtag, zelle_handle')
+          .eq('id', user.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const activeLeases = (rawLeases ?? []) as {
@@ -153,6 +165,20 @@ export default async function RentPage() {
           })}
         </div>
       ) : null}
+
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <p className="text-sm font-medium">P2P payment handles</p>
+          <p className="text-xs text-muted-foreground">
+            Set your Venmo, Cash App, and Zelle usernames so tenants can send you rent directly.
+          </p>
+          <PaymentHandles
+            initialVenmo={handles?.venmo_handle ?? ''}
+            initialCashapp={handles?.cashapp_cashtag ?? ''}
+            initialZelle={handles?.zelle_handle ?? ''}
+          />
+        </CardContent>
+      </Card>
 
       {pendingClaims.length > 0 ? (
         <div className="space-y-2">
