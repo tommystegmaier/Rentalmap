@@ -8,13 +8,23 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { StripeRentSection } from '@/components/stripe-rent-section';
 import { VenmoClaimsList, type VenmoClaim } from '@/components/venmo-claims-list';
 import { DeletePaymentButton } from '@/components/delete-payment-button';
-import { formatCents } from '@/lib/utils';
+import { formatCents, one } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Wallet } from 'lucide-react';
 
 export default async function RentPage() {
   const supabase = createClient();
-  const [{ data: payments }, { data: rawClaims }] = await Promise.all([
+
+  // Compute current month date range
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const monthEnd = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  const monthLabel = format(now, 'MMMM yyyy');
+
+  const [{ data: payments }, { data: rawClaims }, { data: rawLeases }] = await Promise.all([
     supabase
       .from('rent_payments')
       .select('*, leases:lease_id(properties:property_id(address))')
@@ -27,7 +37,42 @@ export default async function RentPage() {
       )
       .eq('status', 'pending')
       .order('submitted_at', { ascending: false }),
+    supabase
+      .from('leases')
+      .select(
+        'id, monthly_rent_cents, due_day, property_id, properties:property_id(address), lease_tenants(users:user_id(name))',
+      )
+      .eq('status', 'active')
+      .order('created_at'),
   ]);
+
+  const activeLeases = (rawLeases ?? []) as {
+    id: string;
+    monthly_rent_cents: number;
+    due_day: number;
+    property_id: string;
+    properties: { address: string } | { address: string }[] | null;
+    lease_tenants: { users: { name: string | null } | { name: string | null }[] | null }[] | null;
+  }[];
+
+  // Fetch this month's payments for active leases
+  let paidLeaseIds = new Set<string>();
+  if (activeLeases.length > 0) {
+    const { data: thisMonthPayments } = await supabase
+      .from('rent_payments')
+      .select('lease_id, status')
+      .in('lease_id', activeLeases.map((l) => l.id))
+      .gte('expected_date', monthStart)
+      .lte('expected_date', monthEnd);
+
+    paidLeaseIds = new Set(
+      (thisMonthPayments ?? [])
+        .filter((p) => p.status === 'settled' || p.status === 'manual')
+        .map((p) => p.lease_id),
+    );
+  }
+
+  const paidCount = activeLeases.filter((l) => paidLeaseIds.has(l.id)).length;
 
   const pendingClaims: VenmoClaim[] = (rawClaims ?? []).map((c: {
     id: string;
@@ -67,6 +112,45 @@ export default async function RentPage() {
 
       <StripeRentSection />
 
+      {/* This-month rent status summary */}
+      {activeLeases.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-sm font-medium">
+            {monthLabel} · {paidCount} of {activeLeases.length} paid
+          </p>
+          {activeLeases.map((lease) => {
+            const addr = one(lease.properties)?.address ?? '—';
+            const firstTenant = lease.lease_tenants?.[0];
+            const tenantName = firstTenant
+              ? one(firstTenant.users)?.name ?? null
+              : null;
+            const paid = paidLeaseIds.has(lease.id);
+            return (
+              <Card key={lease.id}>
+                <CardContent className="flex items-center justify-between gap-2 p-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{addr}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {tenantName ?? 'No tenant'} · {formatCents(lease.monthly_rent_cents)}/mo
+                      {lease.due_day ? ` · due day ${lease.due_day}` : ''}
+                    </p>
+                  </div>
+                  <Badge
+                    className={
+                      paid
+                        ? 'shrink-0 border-transparent bg-success/10 text-success'
+                        : 'shrink-0 border-transparent bg-muted text-muted-foreground'
+                    }
+                  >
+                    {paid ? 'Paid' : 'Unpaid'}
+                  </Badge>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : null}
+
       {pendingClaims.length > 0 ? (
         <div className="space-y-2">
           <p className="text-sm font-medium">Pending Venmo claims</p>
@@ -76,6 +160,7 @@ export default async function RentPage() {
 
       {payments && payments.length > 0 ? (
         <div className="space-y-2">
+          <p className="text-sm font-medium">Payment history</p>
           {payments.map((p: {
             id: string;
             amount_cents: number;

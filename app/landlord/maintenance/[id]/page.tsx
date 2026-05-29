@@ -1,15 +1,18 @@
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
+import { ChevronLeft } from 'lucide-react';
 import { one } from '@/lib/utils';
 import { updateWorkOrder } from './actions';
 import { MarkNotificationRead } from '@/components/mark-notification-read';
 import { DeleteWorkOrderButton } from '@/components/delete-work-order-button';
+import { SuccessToast } from '@/components/success-toast';
 
 interface WorkOrderDetailRow {
   id: string;
@@ -33,7 +36,13 @@ interface WorkOrderDetailRow {
     | null;
 }
 
-export default async function WorkOrderDetail({ params }: { params: { id: string } }) {
+export default async function WorkOrderDetail({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { saved?: string };
+}) {
   const supabase = createClient();
   const { data } = await supabase
     .from('work_orders')
@@ -53,6 +62,18 @@ export default async function WorkOrderDetail({ params }: { params: { id: string
     .eq('id', params.id)
     .is('landlord_viewed_at', null);
 
+  // Generate signed URLs for photos (bucket is private)
+  const admin = createServiceRoleClient();
+  const photoSignedUrls: string[] = [];
+  if (wo.photo_urls?.length) {
+    for (const path of wo.photo_urls) {
+      const { data: signed } = await admin.storage
+        .from('work-order-photos')
+        .createSignedUrl(path, 3600);
+      if (signed?.signedUrl) photoSignedUrls.push(signed.signedUrl);
+    }
+  }
+
   const urg = URGENCY_LABELS[wo.urgency];
   const submitter = one(wo.submitter);
   const propAddr = one(wo.properties)?.address;
@@ -60,12 +81,22 @@ export default async function WorkOrderDetail({ params }: { params: { id: string
   async function action(formData: FormData) {
     'use server';
     await updateWorkOrder(params.id, formData);
-    redirect('/landlord/maintenance');
+    redirect(`/landlord/maintenance/${params.id}?saved=1`);
   }
 
   return (
     <div className="space-y-6">
       <MarkNotificationRead workOrderId={params.id} />
+      <SuccessToast show={searchParams.saved === '1'} message="Work order updated" />
+
+      <Link
+        href="/landlord/maintenance"
+        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ChevronLeft size={16} />
+        Work orders
+      </Link>
+
       <PageHeader title={wo.request_type} description={propAddr ?? undefined} />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -112,16 +143,17 @@ export default async function WorkOrderDetail({ params }: { params: { id: string
         </CardHeader>
         <CardContent className="text-sm">
           <p className="whitespace-pre-wrap">{wo.description}</p>
-          {wo.photo_urls?.length ? (
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {wo.photo_urls.map((p: string) => (
-                <div
-                  key={p}
-                  className="aspect-square rounded-lg border bg-muted text-center text-xs text-muted-foreground"
-                  title={p}
-                >
-                  <span className="block p-2">photo</span>
-                </div>
+          {photoSignedUrls.length > 0 ? (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {photoSignedUrls.map((url, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={i}
+                  src={url}
+                  alt={`Work order photo ${i + 1}`}
+                  className="aspect-square w-full rounded-lg border object-cover"
+                  loading="lazy"
+                />
               ))}
             </div>
           ) : null}

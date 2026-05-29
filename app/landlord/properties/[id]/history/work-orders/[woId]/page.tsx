@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +48,18 @@ export default async function HistoryWorkOrderView({
 
   if (!data) notFound();
   const wo = data as WorkOrderRow;
+
+  // Generate signed URLs for photos (bucket is private)
+  const admin = createServiceRoleClient();
+  const photoSignedUrls: string[] = [];
+  if (wo.photo_urls?.length) {
+    for (const path of wo.photo_urls) {
+      const { data: signed } = await admin.storage
+        .from('work-order-photos')
+        .createSignedUrl(path, 3600);
+      if (signed?.signedUrl) photoSignedUrls.push(signed.signedUrl);
+    }
+  }
 
   const urg = URGENCY_LABELS[wo.urgency];
   const submitter = one(wo.submitter);
@@ -107,16 +119,17 @@ export default async function HistoryWorkOrderView({
         </CardHeader>
         <CardContent className="text-sm">
           <p className="whitespace-pre-wrap">{wo.description}</p>
-          {wo.photo_urls?.length ? (
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {wo.photo_urls.map((p: string) => (
-                <div
-                  key={p}
-                  className="aspect-square rounded-lg border bg-muted text-center text-xs text-muted-foreground"
-                  title={p}
-                >
-                  <span className="block p-2">photo</span>
-                </div>
+          {photoSignedUrls.length > 0 ? (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {photoSignedUrls.map((url, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={i}
+                  src={url}
+                  alt={`Work order photo ${i + 1}`}
+                  className="aspect-square w-full rounded-lg border object-cover"
+                  loading="lazy"
+                />
               ))}
             </div>
           ) : null}

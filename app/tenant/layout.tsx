@@ -5,6 +5,7 @@ import { Logo } from '@/components/logo';
 import { InstallPrompt } from '@/components/install-prompt';
 import { AppBadgeSync } from '@/components/app-badge-sync';
 import { Home, Wallet, Wrench, MessageSquare, MoreHorizontal } from 'lucide-react';
+import { Toaster } from 'sonner';
 
 export default async function TenantLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -49,6 +50,7 @@ export default async function TenantLayout({ children }: { children: React.React
       <div className="p-4">{children}</div>
       <TabBar items={tabs} />
       <InstallPrompt />
+      <Toaster richColors position="top-center" />
     </div>
   );
 }

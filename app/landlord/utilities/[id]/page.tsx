@@ -1,6 +1,8 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
+import { ChevronLeft } from 'lucide-react';
 import { EditUtilityBillForm } from './form';
 
 export default async function EditUtilityBillPage({
@@ -29,6 +31,13 @@ export default async function EditUtilityBillPage({
 
   return (
     <div className="space-y-6">
+      <Link
+        href="/landlord/utilities"
+        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ChevronLeft size={16} />
+        Utilities
+      </Link>
       <PageHeader title="Edit utility bill" />
       <EditUtilityBillForm
         bill={bill}

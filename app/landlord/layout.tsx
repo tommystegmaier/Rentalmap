@@ -5,6 +5,7 @@ import { Logo } from '@/components/logo';
 import { HeaderBell } from '@/components/header-bell';
 import { AppBadgeSync } from '@/components/app-badge-sync';
 import { Home, Building2, Wallet, Wrench, MoreHorizontal } from 'lucide-react';
+import { Toaster } from 'sonner';
 
 export default async function LandlordLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -86,6 +87,7 @@ export default async function LandlordLayout({ children }: { children: React.Rea
       <AppBadgeSync count={(unreadNotifications ?? 0) + (unreadMessages ?? 0)} />
       <div className="p-4">{children}</div>
       <TabBar items={tabs} />
+      <Toaster richColors position="top-center" />
     </div>
   );
 }

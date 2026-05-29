@@ -1,10 +1,12 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
+import { ChevronLeft } from 'lucide-react';
 
 export default async function TenantWorkOrderDetail({
   params,
@@ -20,10 +22,30 @@ export default async function TenantWorkOrderDetail({
 
   if (!wo) notFound();
 
+  // Generate signed URLs for photos the tenant submitted (bucket is private)
+  const admin = createServiceRoleClient();
+  const photoSignedUrls: string[] = [];
+  if (wo.photo_urls?.length) {
+    for (const path of wo.photo_urls as string[]) {
+      const { data: signed } = await admin.storage
+        .from('work-order-photos')
+        .createSignedUrl(path, 3600);
+      if (signed?.signedUrl) photoSignedUrls.push(signed.signedUrl);
+    }
+  }
+
   const urg = URGENCY_LABELS[wo.urgency as Urgency];
 
   return (
     <div className="space-y-6">
+      <Link
+        href="/tenant/maintenance"
+        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ChevronLeft size={16} />
+        Work orders
+      </Link>
+
       <PageHeader title={wo.request_type} />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -52,6 +74,20 @@ export default async function TenantWorkOrderDetail({
         </CardHeader>
         <CardContent className="text-sm">
           <p className="whitespace-pre-wrap">{wo.description}</p>
+          {photoSignedUrls.length > 0 ? (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {photoSignedUrls.map((url, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={i}
+                  src={url}
+                  alt={`Photo ${i + 1}`}
+                  className="aspect-square w-full rounded-lg border object-cover"
+                  loading="lazy"
+                />
+              ))}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

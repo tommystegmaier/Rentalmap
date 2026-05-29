@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -90,6 +91,8 @@ export function EditUtilityBillForm({ bill, properties }: EditUtilityBillFormPro
         paid_date: paidDate || null,
         notes: notes || null,
       });
+      toast.success('Utility bill saved');
+      setBusy(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
       setBusy(false);

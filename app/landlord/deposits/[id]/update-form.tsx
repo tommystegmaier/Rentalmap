@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -113,6 +114,7 @@ export function UpdateDepositForm({
 
       await updateDeposit(depositId, fd);
       setSaved(true);
+      toast.success('Deposit updated');
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save');
