@@ -11,7 +11,15 @@ export interface MortgageExpenseInput {
   principalCents: number;
   taxesCents: number;
   insuranceCents: number;
+  comment: string;
   receiptPath: string | null;
+}
+
+// Append the landlord's comment (e.g. explaining why a deductible amount
+// differs from the statement total) to a line's default note.
+function withComment(base: string, comment: string): string {
+  const c = comment.trim();
+  return c ? `${base} — ${c}` : base;
 }
 
 // Records a mortgage payment as separate Schedule E expense lines: interest,
@@ -42,7 +50,7 @@ export async function createMortgageExpenses(input: MortgageExpenseInput) {
       amount_cents: input.interestCents,
       category: 'Mortgage Interest',
       tax_deductible: true,
-      notes: 'Mortgage interest',
+      notes: withComment('Mortgage interest', input.comment),
     });
   }
   if (input.taxesCents > 0) {
@@ -51,7 +59,7 @@ export async function createMortgageExpenses(input: MortgageExpenseInput) {
       amount_cents: input.taxesCents,
       category: 'Taxes',
       tax_deductible: true,
-      notes: 'Property taxes (escrow)',
+      notes: withComment('Property taxes (escrow)', input.comment),
     });
   }
   if (input.insuranceCents > 0) {
@@ -60,7 +68,7 @@ export async function createMortgageExpenses(input: MortgageExpenseInput) {
       amount_cents: input.insuranceCents,
       category: 'Insurance',
       tax_deductible: true,
-      notes: 'Insurance (escrow)',
+      notes: withComment('Insurance (escrow)', input.comment),
     });
   }
   if (input.principalCents > 0) {
@@ -69,7 +77,7 @@ export async function createMortgageExpenses(input: MortgageExpenseInput) {
       amount_cents: input.principalCents,
       category: 'Other',
       tax_deductible: false,
-      notes: 'Mortgage principal (non-deductible)',
+      notes: withComment('Mortgage principal (non-deductible)', input.comment),
     });
   }
 

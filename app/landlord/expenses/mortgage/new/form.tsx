@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { parseDollarsToCents } from '@/lib/utils';
 import { prepareScanUpload } from '@/lib/scan-upload';
 import { receiptToPdf } from '@/lib/receipt-pdf';
@@ -30,6 +31,7 @@ export function MortgageForm({ properties, initialPropertyId }: Props) {
   const [principal, setPrincipal] = useState('');
   const [taxes, setTaxes] = useState('');
   const [insurance, setInsurance] = useState('');
+  const [comment, setComment] = useState('');
   const [statement, setStatement] = useState<File | null>(null);
   const [scanning, setScanning] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -106,6 +108,7 @@ export function MortgageForm({ properties, initialPropertyId }: Props) {
         principalCents,
         taxesCents,
         insuranceCents,
+        comment,
         receiptPath,
       });
 
@@ -201,6 +204,21 @@ export function MortgageForm({ properties, initialPropertyId }: Props) {
         <p className="text-xs text-muted-foreground">
           Each non-zero amount becomes its own expense line. Principal is logged but excluded
           from your deductible total.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="comment">Comment (optional)</Label>
+        <Textarea
+          id="comment"
+          rows={3}
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="e.g. Property added to service mid-year, so the deductible interest is prorated and differs from the statement total."
+        />
+        <p className="text-xs text-muted-foreground">
+          Added to each line&apos;s notes — handy for explaining why a deductible amount differs
+          from the statement.
         </p>
       </div>
 
