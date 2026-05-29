@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, MapPin } from 'lucide-react';
+import { Sparkles, MapPin, Search } from 'lucide-react';
 import { parseDollarsToCents, formatCents } from '@/lib/utils';
 import { prepareScanUpload } from '@/lib/scan-upload';
 import { buildDepreciationSchedule } from '@/lib/depreciation';
@@ -39,8 +39,11 @@ export function DepreciationForm({ propertyId, initial }: Props) {
 
   const [file, setFile] = useState<File | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [looking, setLooking] = useState(false);
+  const [lookupNote, setLookupNote] = useState<string | null>(null);
   const [landBusy, setLandBusy] = useState(false);
   const [landNote, setLandNote] = useState<string | null>(null);
+  const [landRatio, setLandRatio] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
 
   const recoveryYears = kind === 'commercial' ? 39 : 27.5;
@@ -75,34 +78,91 @@ export function DepreciationForm({ propertyId, initial }: Props) {
     }
   }
 
-  async function findLandValue() {
-    if (!priceCents) {
-      toast.error('Enter the purchase price first.');
-      return;
-    }
-    setLandBusy(true);
-    setLandNote(null);
+  async function lookupProperty() {
+    setLooking(true);
+    setLookupNote(null);
     try {
-      const res = await fetch('/api/depreciation/land-value', {
+      const res = await fetch('/api/depreciation/property-lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ property_id: propertyId }),
       });
       const json = await res.json();
       if (!res.ok) {
-        if (json.unconfigured) toast.error('Add RENTCAST_API_KEY to enable automatic land lookup.');
+        if (json.unconfigured) toast.error('Add RENTCAST_API_KEY to enable address lookup.');
         else toast.error(json.error ?? 'Lookup failed');
         return;
       }
-      if (!json.available || !json.landRatio) {
+      if (!json.found) {
+        toast.info('No public record found for this address — scan a document or enter it manually.');
+        return;
+      }
+
+      const parts: string[] = [];
+      let newPriceCents = priceCents;
+      if (json.lastSalePriceCents) {
+        newPriceCents = json.lastSalePriceCents;
+        setPurchasePrice((json.lastSalePriceCents / 100).toFixed(2));
+        parts.push(`last sold for ${formatCents(json.lastSalePriceCents)}`);
+      }
+      if (json.lastSaleDate) {
+        setPlacedInService(json.lastSaleDate);
+        parts.push(`on ${json.lastSaleDate}`);
+      }
+      if (typeof json.landRatio === 'number') {
+        setLandRatio(json.landRatio);
+        if (newPriceCents) {
+          const land = Math.round(newPriceCents * json.landRatio);
+          setLandValue((land / 100).toFixed(2));
+          parts.push(`land ≈ ${(json.landRatio * 100).toFixed(1)}% per ${json.assessedYear} assessment`);
+        }
+      }
+      setLookupNote(
+        parts.length
+          ? `Public records: ${parts.join(' · ')}. Review and edit before saving.`
+          : 'Found the property but no sale price on record — scan a document or enter it manually.',
+      );
+      toast.success('Filled from public records.');
+    } catch {
+      toast.error('Lookup failed');
+    } finally {
+      setLooking(false);
+    }
+  }
+
+  async function findLandValue() {
+    if (!priceCents) {
+      toast.error('Enter the purchase price first.');
+      return;
+    }
+    // Reuse the ratio from a prior lookup if we have it; otherwise fetch it.
+    let ratio = landRatio;
+    setLandBusy(true);
+    setLandNote(null);
+    try {
+      if (ratio == null) {
+        const res = await fetch('/api/depreciation/property-lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ property_id: propertyId }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          if (json.unconfigured) toast.error('Add RENTCAST_API_KEY to enable automatic land lookup.');
+          else toast.error(json.error ?? 'Lookup failed');
+          return;
+        }
+        ratio = typeof json.landRatio === 'number' ? json.landRatio : null;
+        if (ratio != null) setLandRatio(ratio);
+      }
+      if (ratio == null) {
         toast.info('No county land assessment found — enter the land value manually.');
         return;
       }
-      const land = Math.round(priceCents * json.landRatio);
+      const land = Math.round(priceCents * ratio);
       setLandValue((land / 100).toFixed(2));
-      const pct = (json.landRatio * 100).toFixed(1);
       setLandNote(
-        `Using the ${json.assessedYear} county assessment: land is ${pct}% of value, applied to your purchase price.`,
+        `Land is ${(ratio * 100).toFixed(1)}% of assessed value, applied to your purchase price.`,
       );
       toast.success('Land value estimated from county assessment.');
     } catch {
@@ -138,15 +198,33 @@ export function DepreciationForm({ propertyId, initial }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* Scan */}
-      <Card>
+      {/* Address lookup (primary) */}
+      <Card className="border-primary/30">
         <CardHeader>
-          <CardTitle className="text-base">Scan a closing statement</CardTitle>
+          <CardTitle className="text-base">Look up from the address</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            Upload the settlement statement, closing disclosure, or purchase agreement and AI will
-            pull the purchase price and closing date.
+            Pull the last sale price, sale date, and county land allocation straight from public
+            records — no document needed.
+          </p>
+          <Button type="button" onClick={lookupProperty} disabled={looking} className="w-full">
+            <Search size={14} />
+            {looking ? 'Looking up…' : 'Find last sale from public records'}
+          </Button>
+          {lookupNote ? <p className="text-xs text-muted-foreground">{lookupNote}</p> : null}
+        </CardContent>
+      </Card>
+
+      {/* Scan (alternative) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Or scan a closing statement</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Prefer the document? Upload the settlement statement, closing disclosure, or purchase
+            agreement and AI will pull the purchase price and closing date.
           </p>
           <Input
             type="file"
