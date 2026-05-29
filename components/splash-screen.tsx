@@ -48,6 +48,7 @@ export function SplashScreen() {
       <div className="flex flex-col items-center gap-4 px-8 text-center">
         <div
           style={{
+            opacity: 0,
             animation: 'splash-logo-in 1.1s cubic-bezier(0.34, 1.4, 0.64, 1) forwards',
           }}
         >
