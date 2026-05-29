@@ -30,6 +30,7 @@ export function tripDeductionCents(miles: number, rateCents: number): number {
 export const MILEAGE_PURPOSES = [
   'Inspection',
   'Repair / maintenance',
+  'Lawn care / landscaping',
   'Showing',
   'Tenant meeting',
   'Supply / hardware run',
