@@ -85,9 +85,13 @@ export async function computeTaxReportData(
         .gte('date', start)
         .lte('date', end)
         .in('property_id', propIds),
+      // Only fetch legacy trips that predate the expense-link feature.
+      // Trips saved after migration 0035 create their own expense row, so
+      // they reach the tax report via the expenses query above — not here.
       client
         .from('mileage_trips')
         .select('property_id, trip_date, miles, rate_cents, purpose')
+        .is('expense_id', null)
         .gte('trip_date', start)
         .lte('trip_date', end)
         .in('property_id', propIds),
