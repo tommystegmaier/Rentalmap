@@ -198,10 +198,11 @@ export default function TourPage() {
                 </ul>
               </div>
               <div className="flex justify-center">
-                {/* Phone is drawn at a fixed size — scale it down on mobile so it
-                    fits beside the checklist, full size on sm+. */}
-                <div className="h-[286px] w-[140px] shrink-0 overflow-hidden sm:h-auto sm:w-auto sm:overflow-visible">
-                  <div className="origin-top-left scale-[0.56] sm:origin-center sm:scale-100">
+                {/* Phone renders at its natural 248px width inside the scale
+                    layer, then scales down as a whole on mobile so the screen
+                    keeps its real proportions; full size on sm+. */}
+                <div className="h-[320px] w-[158px] shrink-0 overflow-hidden sm:h-auto sm:w-[248px] sm:overflow-visible">
+                  <div className="w-[248px] origin-top-left scale-[0.62] sm:scale-100">
                     <PhoneFrame>
                       <PhoneTax />
                     </PhoneFrame>
