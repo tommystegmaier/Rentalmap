@@ -61,6 +61,24 @@ function normalizeMediaType(input: string): SupportedMediaType {
   return 'image/jpeg';
 }
 
+// Build the right content block for the upload: a PDF document block for PDFs,
+// otherwise an image block. Lets the scanners read PDF statements/receipts too.
+function fileSourceBlock(
+  data: string,
+  mediaType: string,
+): Anthropic.ImageBlockParam | Anthropic.DocumentBlockParam {
+  if (mediaType.toLowerCase() === 'application/pdf') {
+    return {
+      type: 'document',
+      source: { type: 'base64', media_type: 'application/pdf', data },
+    };
+  }
+  return {
+    type: 'image',
+    source: { type: 'base64', media_type: normalizeMediaType(mediaType), data },
+  };
+}
+
 export interface ParsedMortgageStatement {
   lender: string;
   date: string | null;
@@ -129,14 +147,7 @@ export async function scanMortgageStatement(
       {
         role: 'user',
         content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: normalizeMediaType(mediaType),
-              data: imageBase64,
-            },
-          },
+          fileSourceBlock(imageBase64, mediaType),
           {
             type: 'text',
             text: 'Extract the mortgage payment breakdown using the record_mortgage_statement tool.',
@@ -225,14 +236,7 @@ export async function scanReceipt(
       {
         role: 'user',
         content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: normalizeMediaType(mediaType),
-              data: imageBase64,
-            },
-          },
+          fileSourceBlock(imageBase64, mediaType),
           {
             type: 'text',
             text: 'Extract the receipt details using the record_receipt tool.',

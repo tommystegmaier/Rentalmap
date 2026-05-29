@@ -7,7 +7,7 @@ import { EXPENSE_CATEGORIES } from '@/lib/constants';
 import { computeTaxReportData } from '@/lib/tax-report-data';
 import { format, parseISO } from 'date-fns';
 import { FileText, Download } from 'lucide-react';
-import { TaxYearPicker, TaxScheduleSettings } from './controls';
+import { TaxYearPicker, TaxScheduleSettings, DeleteTaxReportButton } from './controls';
 
 export default async function TaxCenterPage({
   searchParams,
@@ -143,25 +143,28 @@ export default async function TaxCenterPage({
               generated_by: string;
               net_cents: number;
             }[]).map((r) => (
-              <a
+              <div
                 key={r.id}
-                href={`/api/tax-reports/${r.id}/download`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2 transition hover:bg-muted/30"
+                className="flex items-center gap-2 rounded-lg border px-3 py-2"
               >
-                <span className="flex items-center gap-2">
-                  <FileText size={16} className="text-muted-foreground" />
-                  <span>
+                <a
+                  href={`/api/tax-reports/${r.id}/download`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-w-0 flex-1 items-center gap-2 transition hover:opacity-80"
+                >
+                  <FileText size={16} className="shrink-0 text-muted-foreground" />
+                  <span className="min-w-0">
                     <span className="font-medium">{r.year} tax report</span>
                     <span className="block text-xs text-muted-foreground">
                       {format(parseISO(r.generated_at), 'MMM d, yyyy')} ·{' '}
                       {r.generated_by === 'scheduled' ? 'scheduled' : 'manual'}
                     </span>
                   </span>
-                </span>
-                <Download size={16} className="text-muted-foreground" />
-              </a>
+                  <Download size={16} className="ml-auto shrink-0 text-muted-foreground" />
+                </a>
+                <DeleteTaxReportButton id={r.id} />
+              </div>
             ))}
           </CardContent>
         </Card>

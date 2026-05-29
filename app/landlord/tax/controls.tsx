@@ -6,7 +6,37 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { saveTaxSchedule } from './actions';
+import { Trash2 } from 'lucide-react';
+import { saveTaxSchedule, deleteTaxReport } from './actions';
+
+export function DeleteTaxReportButton({ id }: { id: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      aria-label="Delete report"
+      onClick={async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!confirm('Delete this tax report? This cannot be undone.')) return;
+        setBusy(true);
+        try {
+          await deleteTaxReport(id);
+          toast.success('Report deleted');
+          router.refresh();
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to delete');
+          setBusy(false);
+        }
+      }}
+      className="shrink-0 rounded-md p-2 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+    >
+      <Trash2 size={15} />
+    </button>
+  );
+}
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',

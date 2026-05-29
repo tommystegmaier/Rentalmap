@@ -171,11 +171,11 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
       </Link>
 
       <div className="space-y-2">
-        <Label htmlFor="receipt">Receipt photo (optional)</Label>
+        <Label htmlFor="receipt">Receipt — photo or PDF (optional)</Label>
         <Input
           id="receipt"
           type="file"
-          accept="image/*"
+          accept="image/*,application/pdf"
           onChange={(e) => {
             setReceipt(e.target.files?.[0] ?? null);
             setScanMessage(null);

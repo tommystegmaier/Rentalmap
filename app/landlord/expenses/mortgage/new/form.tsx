@@ -131,7 +131,7 @@ export function MortgageForm({ properties, initialPropertyId }: Props) {
         <Input
           id="statement"
           type="file"
-          accept="image/*"
+          accept="image/*,application/pdf"
           onChange={(e) => {
             setStatement(e.target.files?.[0] ?? null);
             setScanMessage(null);

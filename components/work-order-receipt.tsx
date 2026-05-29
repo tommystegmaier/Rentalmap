@@ -138,7 +138,7 @@ export function WorkOrderReceipt({
         <Input
           id="wo-receipt"
           type="file"
-          accept="image/*"
+          accept="image/*,application/pdf"
           disabled={busy}
           onChange={(e) => {
             const f = e.target.files?.[0];

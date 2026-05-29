@@ -209,7 +209,7 @@ export function EditExpenseForm({
         <Input
           id="receipt"
           type="file"
-          accept="image/*"
+          accept="image/*,application/pdf"
           onChange={(e) => {
             setNewReceipt(e.target.files?.[0] ?? null);
             setScanMessage(null);
