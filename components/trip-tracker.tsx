@@ -8,7 +8,7 @@ type ActiveTrip = { lat: number; lng: number; startedAt: number };
 
 const TRIP_KEY = 'mileage_active_trip';
 
-// Haversine great-circle distance in miles, with a 1.25× road-tortuosity
+// Haversine great-circle distance in miles, with a 1.4× road-tortuosity
 // correction — converts crow-flies to a reasonable driving-distance estimate.
 // IRS documentation only requires "approximate" distance; this is within ~10%.
 function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -21,7 +21,7 @@ function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number):
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLon / 2) ** 2;
   const crow = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(crow * 1.25 * 10) / 10;
+  return Math.round(crow * 1.4 * 10) / 10;
 }
 
 function getGPS(): Promise<GeolocationPosition> {
