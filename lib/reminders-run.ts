@@ -120,6 +120,11 @@ export async function syncRemindersForLandlord(
 
   let seedCount = 0;
   for (const seed of [...landlordSeeds, ...applianceSeeds, ...tenantSeeds] as ReminderSeed[]) {
+    // Never touch a reminder whose trigger date is today or already past.
+    // Today's row is either being processed right now (don't recreate it and
+    // reset the sent_at guard) or was already sent earlier in the day.
+    if (seed.trigger_date <= today) continue;
+
     let del = admin
       .from('reminders')
       .delete()

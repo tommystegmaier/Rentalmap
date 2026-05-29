@@ -48,7 +48,8 @@ export async function GET(request: Request) {
       'id, user_id, message, type, appliance_id, appliances:appliance_id(appliance_type)',
     )
     .eq('dismissed', false)
-    .eq('trigger_date', today);
+    .eq('trigger_date', today)
+    .is('sent_at', null);
 
   type DueRow = {
     id: string;
@@ -138,6 +139,12 @@ export async function GET(request: Request) {
       });
       if (result.sent) pushed++;
     }
+
+    // Mark as sent so subsequent cron runs don't fire it again.
+    await supabase
+      .from('reminders')
+      .update({ sent_at: new Date().toISOString() })
+      .eq('id', r.id);
   }
 
   // ---- Auto-charge late fees ----
