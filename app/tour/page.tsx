@@ -108,6 +108,47 @@ export default function TourPage() {
           </div>
         </section>
 
+        {/* Spotlight: work orders & alerts */}
+        <section className="mt-24 rounded-3xl border bg-card p-8 sm:p-10">
+          <div className="grid items-center gap-10 sm:grid-cols-2">
+            <div>
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Wrench size={22} />
+              </span>
+              <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-primary">
+                Maintenance &amp; alerts
+              </p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight">
+                Never miss an emergency.
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                The moment a tenant reports a problem, you get an instant push notification —
+                with photos and an urgency level — so a burst pipe never sits unread in an
+                inbox. Track every request from open to closed and log the repair cost straight
+                to your expenses.
+              </p>
+              <ul className="mt-4 space-y-2.5 text-sm">
+                {[
+                  'Instant push the second something breaks',
+                  'Photos + urgency, from emergency to low',
+                  'Track open → in progress → closed',
+                  'Repair costs flow into expenses & taxes',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2.5">
+                    <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-success" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="flex justify-center">
+              <PhoneFrame>
+                <PhoneWorkOrder />
+              </PhoneFrame>
+            </div>
+          </div>
+        </section>
+
         {/* Three pillars */}
         <section id="features" className="mt-24 scroll-mt-8 space-y-16">
           <Pillar
@@ -555,5 +596,65 @@ function PhoneTenant() {
         or pay by Venmo · Cash App · Zelle
       </p>
     </div>
+  );
+}
+
+function PhoneWorkOrder() {
+  return (
+    <div className="space-y-3 text-left">
+      {/* Push notification */}
+      <div className="rounded-xl border bg-card p-2.5 shadow-sm">
+        <div className="flex items-center gap-1.5">
+          <Logo size={14} />
+          <span className="text-[9px] font-semibold">It Rents</span>
+          <span className="ml-auto text-[9px] text-muted-foreground">now</span>
+        </div>
+        <p className="mt-1 text-[11px] font-semibold">New maintenance request</p>
+        <p className="text-[10px] text-muted-foreground">
+          Water heater leaking — 412 Oak St
+        </p>
+      </div>
+
+      {/* Work order detail */}
+      <p className="text-sm font-semibold">Work order</p>
+      <div className="space-y-2 rounded-xl border bg-card p-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] font-medium">Water heater leaking</span>
+          <span className="rounded-full bg-destructive/10 px-1.5 py-0.5 text-[8px] font-semibold text-destructive">
+            Emergency
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-1">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="flex aspect-square items-center justify-center rounded-md bg-muted/60"
+            >
+              <ImagePlaceholder />
+            </div>
+          ))}
+        </div>
+        <div className="pt-0.5">
+          <FieldMini label="Property" value="412 Oak St" />
+          <FieldMini label="Reported by" value="Tenant" />
+          <FieldMini label="Status" value="In progress" />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1.5 rounded-lg bg-muted/50 px-2.5 py-2 text-[10px] text-muted-foreground">
+        <Bell size={11} className="text-primary" /> You were alerted instantly
+      </div>
+    </div>
+  );
+}
+
+function ImagePlaceholder() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" className="text-muted-foreground/50">
+      <path
+        fill="currentColor"
+        d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 12 4-5 3 4 3-3 4 4V6H5v10Z"
+      />
+    </svg>
   );
 }
