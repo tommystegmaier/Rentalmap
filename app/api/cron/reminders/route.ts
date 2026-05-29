@@ -4,7 +4,7 @@ import { syncRemindersForLandlord } from '@/lib/reminders-run';
 import { runScheduledTaxReports } from '@/lib/tax-report-run';
 import { sendPushToUser } from '@/lib/push';
 import { createNotification, type NotificationType } from '@/lib/notifications';
-import { addDays, getDaysInMonth, setDate, format, parseISO, subDays } from 'date-fns';
+import { addDays, addMonths, getDaysInMonth, setDate, format, parseISO, subDays } from 'date-fns';
 
 /**
  * Daily cron. Vercel triggers this via vercel.json. To prevent random hits,
@@ -383,6 +383,56 @@ export async function GET(request: Request) {
     maintenanceReminderCount++;
   }
 
+  // ---- Auto-post recurring expenses ----
+  const { data: dueRecurring } = await supabase
+    .from('recurring_expenses')
+    .select('id, property_id, amount_cents, category, vendor, notes, tax_deductible, frequency, day_of_month, next_due_date, properties:property_id(owner_id)')
+    .eq('active', true)
+    .lte('next_due_date', today);
+
+  let recurringCount = 0;
+  for (const rec of (dueRecurring ?? []) as {
+    id: string;
+    property_id: string;
+    amount_cents: number;
+    category: string;
+    vendor: string | null;
+    notes: string | null;
+    tax_deductible: boolean;
+    frequency: 'monthly' | 'quarterly' | 'annually';
+    day_of_month: number;
+    next_due_date: string;
+    properties: { owner_id: string } | { owner_id: string }[] | null;
+  }[]) {
+    const prop = Array.isArray(rec.properties) ? rec.properties[0] : rec.properties;
+    if (!prop?.owner_id) continue;
+
+    await supabase.from('expenses').insert({
+      property_id: rec.property_id,
+      date: rec.next_due_date,
+      amount_cents: rec.amount_cents,
+      category: rec.category,
+      vendor: rec.vendor,
+      notes: rec.notes,
+      tax_deductible: rec.tax_deductible,
+      created_by: prop.owner_id,
+    });
+
+    // Advance next_due_date by the frequency interval, preserving day_of_month.
+    const months = rec.frequency === 'monthly' ? 1 : rec.frequency === 'quarterly' ? 3 : 12;
+    const next = addMonths(parseISO(rec.next_due_date), months);
+    const nextDate = format(
+      setDate(next, Math.min(rec.day_of_month, getDaysInMonth(next))),
+      'yyyy-MM-dd',
+    );
+    await supabase
+      .from('recurring_expenses')
+      .update({ next_due_date: nextDate, updated_at: new Date().toISOString() })
+      .eq('id', rec.id);
+
+    recurringCount++;
+  }
+
   // Generate any scheduled tax reports due today (best-effort; never blocks).
   let taxReportsGenerated = 0;
   try {
@@ -396,6 +446,7 @@ export async function GET(request: Request) {
     pushed,
     due: dueToday?.length ?? 0,
     lateFeeCount,
+    recurringCount,
     maintenanceReminderCount,
     taxReportsGenerated,
   });
