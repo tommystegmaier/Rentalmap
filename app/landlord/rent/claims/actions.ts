@@ -129,10 +129,10 @@ export async function denyClaim(claimId: string, reason?: string) {
   ]);
 
   await sendPushToUser(claim.tenant_user_id, {
-    title: 'Venmo payment not confirmed',
+    title: 'Payment not confirmed',
     body: notifBody,
     url: '/tenant/pay',
-    tag: `venmo-denied-${claimId}`,
+    tag: `p2p-denied-${claimId}`,
   });
 
   revalidatePath('/landlord/rent');
