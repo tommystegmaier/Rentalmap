@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { sendPushToLandlord } from '@/lib/push';
 
 export async function tenantSignLease(leaseId: string, name: string) {
   const supabase = createClient();
@@ -23,10 +24,10 @@ export async function tenantSignLease(leaseId: string, name: string) {
 
   if (!link) throw new Error('You are not listed on this lease.');
 
-  // Verify landlord has already signed
+  // Fetch lease with property info for revalidation and push notification
   const { data: lease } = await supabase
     .from('leases')
-    .select('landlord_signed_at, tenant_signed_at')
+    .select('landlord_signed_at, tenant_signed_at, property_id, properties:property_id(address)')
     .eq('id', leaseId)
     .maybeSingle();
 
@@ -43,6 +44,20 @@ export async function tenantSignLease(leaseId: string, name: string) {
     .eq('id', leaseId);
 
   if (error) throw error;
+
+  const propertyId = lease.property_id as string;
+  const prop = Array.isArray(lease.properties) ? lease.properties[0] : lease.properties;
+  const address = (prop as { address: string } | null)?.address ?? 'your property';
+
+  // Notify landlord
+  await sendPushToLandlord(propertyId, {
+    title: 'Lease fully signed',
+    body: `${trimmed} has signed the lease for ${address}.`,
+    url: `/landlord/properties/${propertyId}`,
+    tag: `lease-signed-${leaseId}`,
+  });
+
   revalidatePath('/tenant/lease');
   revalidatePath('/tenant');
+  revalidatePath(`/landlord/properties/${propertyId}/leases/${leaseId}`);
 }
