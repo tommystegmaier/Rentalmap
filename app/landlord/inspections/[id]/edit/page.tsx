@@ -101,6 +101,7 @@ export default async function EditInspectionPage({
         | 'na',
       notes: itm.notes ?? '',
       photos: [] as File[],
+      photoPreviewUrls: [] as string[],
       photoPaths: itm.photo_urls,
     })),
   }));

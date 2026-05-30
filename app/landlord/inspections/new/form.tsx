@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +43,7 @@ interface InspectionItemState {
   condition: Condition;
   notes: string;
   photos: File[];
+  photoPreviewUrls: string[];
   photoPaths: string[];
 }
 
@@ -94,6 +95,7 @@ function makeDefaultRooms(): RoomState[] {
       condition: 'good' as Condition,
       notes: '',
       photos: [],
+      photoPreviewUrls: [],
       photoPaths: [],
     })),
   }));
@@ -140,6 +142,7 @@ export function NewInspectionForm({ properties, initialPropertyId, editInspectio
           condition: 'good' as Condition,
           notes: '',
           photos: [],
+          photoPreviewUrls: [],
           photoPaths: [],
         })),
       },
@@ -159,7 +162,7 @@ export function NewInspectionForm({ properties, initialPropertyId, editInspectio
               ...r,
               items: [
                 ...r.items,
-                { id: uid(), item: '', condition: 'good' as Condition, notes: '', photos: [], photoPaths: [] },
+                { id: uid(), item: '', condition: 'good' as Condition, notes: '', photos: [], photoPreviewUrls: [], photoPaths: [] },
               ],
             }
           : r,
@@ -189,15 +192,30 @@ export function NewInspectionForm({ properties, initialPropertyId, editInspectio
     );
   }
 
-  const handlePhotoFiles = useCallback(
-    (roomId: string, itemId: string, files: FileList | null) => {
-      if (!files) return;
-      const selected = Array.from(files).slice(0, 3);
-      updateItem(roomId, itemId, { photos: selected });
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
+  function handlePhotoFiles(
+    roomId: string,
+    itemId: string,
+    files: FileList | null,
+    currentPhotos: File[],
+    currentUrls: string[],
+  ) {
+    if (!files || files.length === 0) return;
+    const added = Array.from(files);
+    const addedUrls = added.map((f) => URL.createObjectURL(f));
+    const combined = [...currentPhotos, ...added].slice(0, 10);
+    const combinedUrls = [...currentUrls, ...addedUrls].slice(0, 10);
+    // Revoke any URLs that got sliced off
+    addedUrls.slice(combined.length - currentPhotos.length).forEach((u) => URL.revokeObjectURL(u));
+    updateItem(roomId, itemId, { photos: combined, photoPreviewUrls: combinedUrls });
+  }
+
+  function removePhoto(roomId: string, itemId: string, idx: number, currentPhotos: File[], currentUrls: string[]) {
+    URL.revokeObjectURL(currentUrls[idx]);
+    updateItem(roomId, itemId, {
+      photos: currentPhotos.filter((_, i) => i !== idx),
+      photoPreviewUrls: currentUrls.filter((_, i) => i !== idx),
+    });
+  }
 
   // ── Submit ────────────────────────────────────────────────────────────────
 
@@ -425,22 +443,48 @@ export function NewInspectionForm({ properties, initialPropertyId, editInspectio
                       onChange={(e) => updateItem(room.id, itm.id, { notes: e.target.value })}
                     />
 
-                    <div className="space-y-1">
-                      <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-                        <Upload size={12} />
-                        Photos (up to 3)
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="sr-only"
-                          onChange={(e) => handlePhotoFiles(room.id, itm.id, e.target.files)}
-                        />
-                      </label>
-                      {itm.photos.length > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {itm.photos.length} photo{itm.photos.length === 1 ? '' : 's'} selected
-                        </p>
+                    <div className="space-y-2">
+                      {itm.photoPreviewUrls.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {itm.photoPreviewUrls.map((url, idx) => (
+                            <div key={url} className="relative">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={url}
+                                alt=""
+                                className="h-16 w-16 rounded border object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removePhoto(room.id, itm.id, idx, itm.photos, itm.photoPreviewUrls)
+                                }
+                                className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold leading-none text-white"
+                                aria-label="Remove photo"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {itm.photos.length < 10 && (
+                        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                          <Upload size={12} />
+                          {itm.photos.length === 0
+                            ? 'Add photos (up to 10)'
+                            : `Add more (${itm.photos.length}/10)`}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="sr-only"
+                            onChange={(e) => {
+                              handlePhotoFiles(room.id, itm.id, e.target.files, itm.photos, itm.photoPreviewUrls);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
                       )}
                     </div>
                   </div>
