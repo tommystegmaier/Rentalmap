@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { generateLeasePdf } from '@/lib/lease-pdf';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
