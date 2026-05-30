@@ -85,6 +85,37 @@ function uid() {
   return Math.random().toString(36).slice(2);
 }
 
+// Resize + re-encode to JPEG so iPhone photos (~10 MB) shrink to ~200-400 KB
+// before uploading. Falls back to the original file on any canvas error.
+function compressImage(file: File, maxPx = 1280, quality = 0.82): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const blobUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve(file); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { resolve(file); return; }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+        },
+        'image/jpeg',
+        quality,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(file); };
+    img.src = blobUrl;
+  });
+}
+
 function makeDefaultRooms(): RoomState[] {
   return DEFAULT_ROOMS.map((name) => ({
     id: uid(),
@@ -225,34 +256,47 @@ export function NewInspectionForm({ properties, initialPropertyId, editInspectio
     try {
       const supabase = createClient();
 
-      // Upload all photos client-side first, collect paths
-      const roomsWithPaths: RoomState[] = [];
-      for (const room of rooms) {
-        const itemsWithPaths: InspectionItemState[] = [];
-        for (const item of room.items) {
-          const paths: string[] = [];
-          for (const photo of item.photos) {
-            const ext = photo.name.split('.').pop() ?? 'jpg';
-            const path = `${Date.now()}-${uid()}.${ext}`;
-            const { error: upErr } = await supabase.storage
-              .from('inspection-photos')
-              .upload(path, photo, { upsert: false });
-            if (upErr) throw upErr;
-            paths.push(path);
-          }
-          itemsWithPaths.push({ ...item, photoPaths: paths });
-        }
-        roomsWithPaths.push({ ...room, items: itemsWithPaths });
+      // Collect every photo that needs uploading, tagged by room+item index.
+      type UploadTask = { roomIdx: number; itemIdx: number; photoIdx: number; file: File };
+      const tasks: UploadTask[] = [];
+      rooms.forEach((room, roomIdx) =>
+        room.items.forEach((item, itemIdx) =>
+          item.photos.forEach((file, photoIdx) =>
+            tasks.push({ roomIdx, itemIdx, photoIdx, file }),
+          ),
+        ),
+      );
+
+      // Compress + upload all photos in parallel.
+      const uploadResults = await Promise.all(
+        tasks.map(async (task) => {
+          const compressed = await compressImage(task.file);
+          const path = `${Date.now()}-${uid()}.jpg`;
+          const { error: upErr } = await supabase.storage
+            .from('inspection-photos')
+            .upload(path, compressed, { upsert: false });
+          if (upErr) throw upErr;
+          return { ...task, path };
+        }),
+      );
+
+      // Reconstruct photo path arrays keyed by roomIdx-itemIdx.
+      const pathMap = new Map<string, string[]>();
+      for (const r of uploadResults) {
+        const key = `${r.roomIdx}-${r.itemIdx}`;
+        const arr = pathMap.get(key) ?? Array(rooms[r.roomIdx].items[r.itemIdx].photos.length).fill('');
+        arr[r.photoIdx] = r.path;
+        pathMap.set(key, arr);
       }
 
       let sortOrder = 0;
-      const itemPayload = roomsWithPaths.flatMap((room) =>
-        room.items.map((item) => ({
+      const itemPayload = rooms.flatMap((room, roomIdx) =>
+        room.items.map((item, itemIdx) => ({
           room: room.name,
           item: item.item || 'Item',
           condition: item.condition,
           notes: item.notes || null,
-          photo_urls: item.photoPaths,
+          photo_urls: pathMap.get(`${roomIdx}-${itemIdx}`) ?? [],
           sort_order: sortOrder++,
         })),
       );
