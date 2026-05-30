@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendPushToLandlord } from '@/lib/push';
 
 export async function tenantSignLease(leaseId: string, name: string) {
@@ -38,7 +38,10 @@ export async function tenantSignLease(leaseId: string, name: string) {
     throw new Error('This lease has already been signed.');
   }
 
-  const { error } = await supabase
+  // Use service role to bypass the tenant-only-select RLS policy on leases.
+  // Authorization has already been verified above.
+  const admin = createServiceRoleClient();
+  const { error } = await admin
     .from('leases')
     .update({ tenant_signed_at: new Date().toISOString(), tenant_signed_name: trimmed })
     .eq('id', leaseId);
