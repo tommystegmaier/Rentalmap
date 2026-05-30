@@ -63,6 +63,22 @@ export default async function EditInspectionPage({
 
   const items = (itemRows ?? []) as InspectionItemRow[];
 
+  // Generate signed URLs for all existing photos so the edit form can show
+  // thumbnails. Photos are in the private inspection-photos bucket.
+  const signedUrlsMap = new Map<string, string[]>();
+  await Promise.all(
+    items.map(async (item) => {
+      if (!item.photo_urls?.length) {
+        signedUrlsMap.set(item.id, []);
+        return;
+      }
+      const { data } = await supabase.storage
+        .from('inspection-photos')
+        .createSignedUrls(item.photo_urls, 3600);
+      signedUrlsMap.set(item.id, data?.map((d) => d.signedUrl ?? '') ?? []);
+    }),
+  );
+
   const { data: rawProps } = await supabase
     .from('properties')
     .select('id, address, leases(id, start_date, end_date)')
@@ -101,7 +117,7 @@ export default async function EditInspectionPage({
         | 'na',
       notes: itm.notes ?? '',
       photos: [] as File[],
-      photoPreviewUrls: [] as string[],
+      photoPreviewUrls: signedUrlsMap.get(itm.id) ?? [],
       photoPaths: itm.photo_urls,
     })),
   }));

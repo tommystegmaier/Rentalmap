@@ -229,21 +229,39 @@ export function NewInspectionForm({ properties, initialPropertyId, editInspectio
     files: FileList | null,
     currentPhotos: File[],
     currentUrls: string[],
+    currentPaths: string[],
   ) {
     if (!files || files.length === 0) return;
-    const added = Array.from(files);
+    // Total capacity is 10 across existing DB photos + newly added files.
+    const remaining = 10 - currentPaths.length - currentPhotos.length;
+    if (remaining <= 0) return;
+    const added = Array.from(files).slice(0, remaining);
     const addedUrls = added.map((f) => URL.createObjectURL(f));
-    const combined = [...currentPhotos, ...added].slice(0, 10);
-    const combinedUrls = [...currentUrls, ...addedUrls].slice(0, 10);
-    // Revoke any URLs that got sliced off
-    addedUrls.slice(combined.length - currentPhotos.length).forEach((u) => URL.revokeObjectURL(u));
-    updateItem(roomId, itemId, { photos: combined, photoPreviewUrls: combinedUrls });
+    updateItem(roomId, itemId, {
+      photos: [...currentPhotos, ...added],
+      photoPreviewUrls: [...currentUrls, ...addedUrls],
+    });
   }
 
-  function removePhoto(roomId: string, itemId: string, idx: number, currentPhotos: File[], currentUrls: string[]) {
-    URL.revokeObjectURL(currentUrls[idx]);
+  function removePhoto(
+    roomId: string,
+    itemId: string,
+    idx: number,
+    currentPhotos: File[],
+    currentUrls: string[],
+    currentPaths: string[],
+  ) {
+    // photoPreviewUrls is laid out as [existingSignedUrls..., newBlobUrls...].
+    // Indices before currentPaths.length are existing DB photos; the rest are new.
+    const isExisting = idx < currentPaths.length;
+    if (!isExisting) {
+      URL.revokeObjectURL(currentUrls[idx]);
+    }
     updateItem(roomId, itemId, {
-      photos: currentPhotos.filter((_, i) => i !== idx),
+      photoPaths: isExisting ? currentPaths.filter((_, i) => i !== idx) : currentPaths,
+      photos: isExisting
+        ? currentPhotos
+        : currentPhotos.filter((_, i) => i !== idx - currentPaths.length),
       photoPreviewUrls: currentUrls.filter((_, i) => i !== idx),
     });
   }
@@ -296,7 +314,11 @@ export function NewInspectionForm({ properties, initialPropertyId, editInspectio
           item: item.item || 'Item',
           condition: item.condition,
           notes: item.notes || null,
-          photo_urls: pathMap.get(`${roomIdx}-${itemIdx}`) ?? [],
+          // Preserve existing DB photos first, then append any newly uploaded paths.
+          photo_urls: [
+            ...item.photoPaths,
+            ...(pathMap.get(`${roomIdx}-${itemIdx}`) ?? []),
+          ],
           sort_order: sortOrder++,
         })),
       );
@@ -501,7 +523,7 @@ export function NewInspectionForm({ properties, initialPropertyId, editInspectio
                               <button
                                 type="button"
                                 onClick={() =>
-                                  removePhoto(room.id, itm.id, idx, itm.photos, itm.photoPreviewUrls)
+                                  removePhoto(room.id, itm.id, idx, itm.photos, itm.photoPreviewUrls, itm.photoPaths)
                                 }
                                 className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold leading-none text-white"
                                 aria-label="Remove photo"
@@ -512,19 +534,19 @@ export function NewInspectionForm({ properties, initialPropertyId, editInspectio
                           ))}
                         </div>
                       )}
-                      {itm.photos.length < 10 && (
+                      {itm.photoPaths.length + itm.photos.length < 10 && (
                         <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
                           <Upload size={12} />
-                          {itm.photos.length === 0
+                          {itm.photoPaths.length + itm.photos.length === 0
                             ? 'Add photos (up to 10)'
-                            : `Add more (${itm.photos.length}/10)`}
+                            : `Add more (${itm.photoPaths.length + itm.photos.length}/10)`}
                           <input
                             type="file"
                             accept="image/*"
                             multiple
                             className="sr-only"
                             onChange={(e) => {
-                              handlePhotoFiles(room.id, itm.id, e.target.files, itm.photos, itm.photoPreviewUrls);
+                              handlePhotoFiles(room.id, itm.id, e.target.files, itm.photos, itm.photoPreviewUrls, itm.photoPaths);
                               e.target.value = '';
                             }}
                           />
