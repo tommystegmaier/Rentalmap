@@ -4,6 +4,7 @@ import { APP_NAME } from '@/lib/constants';
 import { ServiceWorkerRegister } from '@/components/sw-register';
 import { ThemeProvider } from '@/components/theme-provider';
 import { SplashScreen } from '@/components/splash-screen';
+import { OfflineBanner } from '@/components/offline-banner';
 import { cookies } from 'next/headers';
 
 export const metadata: Metadata = {
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ServiceWorkerRegister />
         <SplashScreen />
+        <OfflineBanner />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

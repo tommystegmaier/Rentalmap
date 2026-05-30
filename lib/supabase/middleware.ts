@@ -56,7 +56,7 @@ export async function updateSession(request: NextRequest) {
     path.startsWith('/welcome') ||
     path.startsWith('/invite') ||
     path.startsWith('/auth');
-  const isPublic = path === '/' || path.startsWith('/tour') || path.startsWith('/_next') || path.startsWith('/icons') || path.startsWith('/api/cron') || path.startsWith('/api/stripe/webhook');
+  const isPublic = path === '/' || path === '/offline' || path.startsWith('/tour') || path.startsWith('/_next') || path.startsWith('/icons') || path.startsWith('/api/cron') || path.startsWith('/api/stripe/webhook') || path.startsWith('/api/auth/webauthn/authenticate');
 
   if (!user && !isAuthPage && !isPublic) {
     const url = request.nextUrl.clone();

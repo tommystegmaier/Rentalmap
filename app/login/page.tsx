@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
+import { PasskeyLoginButton } from '@/components/passkey-login-button';
 
 function LoginForm() {
   const router = useRouter();
@@ -114,6 +115,18 @@ function LoginForm() {
           Email me a magic link
         </Button>
       </form>
+
+      <div className="mt-4">
+        <div className="relative my-2">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-background px-2 text-muted-foreground">or</span>
+          </div>
+        </div>
+        <PasskeyLoginButton next={next} />
+      </div>
 
       <div className="mt-6 space-y-2 text-center text-sm text-muted-foreground">
         <p>

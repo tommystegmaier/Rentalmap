@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PushToggle } from '@/components/push-toggle';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { PasskeySetup } from '@/components/passkey-setup';
 import { revalidatePath } from 'next/cache';
 
 export default async function ProfilePage() {
@@ -90,6 +91,19 @@ export default async function ProfilePage() {
             Choose your preferred color scheme. Auto follows your device setting.
           </p>
           <ThemeToggle />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Face ID &amp; passkeys</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Sign in with Face ID, Touch ID, or your device passcode instead of a magic link.
+            Your biometrics never leave your device.
+          </p>
+          <PasskeySetup />
         </CardContent>
       </Card>
 

@@ -10,6 +10,7 @@ import { FeePayerToggles } from './fee-payer-toggles';
 import { PaymentHandles } from './payment-handles';
 import { getStripe } from '@/lib/stripe';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { PasskeySetup } from '@/components/passkey-setup';
 
 export default async function SettingsPage({
   searchParams,
@@ -77,6 +78,19 @@ export default async function SettingsPage({
             Choose your preferred color scheme. Auto follows your device setting.
           </p>
           <ThemeToggle />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Face ID &amp; passkeys</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Sign in with Face ID, Touch ID, or your device passcode instead of typing your
+            password. Your biometrics never leave your device.
+          </p>
+          <PasskeySetup />
         </CardContent>
       </Card>
 
