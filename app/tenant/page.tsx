@@ -185,6 +185,29 @@ export default async function TenantDashboard() {
         </Card>
       ) : null}
 
+      {(inspectionRows as { id: string; type: string; conducted_date: string; tenant_signed_at: string | null }[] | null)
+        ?.filter((i) => !i.tenant_signed_at)
+        .map((insp) => {
+          const TYPE_LABEL: Record<string, string> = { move_in: 'Move-in', move_out: 'Move-out', periodic: 'Periodic' };
+          const label = TYPE_LABEL[insp.type] ?? insp.type;
+          return (
+            <Card key={insp.id} className="border-yellow-400 dark:border-yellow-600">
+              <CardContent className="flex items-start gap-3 p-4">
+                <PenLine size={22} className="mt-0.5 shrink-0 text-yellow-500" />
+                <div className="flex-1">
+                  <p className="font-semibold">Action needed: Sign {label.toLowerCase()} inspection</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    Your landlord has completed this inspection. Review and sign to confirm it.
+                  </p>
+                  <Button asChild size="sm" className="mt-3">
+                    <Link href={`/tenant/inspections/${insp.id}`}>Review &amp; sign</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+
       <Card>
         <CardHeader>
           <CardTitle>Next rent due</CardTitle>
@@ -262,39 +285,38 @@ export default async function TenantDashboard() {
         </CardContent>
       </Card>
 
-      {inspectionRows && inspectionRows.length > 0 ? (
+      {(inspectionRows as { id: string; type: string; conducted_date: string; tenant_signed_at: string | null }[] | null)
+        ?.filter((i) => !!i.tenant_signed_at).length ? (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-muted-foreground">Inspections</h2>
+            <h2 className="text-sm font-medium text-muted-foreground">Completed inspections</h2>
             <Link href="/tenant/inspections" className="text-xs text-primary">
               View all
             </Link>
           </div>
           <div className="space-y-2">
-            {(inspectionRows as { id: string; type: string; conducted_date: string; tenant_signed_at: string | null }[]).map((insp) => {
-              const TYPE_LABEL: Record<string, string> = { move_in: 'Move-in', move_out: 'Move-out', periodic: 'Periodic' };
-              const label = TYPE_LABEL[insp.type] ?? insp.type;
-              const signed = !!insp.tenant_signed_at;
-              return (
-                <Link key={insp.id} href={`/tenant/inspections/${insp.id}`}>
-                  <Card className={`transition hover:bg-muted/30 ${!signed ? 'border-yellow-400 dark:border-yellow-600' : ''}`}>
-                    <CardContent className="flex items-center gap-3 p-3">
-                      <span className={signed ? 'text-green-600' : 'text-yellow-500'}>
-                        {signed ? <CheckCircle2 size={18} /> : <PenLine size={18} />}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">{label} inspection</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(parseISO(insp.conducted_date), 'MMM d, yyyy')}
-                          {!signed ? ' · Needs your signature' : ' · Signed'}
-                        </p>
-                      </div>
-                      <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
+            {(inspectionRows as { id: string; type: string; conducted_date: string; tenant_signed_at: string | null }[])
+              .filter((i) => !!i.tenant_signed_at)
+              .map((insp) => {
+                const TYPE_LABEL: Record<string, string> = { move_in: 'Move-in', move_out: 'Move-out', periodic: 'Periodic' };
+                const label = TYPE_LABEL[insp.type] ?? insp.type;
+                return (
+                  <Link key={insp.id} href={`/tenant/inspections/${insp.id}`}>
+                    <Card className="transition hover:bg-muted/30">
+                      <CardContent className="flex items-center gap-3 p-3">
+                        <CheckCircle2 size={18} className="shrink-0 text-green-600" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">{label} inspection</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(parseISO(insp.conducted_date), 'MMM d, yyyy')} · Signed
+                          </p>
+                        </div>
+                        <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
           </div>
         </section>
       ) : null}

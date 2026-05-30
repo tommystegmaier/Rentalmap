@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 
 export async function signInspection(inspectionId: string): Promise<{ error?: string }> {
@@ -20,5 +21,8 @@ export async function signInspection(inspectionId: string): Promise<{ error?: st
 
   if (error) return { error: error.message };
 
+  revalidatePath('/tenant');
+  revalidatePath('/tenant/inspections');
+  revalidatePath(`/tenant/inspections/${inspectionId}`);
   return {};
 }

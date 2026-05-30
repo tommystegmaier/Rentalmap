@@ -44,4 +44,5 @@ export async function tenantSignLease(leaseId: string, name: string) {
 
   if (error) throw error;
   revalidatePath('/tenant/lease');
+  revalidatePath('/tenant');
 }
