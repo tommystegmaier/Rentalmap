@@ -56,46 +56,63 @@ export default async function TenantInspectionsPage() {
       : { data: [] };
 
   const inspections = (rows ?? []) as InspectionRow[];
+  const needsSignature = inspections.filter((i) => !i.tenant_signed_at);
+  const completed = inspections.filter((i) => !!i.tenant_signed_at);
+
+  function InspectionCard({ insp, signed }: { insp: InspectionRow; signed: boolean }) {
+    const prop = one(insp.properties);
+    const addr = prop?.address ?? '—';
+    return (
+      <Link href={`/tenant/inspections/${insp.id}`}>
+        <Card className={`transition hover:bg-muted/30 ${!signed ? 'border-yellow-400 dark:border-yellow-600' : ''}`}>
+          <CardContent className="flex items-center gap-3 p-3">
+            <span className={signed ? 'text-green-600' : 'text-yellow-500'}>
+              {signed ? <CheckCircle2 size={18} /> : <ClipboardList size={18} />}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{addr}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {TYPE_LABEL[insp.type] ?? insp.type} · {format(parseISO(insp.conducted_date), 'MMM d, yyyy')}
+              </p>
+            </div>
+            <Badge className={TYPE_BADGE[insp.type] ?? TYPE_BADGE.periodic}>
+              {signed ? 'Signed' : 'Needs signature'}
+            </Badge>
+          </CardContent>
+        </Card>
+      </Link>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader title="Inspections" />
 
-      {inspections.length > 0 ? (
-        <div className="space-y-2">
-          {inspections.map((insp) => {
-            const prop = one(insp.properties);
-            const addr = prop?.address ?? '—';
-            return (
-              <Link key={insp.id} href={`/tenant/inspections/${insp.id}`}>
-                <Card className="transition hover:bg-muted/30">
-                  <CardContent className="flex items-center justify-between gap-2 p-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{addr}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {format(parseISO(insp.conducted_date), 'MMM d, yyyy')}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {insp.tenant_signed_at ? (
-                        <CheckCircle2 size={16} className="text-green-600" />
-                      ) : null}
-                      <Badge className={TYPE_BADGE[insp.type] ?? TYPE_BADGE.periodic}>
-                        {TYPE_LABEL[insp.type] ?? insp.type}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
-      ) : (
+      {inspections.length === 0 ? (
         <EmptyState
           icon={<ClipboardList size={32} />}
           title="No inspections yet"
           description="Your landlord will share inspections here for your review."
         />
+      ) : (
+        <>
+          {needsSignature.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="text-sm font-medium text-muted-foreground">Needs your signature</h2>
+              {needsSignature.map((insp) => (
+                <InspectionCard key={insp.id} insp={insp} signed={false} />
+              ))}
+            </section>
+          )}
+          {completed.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="text-sm font-medium text-muted-foreground">Completed</h2>
+              {completed.map((insp) => (
+                <InspectionCard key={insp.id} insp={insp} signed={true} />
+              ))}
+            </section>
+          )}
+        </>
       )}
     </div>
   );
