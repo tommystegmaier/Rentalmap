@@ -339,10 +339,15 @@ export default async function PropertyDetail({ params }: { params: { id: string 
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 {activeLease.lease_tenants?.map((lt) => {
                   const u = Array.isArray(lt.users) ? lt.users[0] : lt.users;
+                  const accepted = !!u?.name;
                   return (
                     <span
                       key={lt.id}
-                      className="inline-flex items-center gap-1 rounded-full border bg-secondary px-2.5 py-0.5 text-xs font-medium"
+                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                        accepted
+                          ? 'border-green-300 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
+                          : 'border bg-secondary text-secondary-foreground'
+                      }`}
                     >
                       {u?.name ?? u?.email ?? '—'}
                       <form action={removeTenant} className="inline">
