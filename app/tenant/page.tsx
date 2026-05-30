@@ -39,6 +39,8 @@ export default async function TenantDashboard() {
         security_deposit_cents: number;
         pets_allowed: boolean;
         terms_notes: string | null;
+        landlord_signed_at: string | null;
+        tenant_signed_at: string | null;
         properties:
           | { id: string; address: string; photo_url: string | null }
           | { id: string; address: string; photo_url: string | null }[]
@@ -165,6 +167,23 @@ export default async function TenantDashboard() {
           <span className="font-medium">Maintenance</span>
         </Link>
       </div>
+
+      {lease.landlord_signed_at && !lease.tenant_signed_at ? (
+        <Card className="border-yellow-400 dark:border-yellow-600">
+          <CardContent className="flex items-start gap-3 p-4">
+            <PenLine size={22} className="mt-0.5 shrink-0 text-yellow-500" />
+            <div className="flex-1">
+              <p className="font-semibold">Action needed: Sign your lease</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Your landlord has signed. Review the terms and add your signature to make it official.
+              </p>
+              <Button asChild size="sm" className="mt-3">
+                <Link href="/tenant/lease">Sign now</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

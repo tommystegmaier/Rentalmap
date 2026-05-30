@@ -13,9 +13,11 @@ import {
   Download,
   FileSearch,
   PenLine,
+  Send,
 } from 'lucide-react';
 import { LandlordSignForm } from './sign-form';
 import { LeaseAnalyzer } from './lease-analyzer';
+import { RequestLeaseSignatureButton } from './request-lease-signature-button';
 
 export default async function LeaseDetailPage({
   params,
@@ -221,15 +223,17 @@ export default async function LeaseDetailPage({
         </Card>
       )}
 
-      {/* Tenant status hint */}
+      {/* Tenant signature request */}
       {landlordSigned && !tenantSigned && (
-        <Card className="border-dashed">
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">
-              <strong>Next step:</strong> Have your tenant sign from their portal at{' '}
-              <strong>/tenant/lease</strong>. They&apos;ll see a &ldquo;Sign lease&rdquo; button
-              once you have signed.
-            </p>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Send size={16} />
+              Awaiting tenant signature
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RequestLeaseSignatureButton leaseId={params.leaseId} />
           </CardContent>
         </Card>
       )}

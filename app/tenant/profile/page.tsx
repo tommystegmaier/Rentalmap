@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PushToggle } from '@/components/push-toggle';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { PasskeySetup } from '@/components/passkey-setup';
+import { TenantNotificationPrefs } from '@/components/tenant-notification-prefs';
 import { revalidatePath } from 'next/cache';
 
 export default async function ProfilePage() {
@@ -111,12 +112,22 @@ export default async function ProfilePage() {
         <CardHeader>
           <CardTitle>Push notifications</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <p className="text-muted-foreground">
-            Get a tap on your phone when your landlord replies to a work order or when rent
-            payments clear.
-          </p>
-          <PushToggle vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
+        <CardContent className="space-y-4 text-sm">
+          <div className="space-y-3">
+            <p className="text-muted-foreground">
+              Enable notifications so your phone alerts you about rent, maintenance, lease
+              signing, and messages.
+            </p>
+            <PushToggle vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
+          </div>
+          <div className="border-t pt-4">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Notify me about
+            </p>
+            <TenantNotificationPrefs
+              initialPrefs={(profile?.notification_prefs as Record<string, boolean>) ?? {}}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

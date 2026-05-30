@@ -4,6 +4,7 @@ import { TabBar, type TabItem } from '@/components/tab-bar';
 import { Logo } from '@/components/logo';
 import { InstallPrompt } from '@/components/install-prompt';
 import { AppBadgeSync } from '@/components/app-badge-sync';
+import { TenantPushPrompt } from '@/components/tenant-push-prompt';
 import { Home, Wallet, Wrench, MessageSquare, MoreHorizontal } from 'lucide-react';
 import { Toaster } from 'sonner';
 
@@ -50,6 +51,7 @@ export default async function TenantLayout({ children }: { children: React.React
       <div className="p-4">{children}</div>
       <TabBar items={tabs} />
       <InstallPrompt />
+      <TenantPushPrompt />
       <Toaster richColors position="top-center" />
     </div>
   );
