@@ -336,34 +336,33 @@ export default async function PropertyDetail({ params }: { params: { id: string 
 
             <div>
               <p className="text-muted-foreground">Tenants</p>
-              <div className="mt-1 flex flex-wrap gap-2">
-                {activeLease.lease_tenants?.length ? (
-                  activeLease.lease_tenants.map((lt) => {
-                    const u = Array.isArray(lt.users) ? lt.users[0] : lt.users;
-                    return (
-                      <span
-                        key={lt.id}
-                        className="inline-flex items-center gap-1 rounded-full border bg-secondary px-2.5 py-0.5 text-xs font-medium"
-                      >
-                        {u?.name ?? u?.email ?? '—'}
-                        <form action={removeTenant} className="inline">
-                          <input type="hidden" name="lease_tenant_id" value={lt.id} />
-                          <button
-                            type="submit"
-                            aria-label={`Remove ${u?.name ?? u?.email ?? 'tenant'}`}
-                            className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                          >
-                            <X size={10} />
-                          </button>
-                        </form>
-                      </span>
-                    );
-                  })
-                ) : (
-                  <Button asChild size="sm" variant="outline">
-                    <Link href="/landlord/invite">Invite tenant</Link>
-                  </Button>
-                )}
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                {activeLease.lease_tenants?.map((lt) => {
+                  const u = Array.isArray(lt.users) ? lt.users[0] : lt.users;
+                  return (
+                    <span
+                      key={lt.id}
+                      className="inline-flex items-center gap-1 rounded-full border bg-secondary px-2.5 py-0.5 text-xs font-medium"
+                    >
+                      {u?.name ?? u?.email ?? '—'}
+                      <form action={removeTenant} className="inline">
+                        <input type="hidden" name="lease_tenant_id" value={lt.id} />
+                        <button
+                          type="submit"
+                          aria-label={`Remove ${u?.name ?? u?.email ?? 'tenant'}`}
+                          className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <X size={10} />
+                        </button>
+                      </form>
+                    </span>
+                  );
+                })}
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/landlord/invite">
+                    <Plus size={12} /> Invite tenant
+                  </Link>
+                </Button>
               </div>
             </div>
 

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { one } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { CheckCircle2, PenLine } from 'lucide-react';
+import { RequestSignatureButton } from './request-signature-button';
 
 const TYPE_BADGE: Record<string, string> = {
   move_in: 'border-transparent bg-blue-100 text-blue-700',
@@ -151,15 +152,8 @@ export default async function InspectionDetailPage({
       {/* Tenant signature section */}
       {!isSigned && insp.lease_id && (
         <Card className="border-dashed">
-          <CardContent className="p-4 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">Request tenant signature</p>
-            <p className="mt-1">
-              Share{' '}
-              <span className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
-                /tenant/inspections/{params.id}
-              </span>{' '}
-              with your tenant to collect their digital signature.
-            </p>
+          <CardContent className="p-4 text-sm">
+            <RequestSignatureButton inspectionId={params.id} />
           </CardContent>
         </Card>
       )}

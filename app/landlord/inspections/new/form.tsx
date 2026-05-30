@@ -85,9 +85,9 @@ function uid() {
   return Math.random().toString(36).slice(2);
 }
 
-// Resize + re-encode to JPEG so iPhone photos (~10 MB) shrink to ~200-400 KB
-// before uploading. Falls back to the original file on any canvas error.
-function compressImage(file: File, maxPx = 1280, quality = 0.82): Promise<File> {
+// Resize + re-encode to JPEG so iPhone photos (~10 MB) shrink to ~1-2 MB
+// before uploading while keeping clear detail. Falls back to the original on error.
+function compressImage(file: File, maxPx = 1920, quality = 0.92): Promise<File> {
   return new Promise((resolve) => {
     const img = new Image();
     const blobUrl = URL.createObjectURL(file);
