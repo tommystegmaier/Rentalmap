@@ -66,10 +66,13 @@ export default function WelcomePage() {
     setBusy(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({
+    const { data: updated, error } = await supabase.auth.updateUser({
       password,
       data: { password_set: true },
     });
+    if (!error && updated.user) {
+      await supabase.from('users').update({ password_set: true }).eq('id', updated.user.id);
+    }
     setBusy(false);
     if (error) {
       setError(error.message);
