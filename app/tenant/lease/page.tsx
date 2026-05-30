@@ -136,6 +136,27 @@ export default async function LeasePage() {
         </Badge>
       </div>
 
+      {/* Signed copy download — shown once both parties have signed */}
+      {tenantSigned && (
+        <div className="flex items-center gap-3 rounded-xl border border-green-300 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950/50">
+          <CheckCircle2 className="shrink-0 text-green-600 dark:text-green-400" size={20} />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-green-800 dark:text-green-300">
+              Lease fully executed
+            </p>
+            <p className="text-xs text-green-700 dark:text-green-500">
+              Signed {format(new Date(lease.tenant_signed_at!), 'PP')}
+            </p>
+          </div>
+          <a href={`/api/lease/${lease.id}/pdf`} download>
+            <Button size="sm" variant="outline" className="gap-1.5 border-green-300 dark:border-green-700">
+              <Download size={13} />
+              Download PDF
+            </Button>
+          </a>
+        </div>
+      )}
+
       {/* Sign form */}
       {needsMySignature && (
         <Card className="border-primary/30">

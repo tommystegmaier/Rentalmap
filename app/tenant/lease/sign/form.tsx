@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, Download, PenLine } from 'lucide-react';
+import { CheckCircle2, PenLine } from 'lucide-react';
 import { tenantSignLease } from './actions';
 import { BusyBar } from '@/components/busy-bar';
 
@@ -37,17 +37,9 @@ export function TenantSignForm({ leaseId }: { leaseId: string }) {
 
   if (done) {
     return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-400">
-          <CheckCircle2 size={16} />
-          Lease signed successfully.
-        </div>
-        <a href={`/api/lease/${leaseId}/pdf`} download>
-          <Button variant="outline" className="w-full gap-2">
-            <Download size={14} />
-            Download signed PDF
-          </Button>
-        </a>
+      <div className="flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-400">
+        <CheckCircle2 size={16} />
+        Signed — loading your copy…
       </div>
     );
   }
