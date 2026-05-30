@@ -9,6 +9,7 @@ import { StripeSetupBanner } from '@/components/stripe-setup-banner';
 import { formatCents } from '@/lib/utils';
 import { differenceInDays, parseISO } from 'date-fns';
 import { Wrench, ReceiptText, Send, MessageSquare, Home as HomeIcon, Car, Calculator } from 'lucide-react';
+import { OfflinePrefetch } from '@/components/offline-prefetch';
 
 export default async function LandlordDashboard() {
   const supabase = createClient();
@@ -61,8 +62,19 @@ export default async function LandlordDashboard() {
   );
   const ytdNet = ytdIncomeCents - ytdExpenseCents;
 
+  // Pages to make available offline: every property's detail page (which also
+  // carries its current lease terms) plus each active lease's detail page.
+  const prefetchUrls = [
+    ...(properties ?? []).map((p: { id: string }) => `/landlord/properties/${p.id}`),
+    ...(leases ?? []).map(
+      (l: { id: string; property_id: string }) =>
+        `/landlord/properties/${l.property_id}/leases/${l.id}`,
+    ),
+  ];
+
   return (
     <div className="space-y-6">
+      <OfflinePrefetch urls={prefetchUrls} />
       <PageHeader title="Dashboard" description="Your portfolio at a glance" />
 
       <StripeSetupBanner variant="dashboard" />

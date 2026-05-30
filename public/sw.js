@@ -1,6 +1,6 @@
 /* It Rents service worker — push notifications + offline support. */
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const SHELL_CACHE = `itrents-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `itrents-runtime-${CACHE_VERSION}`;
 const OFFLINE_URL = '/offline';
@@ -33,6 +33,26 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Proactive precache: the app posts a list of page URLs (property details,
+// leases) while online so they're available offline even if never opened.
+self.addEventListener('message', (event) => {
+  const data = event.data;
+  if (!data || data.type !== 'PRECACHE_PAGES' || !Array.isArray(data.urls)) return;
+  event.waitUntil(
+    caches.open(RUNTIME_CACHE).then((cache) =>
+      Promise.all(
+        data.urls.map((u) =>
+          fetch(u, { credentials: 'include' })
+            .then((res) => {
+              if (res.ok) return cache.put(u, res.clone());
+            })
+            .catch(() => {}),
+        ),
+      ),
+    ),
+  );
+});
+
 // Caching strategy:
 //   - Navigations (HTML): network-first, fall back to the cached page, then
 //     to the offline page. Keeps content fresh online, usable offline.
@@ -44,7 +64,30 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return; // skip cross-origin (Supabase, Stripe)
+
+  if (url.origin !== self.location.origin) {
+    // Cache Supabase property photos (permanent public URLs) so they show
+    // offline — cache-first since the URL never changes. Everything else
+    // cross-origin (Stripe, signed receipt URLs, etc.) is left alone.
+    const isPropertyPhoto =
+      url.hostname.endsWith('.supabase.co') && url.pathname.includes('/property-photos/');
+    if (isPropertyPhoto && request.destination === 'image') {
+      event.respondWith(
+        caches.match(request).then(
+          (cached) =>
+            cached ||
+            fetch(request)
+              .then((response) => {
+                const copy = response.clone();
+                caches.open(RUNTIME_CACHE).then((c) => c.put(request, copy)).catch(() => {});
+                return response;
+              })
+              .catch(() => cached),
+        ),
+      );
+    }
+    return;
+  }
 
   // Never cache API responses.
   if (url.pathname.startsWith('/api/')) return;
