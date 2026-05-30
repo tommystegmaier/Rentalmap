@@ -202,9 +202,10 @@ export default async function PropertyDetail({ params }: { params: { id: string 
 
   let securityDeposit: DepositRow | null = null;
   let lateFeeCharges: LateFeeRow[] = [];
+  let acceptedTenantEmails = new Set<string>();
 
   if (activeLease) {
-    const [{ data: deposit }, { data: fees }] = await Promise.all([
+    const [{ data: deposit }, { data: fees }, { data: acceptedInvites }] = await Promise.all([
       supabase
         .from('security_deposits')
         .select('id, amount_cents, status, received_date, holding_institution, interest_rate_pct, interest_accrued_cents')
@@ -216,9 +217,17 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         .eq('lease_id', activeLease.id)
         .order('charge_date', { ascending: false })
         .limit(10),
+      supabase
+        .from('tenant_invitations')
+        .select('email')
+        .eq('lease_id', activeLease.id)
+        .eq('status', 'accepted'),
     ]);
     securityDeposit = deposit as DepositRow | null;
     lateFeeCharges = (fees ?? []) as LateFeeRow[];
+    acceptedTenantEmails = new Set(
+      (acceptedInvites ?? []).map((i: { email: string }) => i.email.toLowerCase()),
+    );
   }
 
   const inspections = (propertyInspections ?? []) as {
@@ -339,7 +348,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 {activeLease.lease_tenants?.map((lt) => {
                   const u = Array.isArray(lt.users) ? lt.users[0] : lt.users;
-                  const accepted = !!u?.name;
+                  const accepted = acceptedTenantEmails.has((u?.email ?? '').toLowerCase());
                   return (
                     <span
                       key={lt.id}
