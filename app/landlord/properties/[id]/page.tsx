@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { RemoveLateFeeButton } from '@/app/landlord/late-fees/remove-button';
+import { RemoveTenantButton } from './remove-tenant-button';
 import {
   FileText,
   FileSignature,
@@ -16,7 +17,6 @@ import {
   Pencil,
   ChevronRight,
   Image as ImageIcon,
-  X,
   Landmark,
   ClipboardList,
   CheckCircle2,
@@ -26,7 +26,6 @@ import {
   Calculator,
 } from 'lucide-react';
 import { MarketRentWidget } from '@/components/market-rent-widget';
-import { removeTenantFromLease } from './tenants/actions';
 
 type DepositStatus =
   | 'holding'
@@ -161,11 +160,6 @@ export default async function PropertyDetail({ params }: { params: { id: string 
       | { name: string | null; email: string; password_set: boolean }[]
       | null;
   };
-
-  async function removeTenant(formData: FormData) {
-    'use server';
-    await removeTenantFromLease(params.id, formData);
-  }
 
   const activeLease = leases?.find((l: { status: string }) => l.status === 'active') as
     | (Record<string, unknown> & {
@@ -341,6 +335,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
                 {activeLease.lease_tenants?.map((lt) => {
                   const u = Array.isArray(lt.users) ? lt.users[0] : lt.users;
                   const accepted = !!u?.password_set;
+                  const displayName = u?.name ?? u?.email ?? '—';
                   return (
                     <div
                       key={lt.id}
@@ -350,22 +345,16 @@ export default async function PropertyDetail({ params }: { params: { id: string 
                         <span
                           className={`h-2 w-2 shrink-0 rounded-full ${accepted ? 'bg-green-500' : 'bg-yellow-500'}`}
                         />
-                        <span className="truncate text-sm font-medium">
-                          {u?.name ?? u?.email ?? '—'}
-                        </span>
+                        <span className="truncate text-sm font-medium">{displayName}</span>
                         <span className="shrink-0 text-xs text-muted-foreground">
                           {accepted ? 'Active' : 'Invited'}
                         </span>
                       </div>
-                      <form action={removeTenant} className="shrink-0">
-                        <input type="hidden" name="lease_tenant_id" value={lt.id} />
-                        <button
-                          type="submit"
-                          className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                        >
-                          <X size={12} /> Remove
-                        </button>
-                      </form>
+                      <RemoveTenantButton
+                        leaseTenantId={lt.id}
+                        propertyId={params.id}
+                        tenantName={displayName}
+                      />
                     </div>
                   );
                 })}
