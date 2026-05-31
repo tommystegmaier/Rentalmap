@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
-import { WaiveLateFeeButton } from './waive-button';
+import { RemoveLateFeeButton } from './remove-button';
 import { CircleDollarSign } from 'lucide-react';
 
 export default async function LateFeesPage() {
@@ -68,25 +68,27 @@ function LateFeeRow({ charge }: { charge: Charge }) {
 
   return (
     <Card>
-      <CardContent className="flex items-center justify-between gap-2 p-3">
-        <div className="min-w-0">
-          <p className="text-sm font-medium">{formatCents(charge.amount_cents)}</p>
-          <p className="text-xs text-muted-foreground">
-            {addr} · period {format(parseISO(charge.period_start), 'MMM yyyy')}
-          </p>
-          {charge.waive_note ? (
-            <p className="text-xs text-muted-foreground">Note: {charge.waive_note}</p>
-          ) : null}
-        </div>
-        <div className="flex items-center gap-2">
-          {charge.waived ? (
-            <Badge className="border-transparent bg-muted text-muted-foreground">Waived</Badge>
-          ) : (
-            <>
-              <Badge className="border-transparent bg-destructive/10 text-destructive">Outstanding</Badge>
-              <WaiveLateFeeButton id={charge.id} />
-            </>
-          )}
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">{formatCents(charge.amount_cents)}</p>
+            <p className="text-xs text-muted-foreground">
+              {addr} · period {format(parseISO(charge.period_start), 'MMM yyyy')}
+            </p>
+            {charge.waive_note ? (
+              <p className="text-xs text-muted-foreground">Note: {charge.waive_note}</p>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {charge.waived ? (
+              <Badge className="border-transparent bg-muted text-muted-foreground">Removed</Badge>
+            ) : (
+              <>
+                <Badge className="border-transparent bg-destructive/10 text-destructive">Outstanding</Badge>
+                <RemoveLateFeeButton id={charge.id} />
+              </>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

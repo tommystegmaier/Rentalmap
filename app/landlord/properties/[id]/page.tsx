@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
+import { RemoveLateFeeButton } from '@/app/landlord/late-fees/remove-button';
 import {
   FileText,
   FileSignature,
@@ -534,26 +535,30 @@ export default async function PropertyDetail({ params }: { params: { id: string 
           {lateFeeCharges.length > 0 ? (
             <div className="space-y-1">
               {lateFeeCharges.map((fee) => (
-                <div
-                  key={fee.id}
-                  className="flex items-center justify-between gap-2 border-b py-2.5 last:border-0"
-                >
-                  <div className="min-w-0">
-                    <p className="font-medium">{formatCents(fee.amount_cents)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Period starting {format(parseISO(fee.period_start), 'MMM d, yyyy')}
-                      {fee.waived ? ` · Waived${fee.waive_note ? `: ${fee.waive_note}` : ''}` : ''}
-                    </p>
+                <div key={fee.id} className="border-b py-2.5 last:border-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium">{formatCents(fee.amount_cents)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Period starting {format(parseISO(fee.period_start), 'MMM d, yyyy')}
+                        {fee.waived ? ` · Removed${fee.waive_note ? `: ${fee.waive_note}` : ''}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {fee.waived ? (
+                        <Badge className="border-transparent bg-muted text-muted-foreground">
+                          Removed
+                        </Badge>
+                      ) : (
+                        <>
+                          <Badge className="border-transparent bg-destructive/10 text-destructive">
+                            Outstanding
+                          </Badge>
+                          <RemoveLateFeeButton id={fee.id} />
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <Badge
-                    className={
-                      fee.waived
-                        ? 'border-transparent bg-muted text-muted-foreground'
-                        : 'border-transparent bg-destructive/10 text-destructive'
-                    }
-                  >
-                    {fee.waived ? 'Waived' : 'Outstanding'}
-                  </Badge>
                 </div>
               ))}
             </div>
