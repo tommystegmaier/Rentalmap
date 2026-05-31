@@ -9,6 +9,7 @@ import { format, parseISO } from 'date-fns';
 import { one } from '@/lib/utils';
 import { FileSignature, ChevronRight, Building2 } from 'lucide-react';
 import { InviteForm } from './form';
+import { ResendInviteButton } from './resend-button';
 
 interface LeaseRow {
   id: string;
@@ -18,8 +19,10 @@ interface LeaseRow {
 interface InviteRow {
   id: string;
   email: string;
+  lease_id: string;
   invited_at: string;
   status: 'pending' | 'accepted' | 'expired';
+  leases: { properties: { address: string } | { address: string }[] | null } | { properties: { address: string } | { address: string }[] | null }[] | null;
 }
 
 export default async function InvitePage() {
@@ -35,7 +38,7 @@ export default async function InvitePage() {
       .eq('status', 'active'),
     supabase
       .from('tenant_invitations')
-      .select('*')
+      .select('id, email, lease_id, invited_at, status, leases:lease_id(properties:property_id(address))')
       .order('invited_at', { ascending: false })
       .limit(20),
     supabase
@@ -108,29 +111,37 @@ export default async function InvitePage() {
       {invites && invites.length > 0 ? (
         <section className="space-y-2">
           <h2 className="text-sm font-medium text-muted-foreground">Recent invitations</h2>
-          {(invites as InviteRow[]).map((inv) => (
-            <Card key={inv.id}>
-              <CardContent className="flex items-center justify-between p-3">
-                <div>
-                  <p className="text-sm font-medium">{inv.email}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Sent {format(parseISO(inv.invited_at), 'PP')}
-                  </p>
-                </div>
-                <Badge
-                  className={
-                    inv.status === 'accepted'
-                      ? 'bg-success/10 text-success border-transparent'
-                      : inv.status === 'expired'
-                        ? 'bg-destructive/10 text-destructive border-transparent'
-                        : 'bg-warning/10 text-warning border-transparent'
-                  }
-                >
-                  {inv.status}
-                </Badge>
-              </CardContent>
-            </Card>
-          ))}
+          {(invites as InviteRow[]).map((inv) => {
+            const invLease = Array.isArray(inv.leases) ? inv.leases[0] : inv.leases;
+            const address = one(invLease?.properties)?.address ?? null;
+            return (
+              <Card key={inv.id}>
+                <CardContent className="flex items-center justify-between gap-3 p-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{inv.email}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {address ? `${address} · ` : ''}Sent {format(parseISO(inv.invited_at), 'PP')}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {inv.status === 'pending' ? (
+                      <ResendInviteButton email={inv.email} leaseId={inv.lease_id} />
+                    ) : (
+                      <Badge
+                        className={
+                          inv.status === 'accepted'
+                            ? 'bg-success/10 text-success border-transparent'
+                            : 'bg-destructive/10 text-destructive border-transparent'
+                        }
+                      >
+                        {inv.status}
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </section>
       ) : null}
     </div>

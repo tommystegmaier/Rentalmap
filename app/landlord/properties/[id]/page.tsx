@@ -336,34 +336,39 @@ export default async function PropertyDetail({ params }: { params: { id: string 
 
             <div>
               <p className="text-muted-foreground">Tenants</p>
-              <div className="mt-1 flex flex-wrap items-center gap-2">
+              <div className="mt-2 space-y-2">
                 {activeLease.lease_tenants?.map((lt) => {
                   const u = Array.isArray(lt.users) ? lt.users[0] : lt.users;
                   const accepted = !!u?.password_set;
                   return (
-                    <span
+                    <div
                       key={lt.id}
-                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                        accepted
-                          ? 'border-green-300 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
-                          : 'border bg-secondary text-secondary-foreground'
-                      }`}
+                      className="flex items-center justify-between gap-2 rounded-lg border bg-card px-3 py-2"
                     >
-                      {u?.name ?? u?.email ?? '—'}
-                      <form action={removeTenant} className="inline">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span
+                          className={`h-2 w-2 shrink-0 rounded-full ${accepted ? 'bg-green-500' : 'bg-yellow-500'}`}
+                        />
+                        <span className="truncate text-sm font-medium">
+                          {u?.name ?? u?.email ?? '—'}
+                        </span>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {accepted ? 'Active' : 'Invited'}
+                        </span>
+                      </div>
+                      <form action={removeTenant} className="shrink-0">
                         <input type="hidden" name="lease_tenant_id" value={lt.id} />
                         <button
                           type="submit"
-                          aria-label={`Remove ${u?.name ?? u?.email ?? 'tenant'}`}
-                          className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                         >
-                          <X size={10} />
+                          <X size={12} /> Remove
                         </button>
                       </form>
-                    </span>
+                    </div>
                   );
                 })}
-                <Button asChild size="sm" variant="outline">
+                <Button asChild size="sm" variant="outline" className="w-full">
                   <Link href="/landlord/invite">
                     <Plus size={12} /> Invite tenant
                   </Link>
