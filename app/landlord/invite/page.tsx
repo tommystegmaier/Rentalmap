@@ -25,7 +25,7 @@ interface InviteRow {
   leases: { properties: { address: string } | { address: string }[] | null } | { properties: { address: string } | { address: string }[] | null }[] | null;
 }
 
-export default async function InvitePage() {
+export default async function InvitePage({ searchParams }: { searchParams: { leaseId?: string } }) {
   const supabase = createClient();
   const {
     data: { user },
@@ -65,6 +65,7 @@ export default async function InvitePage() {
             address: one(l.properties)?.address ?? '—',
             monthly_rent_cents: l.monthly_rent_cents,
           }))}
+          defaultLeaseId={searchParams.leaseId}
         />
       ) : hasProperties ? (
         <div className="space-y-3">

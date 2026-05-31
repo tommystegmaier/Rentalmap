@@ -12,11 +12,16 @@ import { Copy, CheckCheck } from 'lucide-react';
 
 interface InviteFormProps {
   leases: { id: string; address: string; monthly_rent_cents: number }[];
+  defaultLeaseId?: string;
 }
 
-export function InviteForm({ leases }: InviteFormProps) {
+export function InviteForm({ leases, defaultLeaseId }: InviteFormProps) {
   const router = useRouter();
-  const [leaseId, setLeaseId] = useState(leases[0]?.id ?? '');
+  const [leaseId, setLeaseId] = useState(
+    defaultLeaseId && leases.some((l) => l.id === defaultLeaseId)
+      ? defaultLeaseId
+      : (leases[0]?.id ?? ''),
+  );
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

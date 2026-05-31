@@ -359,7 +359,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
                   );
                 })}
                 <Button asChild size="sm" variant="outline" className="w-full">
-                  <Link href="/landlord/invite">
+                  <Link href={`/landlord/invite?leaseId=${activeLease.id}`}>
                     <Plus size={12} /> Invite tenant
                   </Link>
                 </Button>
