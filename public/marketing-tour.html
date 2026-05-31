@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>It Rents — App Tour</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --blue: #7DB9E8;
+    --blue-dark: #3a8fd4;
+    --blue-deep: #1a4a6b;
+    --green: #2d9e6a;
+    --bg: #0c1a2e;
+    --card: #132030;
+    --card2: #1a2d42;
+    --text: #e8f0f8;
+    --muted: #7a9ab8;
+    --border: #1e3248;
+    --warning: #f59e0b;
+    --destructive: #ef4444;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  /* ── Stage ── */
+  .stage {
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+
+  /* ── Background blobs ── */
+  .blob {
+    position: absolute; border-radius: 50%;
+    filter: blur(80px); opacity: 0.18; pointer-events: none;
+  }
+  .blob-1 { width: 500px; height: 500px; background: var(--blue); top: -100px; left: -100px; }
+  .blob-2 { width: 400px; height: 400px; background: #5b4fcf; bottom: -80px; right: -60px; }
+  .blob-3 { width: 300px; height: 300px; background: var(--green); top: 40%; left: 60%; }
+
+  /* ── Progress bar ── */
+  .progress-wrap {
+    position: absolute; bottom: 28px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 8px; z-index: 100;
+  }
+  .progress-dot {
+    width: 8px; height: 8px; border-radius: 4px;
+    background: rgba(255,255,255,0.25);
+    transition: all 0.4s ease;
+  }
+  .progress-dot.active {
+    background: var(--blue); width: 24px;
+  }
+
+  /* ── Skip / controls ── */
+  .controls {
+    position: absolute; top: 20px; right: 20px;
+    display: flex; gap: 10px; z-index: 100;
+  }
+  .ctrl-btn {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+    color: var(--text); border-radius: 8px; padding: 6px 14px;
+    font-size: 13px; cursor: pointer; transition: background 0.2s;
+  }
+  .ctrl-btn:hover { background: rgba(255,255,255,0.2); }
+
+  /* ── Pause indicator ── */
+  .paused-badge {
+    position: absolute; top: 20px; left: 20px;
+    background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.6); border-radius: 8px;
+    padding: 4px 10px; font-size: 12px; z-index: 100;
+    display: none;
+  }
+  .paused-badge.visible { display: block; }
+
+  /* ── Slide container ── */
+  .slides { position: relative; width: 100%; height: 100%; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.7s ease;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  /* ── Phone frame ── */
+  .phone {
+    width: 310px; height: 620px;
+    background: #0a0f18;
+    border-radius: 44px;
+    border: 3px solid #2a3a50;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px #3a5070, inset 0 0 0 1px #1a2d42;
+    flex-shrink: 0;
+  }
+  .phone::before {
+    content: '';
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 100px; height: 28px;
+    background: #0a0f18;
+    border-radius: 0 0 18px 18px;
+    z-index: 10;
+  }
+  .phone-screen {
+    width: 100%; height: 100%;
+    overflow: hidden; border-radius: 42px;
+    background: #0c1520;
+  }
+
+  /* ── Layout helpers ── */
+  .row { display: flex; gap: 12px; }
+  .col { display: flex; flex-direction: column; gap: 12px; }
+
+  /* ── Copy panel ── */
+  .copy {
+    max-width: 380px;
+    padding: 0 32px;
+  }
+  .copy .eyebrow {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.12em;
+    color: var(--blue); text-transform: uppercase; margin-bottom: 10px;
+  }
+  .copy h2 {
+    font-size: 32px; font-weight: 700; line-height: 1.2;
+    color: #fff; margin-bottom: 14px;
+  }
+  .copy p {
+    font-size: 16px; line-height: 1.6; color: var(--muted);
+  }
+  .copy ul {
+    list-style: none; margin-top: 18px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .copy ul li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 15px; color: var(--text);
+  }
+  .check {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--green); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; flex-shrink: 0; margin-top: 1px;
+  }
+
+  /* ── App UI components ── */
+  .app-header {
+    background: rgba(10,15,24,0.95);
+    border-bottom: 1px solid var(--border);
+    padding: 36px 16px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .app-logo {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 15px; font-weight: 700; color: var(--text);
+  }
+  .app-logo-icon {
+    width: 28px; height: 28px; background: var(--blue);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .role-badge {
+    font-size: 11px; font-weight: 600; color: var(--blue);
+    letter-spacing: 0.06em; background: rgba(125,185,232,0.12);
+    padding: 3px 8px; border-radius: 6px;
+  }
+
+  .app-body { padding: 14px; overflow-y: auto; height: calc(100% - 58px - 58px); }
+
+  .app-tab-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(10,15,24,0.97);
+    border-top: 1px solid var(--border);
+    display: flex; height: 58px;
+    padding-bottom: 8px;
+  }
+  .tab {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 3px;
+    font-size: 9px; color: var(--muted);
+  }
+  .tab.active { color: var(--blue); }
+  .tab svg { width: 20px; height: 20px; }
+
+  /* App cards */
+  .a-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 14px; margin-bottom: 10px;
+  }
+  .a-card-title {
+    font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .a-badge {
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+  }
+  .a-badge-green { background: rgba(45,158,106,0.18); color: #4ade80; }
+  .a-badge-yellow { background: rgba(245,158,11,0.18); color: #fbbf24; }
+  .a-badge-red { background: rgba(239,68,68,0.18); color: #f87171; }
+  .a-badge-blue { background: rgba(125,185,232,0.18); color: var(--blue); }
+  .a-badge-gray { background: rgba(122,154,184,0.15); color: var(--muted); }
+
+  .a-stat { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
+  .a-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .a-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px; }
+  .a-divider { height: 1px; background: var(--border); margin: 10px 0; }
+
+  /* Photo grid */
+  .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .photo-cell {
+    aspect-ratio: 4/3; border-radius: 8px; overflow: hidden;
+    background: var(--card2); display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .photo-cell img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* Signature line */
+  .sig-line {
+    border-bottom: 1.5px solid var(--blue);
+    padding: 8px 4px; margin-top: 6px;
+    font-size: 12px; color: var(--muted); font-style: italic;
+  }
+
+  /* Map placeholder */
+  .map-view {
+    background: linear-gradient(135deg, #0e2a1e 0%, #1a3d2b 50%, #0e2a1e 100%);
+    border-radius: 12px; height: 130px; position: relative;
+    overflow: hidden; margin-bottom: 8px;
+    border: 1px solid rgba(45,158,106,0.2);
+  }
+  .map-road {
+    position: absolute; background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+  }
+  .map-dot {
+    position: absolute; width: 12px; height: 12px;
+    background: var(--blue); border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 12px var(--blue);
+  }
+  .map-trail {
+    position: absolute; height: 3px;
+    background: linear-gradient(90deg, transparent, var(--blue));
+    border-radius: 2px;
+  }
+
+  /* Payment methods */
+  .pay-method {
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px; font-size: 13px;
+  }
+  .pay-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+
+  /* Inspection item */
+  .insp-item {
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 12px; margin-bottom: 8px;
+  }
+  .insp-item-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .insp-item-rating {
+    display: flex; gap: 4px; margin-bottom: 6px;
+  }
+  .star { font-size: 14px; }
+
+  /* Chart bar */
+  .chart { display: flex; align-items: flex-end; gap: 6px; height: 80px; margin: 8px 0; }
+  .bar {
+    flex: 1; border-radius: 4px 4px 0 0;
+    background: linear-gradient(180deg, var(--blue) 0%, var(--blue-dark) 100%);
+    position: relative;
+  }
+  .bar-expense {
+    background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+  }
+
+  /* Slide-in animation for UI elements */
+  .slide-in {
+    animation: slideIn 0.5s ease both;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .slide.active .a-card:nth-child(1) { animation-delay: 0.1s; }
+  .slide.active .a-card:nth-child(2) { animation-delay: 0.2s; }
+  .slide.active .a-card:nth-child(3) { animation-delay: 0.3s; }
+  .slide.active .pay-method:nth-child(1) { animation-delay: 0.1s; }
+  .slide.active .pay-method:nth-child(2) { animation-delay: 0.2s; }
+  .slide.active .pay-method:nth-child(3) { animation-delay: 0.3s; }
+  .slide.active .pay-method:nth-child(4) { animation-delay: 0.4s; }
+
+  /* ── Slide 0: Hero ── */
+  #s0 { flex-direction: column; text-align: center; }
+  #s0 .hero-logo {
+    width: 80px; height: 80px; background: var(--blue);
+    border-radius: 22px; display: flex; align-items: center; justify-content: center;
+    font-size: 40px; margin: 0 auto 24px;
+    box-shadow: 0 16px 40px rgba(125,185,232,0.4);
+  }
+  #s0 h1 {
+    font-size: 52px; font-weight: 800; color: #fff; letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  #s0 .tagline {
+    font-size: 20px; color: var(--muted); max-width: 480px; line-height: 1.5; margin-bottom: 32px;
+  }
+  #s0 .hero-pills { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  #s0 .pill {
+    background: rgba(125,185,232,0.12); border: 1px solid rgba(125,185,232,0.25);
+    color: var(--blue); border-radius: 100px; padding: 8px 16px;
+    font-size: 14px; font-weight: 500;
+  }
+  #s0 .hero-anim { margin-top: 40px; display: flex; gap: 16px; }
+  #s0 .mini-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px; width: 140px; text-align: left;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  #s0 .mini-card .mc-val { font-size: 22px; font-weight: 700; color: #fff; }
+  #s0 .mini-card .mc-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  #s0 .mini-card .mc-icon { font-size: 24px; margin-bottom: 8px; }
+
+  /* ── Slides 1-7: Side by side ── */
+  .two-col {
+    display: flex; align-items: center; justify-content: center;
+    gap: 60px; width: 100%; max-width: 900px; padding: 20px;
+  }
+
+  /* Glow effect on phone */
+  .phone-glow-blue { box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 60px rgba(125,185,232,0.2), 0 0 0 1px #3a5070; }
+  .phone-glow-green { box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 60px rgba(45,158,106,0.2), 0 0 0 1px #3a5070; }
+  .phone-glow-purple { box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 60px rgba(91,79,207,0.25), 0 0 0 1px #3a5070; }
+
+  /* Receipt-style success */
+  .receipt {
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px; margin-bottom: 8px; text-align: center;
+  }
+  .receipt-amount { font-size: 28px; font-weight: 800; color: #fff; }
+  .receipt-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* Step indicator */
+  .step-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--blue); color: #fff;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .step-text { font-size: 12px; color: var(--text); }
+  .step-done .step-num { background: var(--green); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <div class="controls">
+    <button class="ctrl-btn" onclick="prevSlide()">← Back</button>
+    <button class="ctrl-btn" onclick="togglePause()">⏸ Pause</button>
+    <button class="ctrl-btn" onclick="nextSlide()">Next →</button>
+  </div>
+  <div class="paused-badge" id="pausedBadge">⏸ Paused — click Next to advance</div>
+
+  <div class="slides" id="slides">
+
+    <!-- ══ SLIDE 0: Hero ══ -->
+    <div class="slide active" id="s0">
+      <div class="hero-logo">🏠</div>
+      <h1>It Rents.</h1>
+      <p class="tagline">The all-in-one rental property management app built for independent landlords.</p>
+      <div class="hero-pills">
+        <span class="pill">💳 Rent Collection</span>
+        <span class="pill">📊 Tax Reports</span>
+        <span class="pill">📍 GPS Mileage</span>
+        <span class="pill">📋 Inspections</span>
+        <span class="pill">✍️ Digital Leases</span>
+      </div>
+      <div class="hero-anim">
+        <div class="mini-card slide-in" style="animation-delay:0.2s">
+          <div class="mc-icon">🏘️</div>
+          <div class="mc-val">12</div>
+          <div class="mc-lbl">Active units</div>
+        </div>
+        <div class="mini-card slide-in" style="animation-delay:0.35s">
+          <div class="mc-icon">💰</div>
+          <div class="mc-val">$14,400</div>
+          <div class="mc-lbl">Monthly rent roll</div>
+        </div>
+        <div class="mini-card slide-in" style="animation-delay:0.5s">
+          <div class="mc-icon">🧾</div>
+          <div class="mc-val">$8,240</div>
+          <div class="mc-lbl">YTD deductions</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 1: Dashboard ══ -->
+    <div class="slide" id="s1">
+      <div class="two-col">
+        <div class="copy">
+          <div class="eyebrow">Your command center</div>
+          <h2>Everything at a glance.</h2>
+          <p>See all your properties, rent status, open work orders, and pending tasks the moment you open the app.</p>
+          <ul>
+            <li><div class="check">✓</div><span>Live rent payment status across all properties</span></li>
+            <li><div class="check">✓</div><span>Instant alerts for overdue payments</span></li>
+            <li><div class="check">✓</div><span>Works as a home screen app on iPhone &amp; Android</span></li>
+          </ul>
+        </div>
+        <div class="phone phone-glow-blue">
+          <div class="phone-screen">
+            <div class="app-header">
+              <div class="app-logo"><div class="app-logo-icon">🏠</div>It Rents</div>
+              <span class="role-badge">LANDLORD</span>
+            </div>
+            <div class="app-body">
+              <div class="a-card slide-in">
+                <div class="a-card-title">📍 Oakwood Commons <span class="a-badge a-badge-green">Paid</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Tenant</span><span>Sarah M.</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Rent</span><span>$1,850/mo</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Lease ends</span><span>May 2026</span></div>
+              </div>
+              <div class="a-card slide-in">
+                <div class="a-card-title">🏡 Riverside Drive <span class="a-badge a-badge-yellow">Due today</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Tenant</span><span>James K.</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Rent</span><span>$2,100/mo</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Lease ends</span><span>Aug 2026</span></div>
+              </div>
+              <div class="a-card slide-in">
+                <div class="a-card-title">🏢 Elm Street #4 <span class="a-badge a-badge-green">Paid</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Tenant</span><span>Chen Family</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Rent</span><span>$1,600/mo</span></div>
+              </div>
+            </div>
+            <div class="app-tab-bar">
+              <div class="tab active">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                Home
+              </div>
+              <div class="tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Properties
+              </div>
+              <div class="tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>
+                Rent
+              </div>
+              <div class="tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                More
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 2: Rent Collection ══ -->
+    <div class="slide" id="s2">
+      <div class="two-col">
+        <div class="phone phone-glow-blue">
+          <div class="phone-screen">
+            <div class="app-header">
+              <div class="app-logo"><div class="app-logo-icon">🏠</div>It Rents</div>
+              <span style="font-size:11px;color:var(--muted)">Pay Rent</span>
+            </div>
+            <div class="app-body">
+              <div class="receipt slide-in">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">June 2025 Rent Due</div>
+                <div class="receipt-amount">$1,850</div>
+                <div class="receipt-sub">Oakwood Commons · Due Jun 1</div>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:8px;margin-top:4px;">Choose how to pay</div>
+              <div class="pay-method slide-in">
+                <div class="pay-icon" style="background:#635BFF">💳</div>
+                <div>
+                  <div style="font-weight:600">Credit / Debit Card</div>
+                  <div style="font-size:10px;color:var(--muted)">Visa, Mastercard, AmEx · Instant</div>
+                </div>
+              </div>
+              <div class="pay-method slide-in">
+                <div class="pay-icon" style="background:#1a56a0">🏦</div>
+                <div>
+                  <div style="font-weight:600">Bank Transfer (ACH)</div>
+                  <div style="font-size:10px;color:var(--muted)">Direct from checking · $0.80 fee</div>
+                </div>
+              </div>
+              <div class="pay-method slide-in">
+                <div class="pay-icon" style="background:#3D9970">💚</div>
+                <div>
+                  <div style="font-weight:600">Cash App</div>
+                  <div style="font-size:10px;color:var(--muted)">Opens Cash App automatically</div>
+                </div>
+              </div>
+              <div class="pay-method slide-in">
+                <div class="pay-icon" style="background:#3D82F0">💙</div>
+                <div>
+                  <div style="font-weight:600">Venmo / Zelle</div>
+                  <div style="font-size:10px;color:var(--muted)">Deep link sends straight to landlord</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="copy">
+          <div class="eyebrow">Rent Collection</div>
+          <h2>Get paid every way they want.</h2>
+          <p>Tenants pay however is easiest for them — you get notified instantly and everything is logged automatically.</p>
+          <ul>
+            <li><div class="check">✓</div><span>Stripe-powered card &amp; bank transfers — goes directly to your bank</span></li>
+            <li><div class="check">✓</div><span>One-tap Cash App, Venmo, and Zelle deep links pre-fill amount &amp; memo</span></li>
+            <li><div class="check">✓</div><span>Every payment logged with date, amount, and method — no spreadsheets</span></li>
+            <li><div class="check">✓</div><span>Automatic late fee tracking after the grace period</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 3: Tenant autopay success ══ -->
+    <div class="slide" id="s3">
+      <div class="two-col">
+        <div class="copy">
+          <div class="eyebrow">Lease Management</div>
+          <h2>Digital leases. Sign from anywhere.</h2>
+          <p>Create lease records in seconds, send them for digital signature, and store signed PDFs automatically — no printer required.</p>
+          <ul>
+            <li><div class="check">✓</div><span>Landlord signs first, tenant gets notified to sign</span></li>
+            <li><div class="check">✓</div><span>Signed PDF saved automatically to the property documents</span></li>
+            <li><div class="check">✓</div><span>Both parties can download their copy anytime</span></li>
+            <li><div class="check">✓</div><span>Invite tenants by email — they sign up and sign in one flow</span></li>
+          </ul>
+        </div>
+        <div class="phone phone-glow-blue">
+          <div class="phone-screen">
+            <div class="app-header">
+              <div class="app-logo"><div class="app-logo-icon">🏠</div>It Rents</div>
+              <span style="font-size:11px;color:var(--muted)">Lease</span>
+            </div>
+            <div class="app-body">
+              <div class="a-card slide-in" style="border-color:rgba(45,158,106,0.35);background:rgba(45,158,106,0.06)">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                  <span style="color:#4ade80;font-size:18px">✅</span>
+                  <span style="font-size:13px;font-weight:600;color:#4ade80">Lease fully executed</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted)">Signed May 28, 2025</div>
+              </div>
+              <div class="a-card slide-in">
+                <div class="a-card-title">📄 Lease Terms</div>
+                <div class="a-row"><span style="color:var(--muted)">Term</span><span>Jun 1, 2025 → May 31, 2026</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Rent</span><span>$1,850/mo</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Due day</span><span>1st of month</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Late after</span><span>Day 5</span></div>
+                <div class="a-divider"></div>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <span style="color:#4ade80">✍️</span>
+                  <span style="font-size:11px;color:#4ade80">Both parties signed</span>
+                </div>
+              </div>
+              <div class="a-card slide-in">
+                <div class="step-row step-done"><div class="step-num">✓</div><div class="step-text">Landlord signed — May 28</div></div>
+                <div class="step-row step-done"><div class="step-num">✓</div><div class="step-text">Tenant signed — May 28</div></div>
+                <div class="sig-line">Sarah M. &nbsp;&nbsp;&nbsp;_________________</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 4: Tax / Expenses ══ -->
+    <div class="slide" id="s4">
+      <div class="two-col">
+        <div class="phone phone-glow-purple">
+          <div class="phone-screen">
+            <div class="app-header">
+              <div class="app-logo"><div class="app-logo-icon">🏠</div>It Rents</div>
+              <span style="font-size:11px;color:var(--muted)">Tax Report</span>
+            </div>
+            <div class="app-body">
+              <div class="a-card slide-in" style="text-align:center">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">2024 Schedule E Summary</div>
+                <div class="a-stat" style="font-size:28px;color:#4ade80">$8,240</div>
+                <div class="a-label" style="font-size:11px">Total deductible expenses</div>
+                <div class="a-divider"></div>
+                <div class="chart">
+                  <div class="bar bar-expense" style="height:45%"></div>
+                  <div class="bar bar-expense" style="height:30%"></div>
+                  <div class="bar bar-expense" style="height:60%"></div>
+                  <div class="bar bar-expense" style="height:40%"></div>
+                  <div class="bar bar-expense" style="height:55%"></div>
+                  <div class="bar bar-expense" style="height:35%"></div>
+                  <div class="bar bar-expense" style="height:70%"></div>
+                  <div class="bar bar-expense" style="height:50%"></div>
+                  <div class="bar bar-expense" style="height:45%"></div>
+                  <div class="bar bar-expense" style="height:30%"></div>
+                  <div class="bar bar-expense" style="height:65%"></div>
+                  <div class="bar bar-expense" style="height:40%"></div>
+                </div>
+              </div>
+              <div class="a-card slide-in">
+                <div class="a-card-title">Expense Breakdown</div>
+                <div class="a-row"><span>🔧 Repairs &amp; maintenance</span><span style="color:var(--text)">$2,100</span></div>
+                <div class="a-row"><span>⛽ Mileage (IRS rate)</span><span style="color:var(--text)">$842</span></div>
+                <div class="a-row"><span>🏦 Mortgage interest</span><span style="color:var(--text)">$3,200</span></div>
+                <div class="a-row"><span>🏠 Property insurance</span><span style="color:var(--text)">$1,400</span></div>
+                <div class="a-row"><span>📦 Supplies</span><span style="color:var(--text)">$698</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="copy">
+          <div class="eyebrow">Tax Tools</div>
+          <h2>Tax season made easy.</h2>
+          <p>Track every expense throughout the year — repairs, insurance, supplies — and export a ready-to-use Schedule E report for your accountant.</p>
+          <ul>
+            <li><div class="check">✓</div><span>Categorized expenses with receipt photo uploads</span></li>
+            <li><div class="check">✓</div><span>One-tap Schedule E export with line items filled in</span></li>
+            <li><div class="check">✓</div><span>Property depreciation calculator built in</span></li>
+            <li><div class="check">✓</div><span>Separate tracking per property — perfect for multiple units</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 5: GPS Mileage ══ -->
+    <div class="slide" id="s5">
+      <div class="two-col">
+        <div class="copy">
+          <div class="eyebrow">Mileage Tracking</div>
+          <h2>Every mile. Every deduction.</h2>
+          <p>Tap to start tracking when you leave for a property visit. GPS logs your route automatically. Stop tracking when you're done — that's it.</p>
+          <ul>
+            <li><div class="check">✓</div><span>GPS-tracked routes with start/end address capture</span></li>
+            <li><div class="check">✓</div><span>Automatically calculates IRS standard mileage deduction (67¢/mile in 2024)</span></li>
+            <li><div class="check">✓</div><span>Linked to a specific property for accurate per-property reporting</span></li>
+            <li><div class="check">✓</div><span>Annual mileage log exports as a PDF for your records</span></li>
+          </ul>
+        </div>
+        <div class="phone phone-glow-green">
+          <div class="phone-screen">
+            <div class="app-header">
+              <div class="app-logo"><div class="app-logo-icon">🏠</div>It Rents</div>
+              <span style="font-size:11px;color:var(--muted)">Mileage</span>
+            </div>
+            <div class="app-body">
+              <div class="map-view slide-in">
+                <div class="map-road" style="width:2px;height:100%;top:0;left:50%"></div>
+                <div class="map-road" style="width:100%;height:2px;top:50%;left:0"></div>
+                <div class="map-road" style="width:2px;height:60%;top:20%;left:30%;transform:rotate(25deg)"></div>
+                <div class="map-trail" style="width:120px;top:55%;left:28%"></div>
+                <div class="map-dot" style="top:50%;left:68%;transform:translate(-50%,-50%)"></div>
+                <div style="position:absolute;bottom:8px;right:8px;background:rgba(45,158,106,0.9);border-radius:8px;padding:4px 8px;font-size:10px;font-weight:600;color:#fff">📍 Tracking…</div>
+              </div>
+              <div class="a-card slide-in" style="border-color:rgba(45,158,106,0.35)">
+                <div class="a-card-title">🚗 Today's Trip</div>
+                <div class="a-row"><span style="color:var(--muted)">Distance</span><span style="color:#4ade80;font-weight:700">8.4 miles</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Deduction</span><span style="color:#4ade80;font-weight:700">$5.63</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Property</span><span>Riverside Drive</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Purpose</span><span>Maintenance visit</span></div>
+              </div>
+              <div class="a-card slide-in">
+                <div class="a-card-title">2025 YTD Summary</div>
+                <div class="a-row"><span style="color:var(--muted)">Total miles</span><span style="font-weight:700">1,256 mi</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Total deduction</span><span style="font-weight:700;color:#4ade80">$841.52</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Trips logged</span><span>47 trips</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 6: Move-in Inspection ══ -->
+    <div class="slide" id="s6">
+      <div class="two-col">
+        <div class="phone phone-glow-blue">
+          <div class="phone-screen">
+            <div class="app-header">
+              <div class="app-logo"><div class="app-logo-icon">🏠</div>It Rents</div>
+              <span style="font-size:11px;color:var(--muted)">Inspection</span>
+            </div>
+            <div class="app-body">
+              <div class="a-card slide-in" style="margin-bottom:8px">
+                <div class="a-card-title">Move-in Inspection <span class="a-badge a-badge-green">Signed</span></div>
+                <div style="font-size:11px;color:var(--muted)">Oakwood Commons · June 1, 2025</div>
+              </div>
+              <div class="insp-item slide-in">
+                <div class="insp-item-name">🛋️ Living Room</div>
+                <div class="insp-item-rating"><span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span></div>
+                <div class="photo-grid">
+                  <div class="photo-cell">🛋️</div>
+                  <div class="photo-cell">🪟</div>
+                </div>
+              </div>
+              <div class="insp-item slide-in">
+                <div class="insp-item-name">🍳 Kitchen</div>
+                <div class="insp-item-rating"><span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span></div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Minor scuff on cabinet door noted</div>
+                <div class="photo-grid">
+                  <div class="photo-cell">🍳</div>
+                  <div class="photo-cell">🚿</div>
+                </div>
+              </div>
+              <div class="a-card slide-in" style="border-color:rgba(45,158,106,0.3)">
+                <div style="font-size:11px;font-weight:600;color:#4ade80;margin-bottom:6px">✅ Both parties signed</div>
+                <div class="sig-line">Landlord: D. Johnson ✍️</div>
+                <div class="sig-line" style="margin-top:4px">Tenant: Sarah M. ✍️</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="copy">
+          <div class="eyebrow">Move-in Inspections</div>
+          <h2>Document everything. Protect everyone.</h2>
+          <p>Create a detailed room-by-room inspection with photo evidence, condition ratings, and notes. Both landlord and tenant sign off digitally.</p>
+          <ul>
+            <li><div class="check">✓</div><span>Room-by-room condition ratings with unlimited photo uploads</span></li>
+            <li><div class="check">✓</div><span>Tenant receives notification to review &amp; sign from their phone</span></li>
+            <li><div class="check">✓</div><span>Signed inspection stored permanently — protects your security deposit</span></li>
+            <li><div class="check">✓</div><span>Both landlord and tenant keep a digital copy</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 7: Maintenance / Work Orders ══ -->
+    <div class="slide" id="s7">
+      <div class="two-col">
+        <div class="copy">
+          <div class="eyebrow">Maintenance</div>
+          <h2>Work orders — from request to done.</h2>
+          <p>Tenants submit maintenance requests from their app. You track status, upload photos, and close them out — all in one place.</p>
+          <ul>
+            <li><div class="check">✓</div><span>Tenants submit requests with photos directly from their phone</span></li>
+            <li><div class="check">✓</div><span>Urgency levels: routine, urgent, emergency</span></li>
+            <li><div class="check">✓</div><span>Full status history and photo documentation</span></li>
+            <li><div class="check">✓</div><span>Expenses logged against the work order for tax deductions</span></li>
+          </ul>
+        </div>
+        <div class="phone phone-glow-blue">
+          <div class="phone-screen">
+            <div class="app-header">
+              <div class="app-logo"><div class="app-logo-icon">🏠</div>It Rents</div>
+              <span style="font-size:11px;color:var(--muted)">Work Orders</span>
+            </div>
+            <div class="app-body">
+              <div class="a-card slide-in">
+                <div class="a-card-title">🔧 HVAC not cooling <span class="a-badge a-badge-red">Urgent</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Property</span><span>Riverside Drive</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Submitted</span><span>Jun 4, 2025</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Status</span><span style="color:#fbbf24">In Progress</span></div>
+                <div class="photo-grid">
+                  <div class="photo-cell">🌡️</div>
+                  <div class="photo-cell">🔧</div>
+                </div>
+              </div>
+              <div class="a-card slide-in">
+                <div class="a-card-title">🚰 Leaky faucet <span class="a-badge a-badge-gray">Routine</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Property</span><span>Oakwood Commons</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Status</span><span style="color:#4ade80">Completed</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Cost</span><span>$85 (logged)</span></div>
+              </div>
+              <div class="a-card slide-in">
+                <div class="a-card-title">🔒 Deadbolt sticky <span class="a-badge a-badge-gray">Routine</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Property</span><span>Elm Street #4</span></div>
+                <div class="a-row"><span style="color:var(--muted)">Status</span><span style="color:var(--muted)">Open</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 8: CTA ══ -->
+    <div class="slide" id="s8" style="flex-direction:column;text-align:center;">
+      <div style="font-size:48px;margin-bottom:20px">🏠</div>
+      <h1 style="font-size:44px;font-weight:800;color:#fff;letter-spacing:-0.02em;margin-bottom:12px">Ready to simplify<br>your portfolio?</h1>
+      <p style="font-size:18px;color:var(--muted);max-width:460px;line-height:1.6;margin-bottom:36px">
+        It Rents handles rent collection, taxes, inspections, leases, and maintenance — so you can focus on growing your portfolio, not managing paperwork.
+      </p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:480px;width:100%;margin-bottom:36px">
+        <div class="mini-card" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:left">
+          <div style="font-size:24px;margin-bottom:6px">💳</div>
+          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px">Rent Collection</div>
+          <div style="font-size:11px;color:var(--muted)">Stripe · Cash App · Venmo · Zelle</div>
+        </div>
+        <div class="mini-card" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:left">
+          <div style="font-size:24px;margin-bottom:6px">📊</div>
+          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px">Tax Ready</div>
+          <div style="font-size:11px;color:var(--muted)">Schedule E · Mileage · Depreciation</div>
+        </div>
+        <div class="mini-card" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:left">
+          <div style="font-size:24px;margin-bottom:6px">📋</div>
+          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px">Inspections</div>
+          <div style="font-size:11px;color:var(--muted)">Photos · Ratings · Digital Signatures</div>
+        </div>
+        <div class="mini-card" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:left">
+          <div style="font-size:24px;margin-bottom:6px">✍️</div>
+          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px">Digital Leases</div>
+          <div style="font-size:11px;color:var(--muted)">Sign · Store · Download anytime</div>
+        </div>
+      </div>
+      <div style="font-size:28px;font-weight:800;color:var(--blue)">it-rents.com</div>
+    </div>
+
+  </div><!-- /slides -->
+
+  <div class="progress-wrap" id="progressWrap"></div>
+</div>
+
+<script>
+  const SLIDE_COUNT = 9;
+  const DURATIONS = [5000, 7000, 7000, 7000, 7000, 7000, 7000, 7000, 8000];
+  let current = 0;
+  let paused = false;
+  let timer = null;
+
+  const slides = document.querySelectorAll('.slide');
+  const progressWrap = document.getElementById('progressWrap');
+  const pausedBadge = document.getElementById('pausedBadge');
+
+  // Build dots
+  for (let i = 0; i < SLIDE_COUNT; i++) {
+    const d = document.createElement('div');
+    d.className = 'progress-dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    d.style.cursor = 'pointer';
+    progressWrap.appendChild(d);
+  }
+
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    progressWrap.children[current].classList.remove('active');
+    current = (n + SLIDE_COUNT) % SLIDE_COUNT;
+    slides[current].classList.add('active');
+    progressWrap.children[current].classList.add('active');
+    // Re-trigger slide-in animations
+    const els = slides[current].querySelectorAll('.slide-in');
+    els.forEach(el => {
+      el.style.animation = 'none';
+      el.offsetHeight; // reflow
+      el.style.animation = '';
+    });
+    if (!paused) scheduleNext();
+  }
+
+  function nextSlide() { goTo(current + 1); }
+  function prevSlide() { goTo(current - 1); }
+
+  function scheduleNext() {
+    clearTimeout(timer);
+    if (!paused) timer = setTimeout(nextSlide, DURATIONS[current]);
+  }
+
+  function togglePause() {
+    paused = !paused;
+    pausedBadge.classList.toggle('visible', paused);
+    const btn = document.querySelector('.ctrl-btn:nth-child(2)');
+    btn.textContent = paused ? '▶ Resume' : '⏸ Pause';
+    if (!paused) scheduleNext();
+    else clearTimeout(timer);
+  }
+
+  // Keyboard nav
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'Space') nextSlide();
+    if (e.key === 'ArrowLeft') prevSlide();
+    if (e.key === 'p' || e.key === 'P') togglePause();
+  });
+
+  // Start
+  scheduleNext();
+</script>
+</body>
+</html>
