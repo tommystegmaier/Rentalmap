@@ -37,6 +37,12 @@ export async function removeTenantFromLease(
         .eq('lease_id', leaseTenant.lease_id)
         .ilike('email', tenantUser.email);
     }
+
+    // Clear tenant signature so the next tenant added must sign fresh.
+    await admin
+      .from('leases')
+      .update({ tenant_signed_at: null, tenant_signed_name: null })
+      .eq('id', leaseTenant.lease_id);
   }
 
   revalidatePath(`/landlord/properties/${propertyId}`);
