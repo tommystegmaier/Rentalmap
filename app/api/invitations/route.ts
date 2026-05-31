@@ -125,9 +125,45 @@ export async function POST(request: Request) {
     }
 
     // Fallback for confirmed users ("User already registered"):
-    // Generate a fresh magic link and return it for the landlord to share
-    // directly. Supabase's OTP send is subject to strict rate limits and
-    // will fail unpredictably, so we skip it entirely for existing accounts.
+    // We know who they are, so add them to the lease immediately rather than
+    // waiting for them to click a magic link.
+    const { data: existingUser } = await admin
+      .from('users')
+      .select('id')
+      .ilike('email', email)
+      .maybeSingle();
+
+    if (existingUser) {
+      // Ensure role is tenant (mirrors accept_pending_invitations logic).
+      await admin
+        .from('users')
+        .update({ role: 'tenant' })
+        .eq('id', existingUser.id)
+        .neq('role', 'landlord');
+
+      // Add to lease — idempotent if already there.
+      await admin
+        .from('lease_tenants')
+        .upsert(
+          { lease_id, user_id: existingUser.id },
+          { onConflict: 'lease_id,user_id', ignoreDuplicates: true },
+        );
+
+      // Mark invitation accepted immediately.
+      await admin
+        .from('tenant_invitations')
+        .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+        .eq('lease_id', lease_id)
+        .ilike('email', email);
+
+      // Clear tenant signature so they must sign fresh.
+      await admin
+        .from('leases')
+        .update({ tenant_signed_at: null, tenant_signed_name: null })
+        .eq('id', lease_id);
+    }
+
+    // Generate a sign-in link in case they need to log back in.
     const { data: linkData, error: linkGenErr } = await admin.auth.admin.generateLink({
       type: 'magiclink',
       email,

@@ -95,11 +95,13 @@ export function InviteForm({ leases }: InviteFormProps) {
         <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
           <p className="text-sm font-medium">
             {inviteLink.existingUser
-              ? 'Tenant already has an account — send them this sign-in link'
+              ? 'Tenant added — they can open the app now'
               : 'Share this invite link directly'}
           </p>
           <p className="text-xs text-muted-foreground">
-            Copy the link and send it to your tenant via text or email. It works the same as the invite email.
+            {inviteLink.existingUser
+              ? 'The lease is now visible in their tenant app and they\'ll be prompted to sign. Share this link if they need to log back in.'
+              : 'Copy the link and send it to your tenant via text or email. It works the same as the invite email.'}
           </p>
           <Button
             type="button"
