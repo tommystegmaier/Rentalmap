@@ -125,8 +125,9 @@ export async function POST(request: Request) {
     }
 
     // Fallback for confirmed users ("User already registered"):
-    // Generate a fresh magic link via the admin generate_link endpoint, which
-    // bypasses user-registration checks and rate limits.
+    // Generate a fresh magic link and return it for the landlord to share
+    // directly. Supabase's OTP send is subject to strict rate limits and
+    // will fail unpredictably, so we skip it entirely for existing accounts.
     const { data: linkData, error: linkGenErr } = await admin.auth.admin.generateLink({
       type: 'magiclink',
       email,
@@ -134,22 +135,10 @@ export async function POST(request: Request) {
     });
 
     if (!linkGenErr && linkData?.properties?.action_link) {
-      // Best-effort: try sending via OTP (may be rate-limited if recently sent).
-      const { error: otpErr } = await admin.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo, data: inviteData },
-      });
-
-      if (!otpErr) {
-        // OTP email sent — tenant will get the magic link in their inbox.
-        return NextResponse.json({ ok: true });
-      }
-
-      // OTP was rate-limited or failed. Return the generated link so the
-      // landlord can copy and share it with the tenant directly.
       return NextResponse.json({
         ok: true,
         inviteLink: linkData.properties.action_link,
+        existingUser: true,
       });
     }
 

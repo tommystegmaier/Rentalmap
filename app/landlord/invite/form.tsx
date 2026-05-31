@@ -21,7 +21,7 @@ export function InviteForm({ leases }: InviteFormProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState<{ url: string; existingUser: boolean } | null>(null);
   const [copied, setCopied] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -43,7 +43,7 @@ export function InviteForm({ leases }: InviteFormProps) {
       setEmail('');
       setSent(true);
       if (json.inviteLink) {
-        setInviteLink(json.inviteLink);
+        setInviteLink({ url: json.inviteLink, existingUser: !!json.existingUser });
       }
       router.refresh();
     } catch (err) {
@@ -55,7 +55,7 @@ export function InviteForm({ leases }: InviteFormProps) {
 
   async function copyLink() {
     if (!inviteLink) return;
-    await copyToClipboard(inviteLink);
+    await copyToClipboard(inviteLink.url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   }
@@ -92,22 +92,24 @@ export function InviteForm({ leases }: InviteFormProps) {
       ) : null}
 
       {sent && inviteLink ? (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-950/40 space-y-2">
-          <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-            Email was rate-limited — share this link directly
+        <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
+          <p className="text-sm font-medium">
+            {inviteLink.existingUser
+              ? 'Tenant already has an account — send them this sign-in link'
+              : 'Share this invite link directly'}
           </p>
-          <p className="text-xs text-amber-700 dark:text-amber-400">
-            Copy the link below and send it to your tenant via text or email. It works the same as the invite email.
+          <p className="text-xs text-muted-foreground">
+            Copy the link and send it to your tenant via text or email. It works the same as the invite email.
           </p>
           <Button
             type="button"
             size="sm"
             variant="outline"
-            className="gap-1.5 border-amber-400 dark:border-amber-600"
+            className="gap-1.5"
             onClick={copyLink}
           >
             {copied ? <CheckCheck size={13} /> : <Copy size={13} />}
-            {copied ? 'Copied!' : 'Copy invite link'}
+            {copied ? 'Copied!' : 'Copy sign-in link'}
           </Button>
         </div>
       ) : null}
