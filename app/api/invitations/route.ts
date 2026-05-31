@@ -55,10 +55,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  const admin = createServiceRoleClient();
+
   // Check whether this invitation has already been accepted. If so, we still
   // resend the magic-link email (tenant may need a new sign-in link) but we
   // must NOT flip status back to 'pending' — that would turn their badge gray.
-  const { data: existingInvite } = await supabase
+  const { data: existingInvite } = await admin
     .from('tenant_invitations')
     .select('status')
     .eq('lease_id', lease_id)
@@ -66,7 +68,8 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (existingInvite?.status !== 'accepted') {
-    const { error: invErr } = await supabase
+    // Use admin client to avoid RLS issues on upsert
+    const { error: invErr } = await admin
       .from('tenant_invitations')
       .upsert(
         { landlord_id: user.id, lease_id, email, status: 'pending' },
@@ -99,7 +102,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    const admin = createServiceRoleClient();
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
     const emailRedirectTo = `${siteUrl}/auth/callback?to=welcome`;
@@ -109,29 +111,57 @@ export async function POST(request: Request) {
       landlord_name: landlordName,
       property_address: propertyAddress,
     };
-    const { error: otpErr } = await admin.auth.admin.inviteUserByEmail(email, {
+
+    // Primary path: inviteUserByEmail works for new users and previously-invited
+    // (unconfirmed) users. The admin endpoint is not subject to the per-user
+    // 60-second OTP rate limit.
+    const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
       redirectTo: emailRedirectTo,
       data: inviteData,
     });
-    if (otpErr) {
-      // If the user already exists, fall back to a magic link.
-      const { error: linkErr } = await admin.auth.signInWithOtp({
+
+    if (!inviteErr) {
+      return NextResponse.json({ ok: true });
+    }
+
+    // Fallback for confirmed users ("User already registered"):
+    // Generate a fresh magic link via the admin generate_link endpoint, which
+    // bypasses user-registration checks and rate limits.
+    const { data: linkData, error: linkGenErr } = await admin.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+      options: { redirectTo: emailRedirectTo, data: inviteData },
+    });
+
+    if (!linkGenErr && linkData?.properties?.action_link) {
+      // Best-effort: try sending via OTP (may be rate-limited if recently sent).
+      const { error: otpErr } = await admin.auth.signInWithOtp({
         email,
         options: { emailRedirectTo, data: inviteData },
       });
-      if (linkErr) {
-        return NextResponse.json(
-          { error: friendlyInviteError(linkErr.message) },
-          { status: 500 },
-        );
+
+      if (!otpErr) {
+        // OTP email sent — tenant will get the magic link in their inbox.
+        return NextResponse.json({ ok: true });
       }
+
+      // OTP was rate-limited or failed. Return the generated link so the
+      // landlord can copy and share it with the tenant directly.
+      return NextResponse.json({
+        ok: true,
+        inviteLink: linkData.properties.action_link,
+      });
     }
+
+    // Both paths failed — surface the original invite error.
+    return NextResponse.json(
+      { error: friendlyInviteError(inviteErr.message) },
+      { status: 500 },
+    );
   } catch (err) {
     const raw = err instanceof Error ? err.message : 'Failed to send invitation';
     return NextResponse.json({ error: friendlyInviteError(raw) }, { status: 500 });
   }
-
-  return NextResponse.json({ ok: true });
 }
 
 function friendlyInviteError(raw: string): string {
