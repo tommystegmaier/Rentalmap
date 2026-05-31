@@ -1,895 +1,892 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>It Rents — App Tour</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>RentalMap — App Tour</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg:#ffffff;--primary:#4a9ad4;--primary-l:#7DB9E8;--fg:#1e2433;
+  --muted:#f4f5f7;--muted-fg:#6b7280;--border:#e8eaee;
+  --success:#16a34a;--warning:#f59e0b;--destr:#dc2626;
+  --r:12px;--font:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:var(--font);background:#0a1628}
 
-  :root {
-    --blue: #7DB9E8;
-    --blue-dark: #3a8fd4;
-    --blue-deep: #1a4a6b;
-    --green: #2d9e6a;
-    --bg: #0c1a2e;
-    --card: #132030;
-    --card2: #1a2d42;
-    --text: #e8f0f8;
-    --muted: #7a9ab8;
-    --border: #1e3248;
-    --warning: #f59e0b;
-    --destructive: #ef4444;
-  }
+#app{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:16px 16px 64px}
 
-  html, body {
-    width: 100%; height: 100%;
-    background: var(--bg);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    color: var(--text);
-    overflow: hidden;
-  }
+#phone{
+  position:relative;width:390px;height:844px;
+  background:var(--bg);border-radius:48px;overflow:hidden;
+  box-shadow:0 0 0 10px #1c2340,0 0 0 12px #2d3561,0 28px 80px rgba(0,0,0,.7);
+  flex-shrink:0;
+}
+@media(max-width:430px){
+  #app{padding:0;background:var(--bg);justify-content:flex-start}
+  #phone{width:100%;height:100dvh;height:100vh;border-radius:0;box-shadow:none}
+}
 
-  /* ── Stage ── */
-  .stage {
-    width: 100vw; height: 100vh;
-    display: flex; align-items: center; justify-content: center;
-    position: relative;
-  }
+/* status bar */
+.sb{position:relative;z-index:100;height:44px;padding:0 24px;
+  display:flex;align-items:flex-end;justify-content:space-between;padding-bottom:10px;
+  background:var(--bg);font-size:15px;font-weight:700;color:var(--fg);flex-shrink:0}
+.sb-icons{display:flex;gap:6px;align-items:center}
+.sb-icons svg{width:16px;height:16px}
 
-  /* ── Background blobs ── */
-  .blob {
-    position: absolute; border-radius: 50%;
-    filter: blur(80px); opacity: 0.18; pointer-events: none;
-  }
-  .blob-1 { width: 500px; height: 500px; background: var(--blue); top: -100px; left: -100px; }
-  .blob-2 { width: 400px; height: 400px; background: #5b4fcf; bottom: -80px; right: -60px; }
-  .blob-3 { width: 300px; height: 300px; background: var(--green); top: 40%; left: 60%; }
+/* screen container */
+#sc{position:absolute;top:44px;left:0;right:0;bottom:0;overflow:hidden}
 
-  /* ── Progress bar ── */
-  .progress-wrap {
-    position: absolute; bottom: 28px; left: 50%;
-    transform: translateX(-50%);
-    display: flex; gap: 8px; z-index: 100;
-  }
-  .progress-dot {
-    width: 8px; height: 8px; border-radius: 4px;
-    background: rgba(255,255,255,0.25);
-    transition: all 0.4s ease;
-  }
-  .progress-dot.active {
-    background: var(--blue); width: 24px;
-  }
+/* screens */
+.screen{
+  position:absolute;inset:0;background:var(--bg);
+  display:flex;flex-direction:column;overflow:hidden;
+  transform:translateX(100%);will-change:transform;
+}
 
-  /* ── Skip / controls ── */
-  .controls {
-    position: absolute; top: 20px; right: 20px;
-    display: flex; gap: 10px; z-index: 100;
-  }
-  .ctrl-btn {
-    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
-    color: var(--text); border-radius: 8px; padding: 6px 14px;
-    font-size: 13px; cursor: pointer; transition: background 0.2s;
-  }
-  .ctrl-btn:hover { background: rgba(255,255,255,0.2); }
+/* app header */
+.ah{height:54px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);background:rgba(255,255,255,.96);
+  backdrop-filter:blur(12px);flex-shrink:0;position:relative;z-index:10}
+.ah-logo{font-size:20px;font-weight:900;color:var(--primary);letter-spacing:-.5px}
+.ah-title{position:absolute;left:50%;transform:translateX(-50%);font-size:17px;font-weight:700;color:var(--fg)}
+.ah-back{display:flex;align-items:center;gap:2px;font-size:15px;color:var(--primary);font-weight:500}
+.ah-back svg{width:18px;height:18px}
+.ah-actions{display:flex;gap:4px;align-items:center}
+.ib{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--fg)}
 
-  /* ── Pause indicator ── */
-  .paused-badge {
-    position: absolute; top: 20px; left: 20px;
-    background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.6); border-radius: 8px;
-    padding: 4px 10px; font-size: 12px; z-index: 100;
-    display: none;
-  }
-  .paused-badge.visible { display: block; }
+/* scrollable content */
+.sc-inner{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+.sc-inner.np{padding:0}
 
-  /* ── Slide container ── */
-  .slides { position: relative; width: 100%; height: 100%; }
+/* tab bar */
+.tb{height:82px;padding-bottom:18px;border-top:1px solid var(--border);
+  display:flex;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);flex-shrink:0}
+.ti{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;color:var(--muted-fg);font-size:10px;font-weight:500;padding-top:6px}
+.ti.on{color:var(--primary)}
+.ti svg{width:22px;height:22px}
 
-  .slide {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.7s ease;
-  }
-  .slide.active { opacity: 1; pointer-events: auto; }
+/* cards */
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.csm{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px}
 
-  /* ── Phone frame ── */
-  .phone {
-    width: 310px; height: 620px;
-    background: #0a0f18;
-    border-radius: 44px;
-    border: 3px solid #2a3a50;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px #3a5070, inset 0 0 0 1px #1a2d42;
-    flex-shrink: 0;
-  }
-  .phone::before {
-    content: '';
-    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-    width: 100px; height: 28px;
-    background: #0a0f18;
-    border-radius: 0 0 18px 18px;
-    z-index: 10;
-  }
-  .phone-screen {
-    width: 100%; height: 100%;
-    overflow: hidden; border-radius: 42px;
-    background: #0c1520;
-  }
+/* buttons */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;
+  height:48px;border-radius:10px;font-size:15px;font-weight:600;border:none;cursor:pointer;width:100%}
+.btn-p{background:var(--primary);color:#fff}
+.btn-o{background:transparent;color:var(--primary);border:1.5px solid var(--primary)}
+.btn-s{background:var(--success);color:#fff}
+.btn-d{background:var(--destr);color:#fff}
+.bsm{height:34px;font-size:13px;border-radius:8px;padding:0 14px;width:auto;
+  display:inline-flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:var(--font)}
 
-  /* ── Layout helpers ── */
-  .row { display: flex; gap: 12px; }
-  .col { display: flex; flex-direction: column; gap: 12px; }
+/* type */
+.txs{font-size:11px}.tsm{font-size:13px}.tbs{font-size:15px}.tlg{font-size:17px}
+.txl{font-size:21px}.t2x{font-size:26px}
+.fw5{font-weight:500}.fw6{font-weight:600}.fw7{font-weight:700}.fw8{font-weight:800}
+.cm{color:var(--muted-fg)}.cp{color:var(--primary)}.cs{color:var(--success)}
+.cw{color:var(--warning)}.cd{color:var(--destr)}
 
-  /* ── Copy panel ── */
-  .copy {
-    max-width: 380px;
-    padding: 0 32px;
-  }
-  .copy .eyebrow {
-    font-size: 12px; font-weight: 600; letter-spacing: 0.12em;
-    color: var(--blue); text-transform: uppercase; margin-bottom: 10px;
-  }
-  .copy h2 {
-    font-size: 32px; font-weight: 700; line-height: 1.2;
-    color: #fff; margin-bottom: 14px;
-  }
-  .copy p {
-    font-size: 16px; line-height: 1.6; color: var(--muted);
-  }
-  .copy ul {
-    list-style: none; margin-top: 18px;
-    display: flex; flex-direction: column; gap: 10px;
-  }
-  .copy ul li {
-    display: flex; align-items: flex-start; gap: 10px;
-    font-size: 15px; color: var(--text);
-  }
-  .check {
-    width: 20px; height: 20px; border-radius: 50%;
-    background: var(--green); color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px; flex-shrink: 0; margin-top: 1px;
-  }
+/* layout */
+.row{display:flex;align-items:center}.col{display:flex;flex-direction:column}
+.jb{justify-content:space-between}.jc{justify-content:center}
+.g1{gap:4px}.g2{gap:8px}.g3{gap:12px}.g4{gap:16px}
+.mt1{margin-top:4px}.mt2{margin-top:8px}.mt3{margin-top:12px}.mt4{margin-top:16px}
+.mb2{margin-bottom:8px}.mb3{margin-bottom:12px}.mb4{margin-bottom:16px}
+.mla{margin-left:auto}.w100{width:100%}
+.g2c{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
-  /* ── App UI components ── */
-  .app-header {
-    background: rgba(10,15,24,0.95);
-    border-bottom: 1px solid var(--border);
-    padding: 36px 16px 10px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .app-logo {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 15px; font-weight: 700; color: var(--text);
-  }
-  .app-logo-icon {
-    width: 28px; height: 28px; background: var(--blue);
-    border-radius: 8px; display: flex; align-items: center; justify-content: center;
-    font-size: 14px;
-  }
-  .role-badge {
-    font-size: 11px; font-weight: 600; color: var(--blue);
-    letter-spacing: 0.06em; background: rgba(125,185,232,0.12);
-    padding: 3px 8px; border-radius: 6px;
-  }
+/* badges */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.bs{background:#dcfce7;color:#15803d}.bw{background:#fef3c7;color:#92400e}
+.bd{background:#fee2e2;color:#991b1b}.bp{background:#dbeafe;color:#1e40af}
+.bm{background:var(--muted);color:var(--muted-fg)}
 
-  .app-body { padding: 14px; overflow-y: auto; height: calc(100% - 58px - 58px); }
+/* avatar */
+.av{width:38px;height:38px;border-radius:50%;background:var(--primary-l);
+  display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:700;flex-shrink:0}
+.avsm{width:30px;height:30px;font-size:11px}
 
-  .app-tab-bar {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    background: rgba(10,15,24,0.97);
-    border-top: 1px solid var(--border);
-    display: flex; height: 58px;
-    padding-bottom: 8px;
-  }
-  .tab {
-    flex: 1; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 3px;
-    font-size: 9px; color: var(--muted);
-  }
-  .tab.active { color: var(--blue); }
-  .tab svg { width: 20px; height: 20px; }
+/* input */
+.il{font-size:13px;font-weight:600;color:var(--fg);margin-bottom:5px}
+.ifield{width:100%;height:46px;border-radius:10px;border:1.5px solid var(--border);
+  background:#fafafa;padding:0 14px;font-size:16px;color:var(--fg);font-family:var(--font)}
+.ig{margin-bottom:12px}
 
-  /* App cards */
-  .a-card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 16px; padding: 14px; margin-bottom: 10px;
-  }
-  .a-card-title {
-    font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .a-badge {
-    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
-  }
-  .a-badge-green { background: rgba(45,158,106,0.18); color: #4ade80; }
-  .a-badge-yellow { background: rgba(245,158,11,0.18); color: #fbbf24; }
-  .a-badge-red { background: rgba(239,68,68,0.18); color: #f87171; }
-  .a-badge-blue { background: rgba(125,185,232,0.18); color: var(--blue); }
-  .a-badge-gray { background: rgba(122,154,184,0.15); color: var(--muted); }
+/* divider / section label */
+.div{height:1px;background:var(--border);margin:12px 0}
+.sl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-fg);margin-bottom:10px;margin-top:4px}
 
-  .a-stat { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
-  .a-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
-  .a-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px; }
-  .a-divider { height: 1px; background: var(--border); margin: 10px 0; }
+/* progress */
+.pb{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:8px}
+.pf{height:100%;border-radius:4px;background:var(--success)}
 
-  /* Photo grid */
-  .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
-  .photo-cell {
-    aspect-ratio: 4/3; border-radius: 8px; overflow: hidden;
-    background: var(--card2); display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
-  }
-  .photo-cell img { width: 100%; height: 100%; object-fit: cover; }
+/* map */
+.map{width:100%;height:195px;background:linear-gradient(135deg,#e8f4e0,#d4ead0,#c8e8c0);
+  border-radius:var(--r);position:relative;overflow:hidden;margin-bottom:12px}
+.map::before{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 28px,rgba(0,0,0,.04) 28px,rgba(0,0,0,.04) 29px),
+    repeating-linear-gradient(90deg,transparent,transparent 28px,rgba(0,0,0,.04) 28px,rgba(0,0,0,.04) 29px)}
+.map-path{position:absolute;top:30%;left:15%;width:55%;height:90px;
+  border:3px solid var(--primary);border-bottom:none;border-right:none;border-radius:8px 0 0 0;opacity:.85}
+.mdot{position:absolute;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.mdot.s{background:var(--success);top:56%;left:13%}
+.mdot.e{background:var(--destr);top:16%;left:65%}
+.mlbl{position:absolute;font-size:10px;font-weight:700;color:var(--fg);background:white;padding:2px 7px;border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.mlbl.s{top:65%;left:17%}.mlbl.e{top:9%;left:58%}
+.minfo{position:absolute;bottom:10px;left:10px;right:10px;background:rgba(255,255,255,.9);
+  backdrop-filter:blur(6px);border-radius:10px;padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between}
 
-  /* Signature line */
-  .sig-line {
-    border-bottom: 1.5px solid var(--blue);
-    padding: 8px 4px; margin-top: 6px;
-    font-size: 12px; color: var(--muted); font-style: italic;
-  }
+/* property banner */
+.propimg{width:100%;height:150px;background:linear-gradient(135deg,#5ba8d8 0%,#2d7abf 50%,#1a5fa3 100%);
+  position:relative;overflow:hidden;flex-shrink:0}
+.propimg::after{content:'';position:absolute;bottom:0;left:0;right:0;height:50px;background:linear-gradient(to top,rgba(0,0,0,.35),transparent)}
+.propaddr{position:absolute;bottom:10px;left:16px;color:white;font-size:13px;font-weight:600;z-index:1;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.propchip{position:absolute;top:12px;right:12px;background:rgba(255,255,255,.9);color:var(--fg);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
 
-  /* Map placeholder */
-  .map-view {
-    background: linear-gradient(135deg, #0e2a1e 0%, #1a3d2b 50%, #0e2a1e 100%);
-    border-radius: 12px; height: 130px; position: relative;
-    overflow: hidden; margin-bottom: 8px;
-    border: 1px solid rgba(45,158,106,0.2);
-  }
-  .map-road {
-    position: absolute; background: rgba(255,255,255,0.08);
-    border-radius: 2px;
-  }
-  .map-dot {
-    position: absolute; width: 12px; height: 12px;
-    background: var(--blue); border-radius: 50%;
-    border: 2px solid #fff;
-    box-shadow: 0 0 12px var(--blue);
-  }
-  .map-trail {
-    position: absolute; height: 3px;
-    background: linear-gradient(90deg, transparent, var(--blue));
-    border-radius: 2px;
-  }
+/* photo grid */
+.pg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:10px 0}
+.pc{aspect-ratio:1;border-radius:8px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);
+  display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;position:relative}
+.pc.add{background:var(--muted);border:2px dashed var(--border);color:var(--muted-fg)}
 
-  /* Payment methods */
-  .pay-method {
-    background: var(--card2); border: 1px solid var(--border);
-    border-radius: 12px; padding: 10px 12px;
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 8px; font-size: 13px;
-  }
-  .pay-icon {
-    width: 32px; height: 32px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 15px; flex-shrink: 0;
-  }
+/* signature */
+.sigbox{border:1.5px solid var(--border);border-radius:10px;height:78px;position:relative;overflow:hidden;background:#fafafa;margin-bottom:12px}
+.sigline{position:absolute;bottom:26px;left:10px;right:10px;height:1px;background:var(--border)}
+.signame{position:absolute;bottom:8px;left:12px;font-size:11px;color:var(--muted-fg);font-weight:500}
+.sigscrib{position:absolute;top:8px;left:12px;right:12px;height:40px}
 
-  /* Inspection item */
-  .insp-item {
-    background: var(--card2); border: 1px solid var(--border);
-    border-radius: 12px; padding: 10px 12px; margin-bottom: 8px;
-  }
-  .insp-item-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-  .insp-item-rating {
-    display: flex; gap: 4px; margin-bottom: 6px;
-  }
-  .star { font-size: 14px; }
+/* tap indicator */
+#tap{position:absolute;width:54px;height:54px;border-radius:50%;
+  background:rgba(74,154,212,.25);pointer-events:none;
+  transform:translate(-50%,-50%) scale(0);z-index:999;
+  border:2px solid rgba(74,154,212,.5)}
+#tap.go{animation:tapAnim .5s ease-out forwards}
+@keyframes tapAnim{
+  0%{transform:translate(-50%,-50%) scale(0);opacity:1}
+  60%{transform:translate(-50%,-50%) scale(1);opacity:.7}
+  100%{transform:translate(-50%,-50%) scale(1.4);opacity:0}
+}
 
-  /* Chart bar */
-  .chart { display: flex; align-items: flex-end; gap: 6px; height: 80px; margin: 8px 0; }
-  .bar {
-    flex: 1; border-radius: 4px 4px 0 0;
-    background: linear-gradient(180deg, var(--blue) 0%, var(--blue-dark) 100%);
-    position: relative;
-  }
-  .bar-expense {
-    background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
-  }
+/* notification */
+#notif{position:absolute;top:54px;left:12px;right:12px;
+  background:rgba(255,255,255,.96);border-radius:16px;padding:14px;
+  box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:500;
+  transform:translateY(-120%);opacity:0;
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1),opacity .3s ease;
+  backdrop-filter:blur(10px)}
+#notif.show{transform:translateY(0);opacity:1}
 
-  /* Slide-in animation for UI elements */
-  .slide-in {
-    animation: slideIn 0.5s ease both;
-  }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(14px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .slide.active .a-card:nth-child(1) { animation-delay: 0.1s; }
-  .slide.active .a-card:nth-child(2) { animation-delay: 0.2s; }
-  .slide.active .a-card:nth-child(3) { animation-delay: 0.3s; }
-  .slide.active .pay-method:nth-child(1) { animation-delay: 0.1s; }
-  .slide.active .pay-method:nth-child(2) { animation-delay: 0.2s; }
-  .slide.active .pay-method:nth-child(3) { animation-delay: 0.3s; }
-  .slide.active .pay-method:nth-child(4) { animation-delay: 0.4s; }
+/* feature label */
+#flabel{position:absolute;bottom:92px;left:50%;transform:translateX(-50%);
+  background:rgba(10,22,40,.85);color:white;padding:7px 18px;border-radius:20px;
+  font-size:12px;font-weight:600;white-space:nowrap;z-index:200;opacity:0;
+  transition:opacity .3s ease;pointer-events:none;backdrop-filter:blur(4px)}
+#flabel.on{opacity:1}
 
-  /* ── Slide 0: Hero ── */
-  #s0 { flex-direction: column; text-align: center; }
-  #s0 .hero-logo {
-    width: 80px; height: 80px; background: var(--blue);
-    border-radius: 22px; display: flex; align-items: center; justify-content: center;
-    font-size: 40px; margin: 0 auto 24px;
-    box-shadow: 0 16px 40px rgba(125,185,232,0.4);
-  }
-  #s0 h1 {
-    font-size: 52px; font-weight: 800; color: #fff; letter-spacing: -0.02em;
-    margin-bottom: 12px;
-  }
-  #s0 .tagline {
-    font-size: 20px; color: var(--muted); max-width: 480px; line-height: 1.5; margin-bottom: 32px;
-  }
-  #s0 .hero-pills { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-  #s0 .pill {
-    background: rgba(125,185,232,0.12); border: 1px solid rgba(125,185,232,0.25);
-    color: var(--blue); border-radius: 100px; padding: 8px 16px;
-    font-size: 14px; font-weight: 500;
-  }
-  #s0 .hero-anim { margin-top: 40px; display: flex; gap: 16px; }
-  #s0 .mini-card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 14px; padding: 16px; width: 140px; text-align: left;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-  }
-  #s0 .mini-card .mc-val { font-size: 22px; font-weight: 700; color: #fff; }
-  #s0 .mini-card .mc-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  #s0 .mini-card .mc-icon { font-size: 24px; margin-bottom: 8px; }
+/* controls */
+#ctrl{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:10px;z-index:1000}
+@media(max-width:430px){#ctrl{bottom:8px}}
+.cb{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.2);color:white;font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);
+  transition:background .15s}
+.cb:hover{background:rgba(255,255,255,.22)}
+#si{color:rgba(255,255,255,.55);font-size:11px;font-weight:500;min-width:40px;text-align:center;font-family:var(--font)}
 
-  /* ── Slides 1-7: Side by side ── */
-  .two-col {
-    display: flex; align-items: center; justify-content: center;
-    gap: 60px; width: 100%; max-width: 900px; padding: 20px;
-  }
+/* splash */
+#s-splash{background:linear-gradient(160deg,#1a3a60 0%,#0a1628 65%);
+  align-items:center;justify-content:center;transform:translateX(0)}
+.spl-icon{width:84px;height:84px;border-radius:22px;background:var(--primary);
+  display:flex;align-items:center;justify-content:center;margin-bottom:24px;
+  box-shadow:0 10px 40px rgba(74,154,212,.45);font-size:42px}
+.spl-logo{font-size:34px;font-weight:900;color:white;letter-spacing:-.8px;margin-bottom:8px}
+.spl-tag{font-size:15px;color:rgba(255,255,255,.6);text-align:center;max-width:260px;line-height:1.5}
+.spl-dots{display:flex;gap:8px;margin-top:32px}
+.spl-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.25)}
+.spl-dot.on{background:var(--primary-l);width:22px;border-radius:4px}
 
-  /* Glow effect on phone */
-  .phone-glow-blue { box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 60px rgba(125,185,232,0.2), 0 0 0 1px #3a5070; }
-  .phone-glow-green { box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 60px rgba(45,158,106,0.2), 0 0 0 1px #3a5070; }
-  .phone-glow-purple { box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 60px rgba(91,79,207,0.25), 0 0 0 1px #3a5070; }
+/* outro */
+#s-outro{background:linear-gradient(160deg,#1a3a60 0%,#0a1628 100%);
+  color:white;align-items:center;justify-content:center;
+  padding:32px 28px;text-align:center;transform:translateX(0)}
+.ologo{font-size:28px;font-weight:900;color:white;letter-spacing:-.5px;margin-bottom:6px}
+.otag{font-size:14px;color:rgba(255,255,255,.55);margin-bottom:28px}
+.flist{text-align:left;margin-bottom:28px;width:100%}
+.fitem{display:flex;align-items:center;gap:12px;padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;
+  color:rgba(255,255,255,.85);font-weight:500}
+.fitem:last-child{border-bottom:none}
+.ficon{width:34px;height:34px;border-radius:9px;background:rgba(74,154,212,.25);
+  display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.octa{background:var(--primary);color:white;border:none;border-radius:12px;
+  padding:14px 32px;font-size:16px;font-weight:700;cursor:pointer;
+  box-shadow:0 6px 24px rgba(74,154,212,.45);margin-bottom:12px;width:100%}
+.ourl{font-size:13px;color:rgba(255,255,255,.4);margin-top:8px}
 
-  /* Receipt-style success */
-  .receipt {
-    background: var(--card2); border: 1px solid var(--border);
-    border-radius: 14px; padding: 14px; margin-bottom: 8px; text-align: center;
-  }
-  .receipt-amount { font-size: 28px; font-weight: 800; color: #fff; }
-  .receipt-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+/* success */
+.sring{width:82px;height:82px;border-radius:50%;background:#dcfce7;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:38px}
 
-  /* Step indicator */
-  .step-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  .step-num {
-    width: 22px; height: 22px; border-radius: 50%;
-    background: var(--blue); color: #fff;
-    font-size: 11px; font-weight: 700;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
-  .step-text { font-size: 12px; color: var(--text); }
-  .step-done .step-num { background: var(--green); }
+/* work order */
+.wocard{border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.wopri{height:3px;border-radius:2px;margin-bottom:8px}
+
+/* stat card */
+.statcard{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:4px}
+.statval{font-size:22px;font-weight:800;color:var(--fg)}
+.statlbl{font-size:11px;color:var(--muted-fg);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+
+/* rent row */
+.rrow{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);gap:12px}
+.rrow:last-child{border-bottom:none}
+
+/* pay option */
+.payopt{border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;
+  margin-bottom:10px;display:flex;align-items:center;gap:14px;cursor:pointer}
+.payicon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+
+/* expense row */
+.erow{display:flex;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--border);gap:12px}
+.erow:last-child{border-bottom:none}
+.ecat{display:inline-flex;align-items:center;padding:2px 7px;background:var(--muted);border-radius:5px;font-size:10px;color:var(--muted-fg);font-weight:600;margin-top:3px}
+
+/* inspection */
+.iroom{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.iroom:last-child{border-bottom:none}
+.ichk{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.ichk.done{background:#dcfce7;color:var(--success)}
+.ichk.cur{background:#dbeafe;color:var(--primary)}
+.ichk.todo{background:var(--muted);color:var(--muted-fg)}
+
+/* quick actions */
+.qagrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.qabtn{border:1.5px solid var(--border);border-radius:10px;padding:10px 6px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;
+  background:var(--bg);font-size:11px;font-weight:600;color:var(--fg)}
+.qaicon{font-size:20px}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 </style>
 </head>
 <body>
-<div class="stage">
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
-  <div class="blob blob-3"></div>
+<div id="app">
+<div id="phone">
 
-  <div class="controls">
-    <button class="ctrl-btn" onclick="prevSlide()">← Back</button>
-    <button class="ctrl-btn" onclick="togglePause()">⏸ Pause</button>
-    <button class="ctrl-btn" onclick="nextSlide()">Next →</button>
+<!-- status bar -->
+<div class="sb">
+  <span>9:41</span>
+  <div class="sb-icons">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+    <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="7" width="18" height="11" rx="2"/><path d="M22 11v3h-2V11h2z"/><rect x="4" y="9" width="9" height="7" rx="1"/></svg>
   </div>
-  <div class="paused-badge" id="pausedBadge">⏸ Paused — click Next to advance</div>
+</div>
 
-  <div class="slides" id="slides">
+<div id="sc">
 
-    <!-- ══ SLIDE 0: Hero ══ -->
-    <div class="slide active" id="s0">
-      <div class="hero-logo">🏠</div>
-      <h1>It Rents.</h1>
-      <p class="tagline">The all-in-one rental property management app built for independent landlords.</p>
-      <div class="hero-pills">
-        <span class="pill">💳 Rent Collection</span>
-        <span class="pill">📊 Tax Reports</span>
-        <span class="pill">📍 GPS Mileage</span>
-        <span class="pill">📋 Inspections</span>
-        <span class="pill">✍️ Digital Leases</span>
-      </div>
-      <div class="hero-anim">
-        <div class="mini-card slide-in" style="animation-delay:0.2s">
-          <div class="mc-icon">🏘️</div>
-          <div class="mc-val">12</div>
-          <div class="mc-lbl">Active units</div>
-        </div>
-        <div class="mini-card slide-in" style="animation-delay:0.35s">
-          <div class="mc-icon">💰</div>
-          <div class="mc-val">$14,400</div>
-          <div class="mc-lbl">Monthly rent roll</div>
-        </div>
-        <div class="mini-card slide-in" style="animation-delay:0.5s">
-          <div class="mc-icon">🧾</div>
-          <div class="mc-val">$8,240</div>
-          <div class="mc-lbl">YTD deductions</div>
-        </div>
+<!-- SPLASH -->
+<div id="s-splash" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px">
+    <div class="spl-icon">🏠</div>
+    <div class="spl-logo">RentalMap</div>
+    <div class="spl-tag">The smarter way to manage your rental properties</div>
+    <div class="spl-dots"><div class="spl-dot on"></div><div class="spl-dot"></div><div class="spl-dot"></div></div>
+  </div>
+</div>
+
+<!-- LANDLORD HOME -->
+<div id="s-home" class="screen">
+  <div class="ah">
+    <div class="ah-logo">RentalMap</div>
+    <div class="ah-actions">
+      <div class="ib"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700">T</div>
+    </div>
+  </div>
+  <div class="sc-inner">
+    <div class="mb3"><div class="tbs fw7">Good morning, Tommy 👋</div><div class="tsm cm mt1">Sunday, May 31, 2026</div></div>
+    <div class="g2c mb3">
+      <div class="statcard"><div class="statlbl">YTD Income</div><div class="statval cs">$24,850</div></div>
+      <div class="statcard"><div class="statlbl">YTD Expenses</div><div class="statval">$8,420</div></div>
+    </div>
+    <div class="sl">Your Properties</div>
+    <div class="csm row jb mb2"><div class="col g1"><div class="tsm fw6">Oakwood Commons</div><div class="txs cm">2 tenants · $3,700/mo</div></div><span class="badge bs">All Paid</span></div>
+    <div class="csm row jb mb2"><div class="col g1"><div class="tsm fw6">Riverside Drive</div><div class="txs cm">1 tenant · $2,200/mo</div></div><span class="badge bs">Paid</span></div>
+    <div class="csm row jb mb4"><div class="col g1"><div class="tsm fw6">Pine Valley Court</div><div class="txs cm">3 tenants · $5,400/mo</div></div><span class="badge bw">1 Pending</span></div>
+    <div class="sl">Recent Activity</div>
+    <div class="rrow"><div style="width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0"></div><div class="col g1" style="flex:1"><div class="tsm fw6">Marcus Johnson paid</div><div class="txs cm">Oakwood Commons · May 30</div></div><div class="tsm fw6 cs">+$1,850</div></div>
+    <div class="rrow"><div style="width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0"></div><div class="col g1" style="flex:1"><div class="tsm fw6">Priya Patel paid</div><div class="txs cm">Riverside Drive · May 28</div></div><div class="tsm fw6 cs">+$2,200</div></div>
+  </div>
+  <div class="tb">
+    <div class="ti on"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h1M9 13h1M14 9h1M14 13h1M9 17h6"/></svg>Properties</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Rent</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Work</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>More</div>
+  </div>
+</div>
+
+<!-- PROPERTIES -->
+<div id="s-properties" class="screen">
+  <div class="ah">
+    <div class="ah-title">Properties</div>
+    <div class="ah-actions"><div class="ib"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div></div>
+  </div>
+  <div class="sc-inner">
+    <div class="card mb3" id="prop-card-1">
+      <div class="row jb mb2"><div class="col g1"><div class="tbs fw7">Oakwood Commons</div><div class="txs cm">Springdale · 2 units</div></div><span class="badge bs">All Paid</span></div>
+      <div class="div" style="margin:8px 0"></div>
+      <div class="row g3">
+        <div class="col g1"><div class="txs cm">Monthly</div><div class="tsm fw6">$3,700</div></div>
+        <div class="col g1"><div class="txs cm">Tenants</div><div class="tsm fw6">2 active</div></div>
+        <div class="col g1"><div class="txs cm">Since</div><div class="tsm fw6">Jan 2024</div></div>
       </div>
     </div>
-
-    <!-- ══ SLIDE 1: Dashboard ══ -->
-    <div class="slide" id="s1">
-      <div class="two-col">
-        <div class="copy">
-          <div class="eyebrow">Your command center</div>
-          <h2>Everything at a glance.</h2>
-          <p>See all your properties, rent status, open work orders, and pending tasks the moment you open the app.</p>
-          <ul>
-            <li><div class="check">✓</div><span>Live rent payment status across all properties</span></li>
-            <li><div class="check">✓</div><span>Instant alerts for overdue payments</span></li>
-            <li><div class="check">✓</div><span>Works as a home screen app on iPhone &amp; Android</span></li>
-          </ul>
-        </div>
-        <div class="phone phone-glow-blue">
-          <div class="phone-screen">
-            <div class="app-header">
-              <div class="app-logo"><div class="app-logo-icon">🏠</div>It Rents</div>
-              <span class="role-badge">LANDLORD</span>
-            </div>
-            <div class="app-body">
-              <div class="a-card slide-in">
-                <div class="a-card-title">📍 Oakwood Commons <span class="a-badge a-badge-green">Paid</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Tenant</span><span>Sarah M.</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Rent</span><span>$1,850/mo</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Lease ends</span><span>May 2026</span></div>
-              </div>
-              <div class="a-card slide-in">
-                <div class="a-card-title">🏡 Riverside Drive <span class="a-badge a-badge-yellow">Due today</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Tenant</span><span>James K.</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Rent</span><span>$2,100/mo</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Lease ends</span><span>Aug 2026</span></div>
-              </div>
-              <div class="a-card slide-in">
-                <div class="a-card-title">🏢 Elm Street #4 <span class="a-badge a-badge-green">Paid</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Tenant</span><span>Chen Family</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Rent</span><span>$1,600/mo</span></div>
-              </div>
-            </div>
-            <div class="app-tab-bar">
-              <div class="tab active">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-                Home
-              </div>
-              <div class="tab">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                Properties
-              </div>
-              <div class="tab">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>
-                Rent
-              </div>
-              <div class="tab">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                More
-              </div>
-            </div>
-          </div>
-        </div>
+    <div class="card mb3">
+      <div class="row jb mb2"><div class="col g1"><div class="tbs fw7">Riverside Drive</div><div class="txs cm">Millbrook · 1 unit</div></div><span class="badge bs">Paid</span></div>
+      <div class="div" style="margin:8px 0"></div>
+      <div class="row g3">
+        <div class="col g1"><div class="txs cm">Monthly</div><div class="tsm fw6">$2,200</div></div>
+        <div class="col g1"><div class="txs cm">Tenants</div><div class="tsm fw6">1 active</div></div>
+        <div class="col g1"><div class="txs cm">Since</div><div class="tsm fw6">Mar 2023</div></div>
       </div>
     </div>
-
-    <!-- ══ SLIDE 2: Rent Collection ══ -->
-    <div class="slide" id="s2">
-      <div class="two-col">
-        <div class="phone phone-glow-blue">
-          <div class="phone-screen">
-            <div class="app-header">
-              <div class="app-logo"><div class="app-logo-icon">🏠</div>It Rents</div>
-              <span style="font-size:11px;color:var(--muted)">Pay Rent</span>
-            </div>
-            <div class="app-body">
-              <div class="receipt slide-in">
-                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">June 2025 Rent Due</div>
-                <div class="receipt-amount">$1,850</div>
-                <div class="receipt-sub">Oakwood Commons · Due Jun 1</div>
-              </div>
-              <div style="font-size:11px;color:var(--muted);margin-bottom:8px;margin-top:4px;">Choose how to pay</div>
-              <div class="pay-method slide-in">
-                <div class="pay-icon" style="background:#635BFF">💳</div>
-                <div>
-                  <div style="font-weight:600">Credit / Debit Card</div>
-                  <div style="font-size:10px;color:var(--muted)">Visa, Mastercard, AmEx · Instant</div>
-                </div>
-              </div>
-              <div class="pay-method slide-in">
-                <div class="pay-icon" style="background:#1a56a0">🏦</div>
-                <div>
-                  <div style="font-weight:600">Bank Transfer (ACH)</div>
-                  <div style="font-size:10px;color:var(--muted)">Direct from checking · $0.80 fee</div>
-                </div>
-              </div>
-              <div class="pay-method slide-in">
-                <div class="pay-icon" style="background:#3D9970">💚</div>
-                <div>
-                  <div style="font-weight:600">Cash App</div>
-                  <div style="font-size:10px;color:var(--muted)">Opens Cash App automatically</div>
-                </div>
-              </div>
-              <div class="pay-method slide-in">
-                <div class="pay-icon" style="background:#3D82F0">💙</div>
-                <div>
-                  <div style="font-weight:600">Venmo / Zelle</div>
-                  <div style="font-size:10px;color:var(--muted)">Deep link sends straight to landlord</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="copy">
-          <div class="eyebrow">Rent Collection</div>
-          <h2>Get paid every way they want.</h2>
-          <p>Tenants pay however is easiest for them — you get notified instantly and everything is logged automatically.</p>
-          <ul>
-            <li><div class="check">✓</div><span>Stripe-powered card &amp; bank transfers — goes directly to your bank</span></li>
-            <li><div class="check">✓</div><span>One-tap Cash App, Venmo, and Zelle deep links pre-fill amount &amp; memo</span></li>
-            <li><div class="check">✓</div><span>Every payment logged with date, amount, and method — no spreadsheets</span></li>
-            <li><div class="check">✓</div><span>Automatic late fee tracking after the grace period</span></li>
-          </ul>
-        </div>
+    <div class="card">
+      <div class="row jb mb2"><div class="col g1"><div class="tbs fw7">Pine Valley Court</div><div class="txs cm">Cedar Ridge · 3 units</div></div><span class="badge bw">1 Pending</span></div>
+      <div class="div" style="margin:8px 0"></div>
+      <div class="row g3">
+        <div class="col g1"><div class="txs cm">Monthly</div><div class="tsm fw6">$5,400</div></div>
+        <div class="col g1"><div class="txs cm">Tenants</div><div class="tsm fw6">3 active</div></div>
+        <div class="col g1"><div class="txs cm">Since</div><div class="tsm fw6">Jun 2022</div></div>
       </div>
     </div>
+  </div>
+  <div class="tb">
+    <div class="ti"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</div>
+    <div class="ti on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h1M9 13h1M14 9h1M14 13h1M9 17h6"/></svg>Properties</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Rent</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Work</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>More</div>
+  </div>
+</div>
 
-    <!-- ══ SLIDE 3: Tenant autopay success ══ -->
-    <div class="slide" id="s3">
-      <div class="two-col">
-        <div class="copy">
-          <div class="eyebrow">Lease Management</div>
-          <h2>Digital leases. Sign from anywhere.</h2>
-          <p>Create lease records in seconds, send them for digital signature, and store signed PDFs automatically — no printer required.</p>
-          <ul>
-            <li><div class="check">✓</div><span>Landlord signs first, tenant gets notified to sign</span></li>
-            <li><div class="check">✓</div><span>Signed PDF saved automatically to the property documents</span></li>
-            <li><div class="check">✓</div><span>Both parties can download their copy anytime</span></li>
-            <li><div class="check">✓</div><span>Invite tenants by email — they sign up and sign in one flow</span></li>
-          </ul>
-        </div>
-        <div class="phone phone-glow-blue">
-          <div class="phone-screen">
-            <div class="app-header">
-              <div class="app-logo"><div class="app-logo-icon">🏠</div>It Rents</div>
-              <span style="font-size:11px;color:var(--muted)">Lease</span>
-            </div>
-            <div class="app-body">
-              <div class="a-card slide-in" style="border-color:rgba(45,158,106,0.35);background:rgba(45,158,106,0.06)">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                  <span style="color:#4ade80;font-size:18px">✅</span>
-                  <span style="font-size:13px;font-weight:600;color:#4ade80">Lease fully executed</span>
-                </div>
-                <div style="font-size:11px;color:var(--muted)">Signed May 28, 2025</div>
-              </div>
-              <div class="a-card slide-in">
-                <div class="a-card-title">📄 Lease Terms</div>
-                <div class="a-row"><span style="color:var(--muted)">Term</span><span>Jun 1, 2025 → May 31, 2026</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Rent</span><span>$1,850/mo</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Due day</span><span>1st of month</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Late after</span><span>Day 5</span></div>
-                <div class="a-divider"></div>
-                <div style="display:flex;gap:6px;align-items:center">
-                  <span style="color:#4ade80">✍️</span>
-                  <span style="font-size:11px;color:#4ade80">Both parties signed</span>
-                </div>
-              </div>
-              <div class="a-card slide-in">
-                <div class="step-row step-done"><div class="step-num">✓</div><div class="step-text">Landlord signed — May 28</div></div>
-                <div class="step-row step-done"><div class="step-num">✓</div><div class="step-text">Tenant signed — May 28</div></div>
-                <div class="sig-line">Sarah M. &nbsp;&nbsp;&nbsp;_________________</div>
-              </div>
-            </div>
-          </div>
-        </div>
+<!-- PROPERTY DETAIL -->
+<div id="s-prop-detail" class="screen">
+  <div class="ah">
+    <div class="ah-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Back</div>
+    <div class="ah-title">Oakwood Commons</div>
+    <div class="ib"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></div>
+  </div>
+  <div class="sc-inner np">
+    <div class="propimg">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:50px;opacity:.3">🏡</div>
+      <div class="propaddr">Springdale · 2 units</div>
+      <div class="propchip">$3,700/mo</div>
+    </div>
+    <div style="padding:16px">
+      <div class="sl">Tenants</div>
+      <div class="rrow"><div class="av avsm">MJ</div><div class="col g1" style="flex:1"><div class="tsm fw6">Marcus Johnson</div><div class="txs cm">Unit 1 · $1,850/mo</div></div><span class="badge bs">✓ Paid</span></div>
+      <div class="rrow mb4"><div class="av avsm" style="background:#a78bfa">SC</div><div class="col g1" style="flex:1"><div class="tsm fw6">Sarah Chen</div><div class="txs cm">Unit 2 · $1,850/mo</div></div><span class="badge bs">✓ Paid</span></div>
+      <div class="sl">This Month — May 2026</div>
+      <div class="csm"><div class="row jb mb1"><div class="tsm fw6">Collected</div><div class="tsm fw6 cs">$3,700 / $3,700</div></div><div class="pb"><div class="pf" style="width:100%"></div></div></div>
+      <div class="sl mt3">Quick Actions</div>
+      <div class="qagrid">
+        <div class="qabtn"><div class="qaicon">💰</div>Expense</div>
+        <div class="qabtn"><div class="qaicon">🔧</div>Work Order</div>
+        <div class="qabtn"><div class="qaicon">📋</div>Inspection</div>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- ══ SLIDE 4: Tax / Expenses ══ -->
-    <div class="slide" id="s4">
-      <div class="two-col">
-        <div class="phone phone-glow-purple">
-          <div class="phone-screen">
-            <div class="app-header">
-              <div class="app-logo"><div class="app-logo-icon">🏠</div>It Rents</div>
-              <span style="font-size:11px;color:var(--muted)">Tax Report</span>
-            </div>
-            <div class="app-body">
-              <div class="a-card slide-in" style="text-align:center">
-                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">2024 Schedule E Summary</div>
-                <div class="a-stat" style="font-size:28px;color:#4ade80">$8,240</div>
-                <div class="a-label" style="font-size:11px">Total deductible expenses</div>
-                <div class="a-divider"></div>
-                <div class="chart">
-                  <div class="bar bar-expense" style="height:45%"></div>
-                  <div class="bar bar-expense" style="height:30%"></div>
-                  <div class="bar bar-expense" style="height:60%"></div>
-                  <div class="bar bar-expense" style="height:40%"></div>
-                  <div class="bar bar-expense" style="height:55%"></div>
-                  <div class="bar bar-expense" style="height:35%"></div>
-                  <div class="bar bar-expense" style="height:70%"></div>
-                  <div class="bar bar-expense" style="height:50%"></div>
-                  <div class="bar bar-expense" style="height:45%"></div>
-                  <div class="bar bar-expense" style="height:30%"></div>
-                  <div class="bar bar-expense" style="height:65%"></div>
-                  <div class="bar bar-expense" style="height:40%"></div>
-                </div>
-              </div>
-              <div class="a-card slide-in">
-                <div class="a-card-title">Expense Breakdown</div>
-                <div class="a-row"><span>🔧 Repairs &amp; maintenance</span><span style="color:var(--text)">$2,100</span></div>
-                <div class="a-row"><span>⛽ Mileage (IRS rate)</span><span style="color:var(--text)">$842</span></div>
-                <div class="a-row"><span>🏦 Mortgage interest</span><span style="color:var(--text)">$3,200</span></div>
-                <div class="a-row"><span>🏠 Property insurance</span><span style="color:var(--text)">$1,400</span></div>
-                <div class="a-row"><span>📦 Supplies</span><span style="color:var(--text)">$698</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="copy">
-          <div class="eyebrow">Tax Tools</div>
-          <h2>Tax season made easy.</h2>
-          <p>Track every expense throughout the year — repairs, insurance, supplies — and export a ready-to-use Schedule E report for your accountant.</p>
-          <ul>
-            <li><div class="check">✓</div><span>Categorized expenses with receipt photo uploads</span></li>
-            <li><div class="check">✓</div><span>One-tap Schedule E export with line items filled in</span></li>
-            <li><div class="check">✓</div><span>Property depreciation calculator built in</span></li>
-            <li><div class="check">✓</div><span>Separate tracking per property — perfect for multiple units</span></li>
-          </ul>
-        </div>
+<!-- RENT TRACKER -->
+<div id="s-rent" class="screen">
+  <div class="ah"><div class="ah-title">Rent Tracker</div></div>
+  <div class="sc-inner">
+    <div class="row jc g3 mb3" style="align-items:center">
+      <div style="font-size:20px;color:var(--muted-fg)">‹</div>
+      <div class="tbs fw7">May 2026</div>
+      <div style="font-size:20px;color:var(--muted-fg)">›</div>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg,#dbeafe,#eff6ff);border-color:#bfdbfe;margin-bottom:16px">
+      <div class="row jb mb1"><div class="tsm fw6" style="color:#1e40af">Collected this month</div><div class="tsm fw7 cs">$9,750</div></div>
+      <div class="pb" style="background:#bfdbfe"><div class="pf" style="width:86%"></div></div>
+      <div class="txs cm mt1">$9,750 of $11,300 expected</div>
+    </div>
+    <div class="sl">Oakwood Commons</div>
+    <div class="rrow"><div class="av avsm">MJ</div><div class="col g1" style="flex:1"><div class="tsm fw6">Marcus Johnson</div><div class="txs cm">May 30</div></div><div class="col" style="align-items:flex-end"><div class="tsm fw6">$1,850</div><span class="badge bs" style="margin-top:2px">Paid</span></div></div>
+    <div class="rrow mb3"><div class="av avsm" style="background:#a78bfa">SC</div><div class="col g1" style="flex:1"><div class="tsm fw6">Sarah Chen</div><div class="txs cm">May 28</div></div><div class="col" style="align-items:flex-end"><div class="tsm fw6">$1,850</div><span class="badge bs" style="margin-top:2px">Paid</span></div></div>
+    <div class="sl">Riverside Drive</div>
+    <div class="rrow mb3"><div class="av avsm" style="background:#f97316">PP</div><div class="col g1" style="flex:1"><div class="tsm fw6">Priya Patel</div><div class="txs cm">May 27</div></div><div class="col" style="align-items:flex-end"><div class="tsm fw6">$2,200</div><span class="badge bs" style="margin-top:2px">Paid</span></div></div>
+    <div class="sl">Pine Valley Court</div>
+    <div class="rrow"><div class="av avsm" style="background:#16a34a">JW</div><div class="col g1" style="flex:1"><div class="tsm fw6">James Williams</div><div class="txs cm">Pending</div></div><div class="col" style="align-items:flex-end"><div class="tsm fw6">$1,800</div><span class="badge bw" style="margin-top:2px">Pending</span></div></div>
+    <div class="rrow"><div class="av avsm" style="background:#ec4899">AJ</div><div class="col g1" style="flex:1"><div class="tsm fw6">Aisha Johnson</div><div class="txs cm">May 29</div></div><div class="col" style="align-items:flex-end"><div class="tsm fw6">$1,800</div><span class="badge bs" style="margin-top:2px">Paid</span></div></div>
+    <div class="rrow"><div class="av avsm" style="background:#6366f1">CR</div><div class="col g1" style="flex:1"><div class="tsm fw6">Carlos Rivera</div><div class="txs cm">3 days late</div></div><div class="col" style="align-items:flex-end"><div class="tsm fw6">$1,800</div><span class="badge bd" style="margin-top:2px">Late</span></div></div>
+  </div>
+  <div class="tb">
+    <div class="ti"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h1M9 13h1M14 9h1M14 13h1M9 17h6"/></svg>Properties</div>
+    <div class="ti on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Rent</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Work</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>More</div>
+  </div>
+</div>
+
+<!-- TENANT HOME -->
+<div id="s-tenant-home" class="screen">
+  <div class="ah">
+    <div class="ah-logo">RentalMap</div>
+    <div class="ah-actions">
+      <div class="ib"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+      <div style="width:28px;height:28px;border-radius:50%;background:#16a34a;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700">M</div>
+    </div>
+  </div>
+  <div class="sc-inner">
+    <div class="mb3"><div class="tbs fw7">Hi, Marcus! 👋</div><div class="txs cm mt1">Oakwood Commons · Unit 1</div></div>
+    <div class="card" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe;margin-bottom:16px">
+      <div class="txs fw6 mb2" style="color:#1e40af">NEXT PAYMENT DUE</div>
+      <div class="row jb" style="align-items:flex-end">
+        <div><div class="t2x fw8" style="color:#1e40af">$1,850</div><div class="txs cm mt1">June 1, 2026</div></div>
+        <button class="btn btn-p" style="width:auto;padding:0 20px;height:40px;font-size:14px">Pay Now</button>
       </div>
     </div>
+    <div class="sl">Payment History</div>
+    <div class="rrow"><span style="font-size:16px">✅</span><div class="col g1" style="flex:1"><div class="tsm fw6">May 2026</div><div class="txs cm">Paid May 28</div></div><div class="tsm fw6">$1,850</div></div>
+    <div class="rrow"><span style="font-size:16px">✅</span><div class="col g1" style="flex:1"><div class="tsm fw6">April 2026</div><div class="txs cm">Paid Apr 30</div></div><div class="tsm fw6">$1,850</div></div>
+    <div class="rrow mb4"><span style="font-size:16px">✅</span><div class="col g1" style="flex:1"><div class="tsm fw6">March 2026</div><div class="txs cm">Paid Mar 28</div></div><div class="tsm fw6">$1,850</div></div>
+    <div class="g2c">
+      <div class="qabtn"><div class="qaicon">🔧</div>Work Order</div>
+      <div class="qabtn"><div class="qaicon">💬</div>Message</div>
+    </div>
+  </div>
+  <div class="tb">
+    <div class="ti on"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Pay Rent</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Work</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Messages</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>More</div>
+  </div>
+</div>
 
-    <!-- ══ SLIDE 5: GPS Mileage ══ -->
-    <div class="slide" id="s5">
-      <div class="two-col">
-        <div class="copy">
-          <div class="eyebrow">Mileage Tracking</div>
-          <h2>Every mile. Every deduction.</h2>
-          <p>Tap to start tracking when you leave for a property visit. GPS logs your route automatically. Stop tracking when you're done — that's it.</p>
-          <ul>
-            <li><div class="check">✓</div><span>GPS-tracked routes with start/end address capture</span></li>
-            <li><div class="check">✓</div><span>Automatically calculates IRS standard mileage deduction (67¢/mile in 2024)</span></li>
-            <li><div class="check">✓</div><span>Linked to a specific property for accurate per-property reporting</span></li>
-            <li><div class="check">✓</div><span>Annual mileage log exports as a PDF for your records</span></li>
-          </ul>
-        </div>
-        <div class="phone phone-glow-green">
-          <div class="phone-screen">
-            <div class="app-header">
-              <div class="app-logo"><div class="app-logo-icon">🏠</div>It Rents</div>
-              <span style="font-size:11px;color:var(--muted)">Mileage</span>
-            </div>
-            <div class="app-body">
-              <div class="map-view slide-in">
-                <div class="map-road" style="width:2px;height:100%;top:0;left:50%"></div>
-                <div class="map-road" style="width:100%;height:2px;top:50%;left:0"></div>
-                <div class="map-road" style="width:2px;height:60%;top:20%;left:30%;transform:rotate(25deg)"></div>
-                <div class="map-trail" style="width:120px;top:55%;left:28%"></div>
-                <div class="map-dot" style="top:50%;left:68%;transform:translate(-50%,-50%)"></div>
-                <div style="position:absolute;bottom:8px;right:8px;background:rgba(45,158,106,0.9);border-radius:8px;padding:4px 8px;font-size:10px;font-weight:600;color:#fff">📍 Tracking…</div>
-              </div>
-              <div class="a-card slide-in" style="border-color:rgba(45,158,106,0.35)">
-                <div class="a-card-title">🚗 Today's Trip</div>
-                <div class="a-row"><span style="color:var(--muted)">Distance</span><span style="color:#4ade80;font-weight:700">8.4 miles</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Deduction</span><span style="color:#4ade80;font-weight:700">$5.63</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Property</span><span>Riverside Drive</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Purpose</span><span>Maintenance visit</span></div>
-              </div>
-              <div class="a-card slide-in">
-                <div class="a-card-title">2025 YTD Summary</div>
-                <div class="a-row"><span style="color:var(--muted)">Total miles</span><span style="font-weight:700">1,256 mi</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Total deduction</span><span style="font-weight:700;color:#4ade80">$841.52</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Trips logged</span><span>47 trips</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
+<!-- PAY OPTIONS -->
+<div id="s-pay" class="screen">
+  <div class="ah"><div class="ah-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Back</div><div class="ah-title">Pay Rent</div></div>
+  <div class="sc-inner">
+    <div class="card" style="background:linear-gradient(135deg,#dbeafe,#eff6ff);border-color:#bfdbfe;margin-bottom:20px;text-align:center">
+      <div class="txs fw6 mb1" style="color:#1e40af">JUNE 2026 RENT</div>
+      <div class="t2x fw8" style="color:#1e40af">$1,850.00</div>
+      <div class="txs cm mt1">Oakwood Commons · Unit 1</div>
+    </div>
+    <div class="sl">Pay Online</div>
+    <div class="payopt" id="pay-stripe">
+      <div class="payicon" style="background:#635bff15">💳</div>
+      <div class="col g1" style="flex:1"><div class="tsm fw6">Card or Bank Transfer</div><div class="txs cm">Visa, Mastercard, ACH via Stripe</div></div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-fg)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+    <div class="sl mt2">Peer-to-Peer</div>
+    <div class="payopt"><div class="payicon" style="background:#00d64215">💚</div><div class="col g1" style="flex:1"><div class="tsm fw6">Cash App</div><div class="txs cm">$TommyLandlord</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-fg)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+    <div class="payopt"><div class="payicon" style="background:#3d95ce15">🔵</div><div class="col g1" style="flex:1"><div class="tsm fw6">Venmo</div><div class="txs cm">@TommyStegmaier</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-fg)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+    <div class="payopt"><div class="payicon" style="background:#6d1ed415">💜</div><div class="col g1" style="flex:1"><div class="tsm fw6">Zelle</div><div class="txs cm">(555) 867-5309</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-fg)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+  </div>
+</div>
+
+<!-- STRIPE FORM -->
+<div id="s-stripe" class="screen">
+  <div class="ah"><div class="ah-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Back</div><div class="ah-title">Card Payment</div></div>
+  <div class="sc-inner">
+    <div class="card" style="background:#635bff0d;border-color:#635bff30;margin-bottom:20px;text-align:center">
+      <div class="txs fw6 mb1" style="color:#635bff">AMOUNT DUE</div>
+      <div class="t2x fw8" style="color:#635bff">$1,850.00</div>
+    </div>
+    <div class="ig"><div class="il">Card Number</div><div class="ifield" style="display:flex;align-items:center">4242 4242 4242 4242 &nbsp;💳</div></div>
+    <div class="g2c">
+      <div class="ig"><div class="il">Expiry</div><div class="ifield">12 / 28</div></div>
+      <div class="ig"><div class="il">CVC</div><div class="ifield">•••</div></div>
+    </div>
+    <div class="ig"><div class="il">Name on Card</div><div class="ifield">Marcus Johnson</div></div>
+    <div style="background:#fafafa;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:20px;text-align:center">
+      <div class="txs cm">🔒 Secured by Stripe · End-to-end encrypted</div>
+    </div>
+    <button class="btn btn-p" id="pay-btn" style="height:52px;font-size:16px;border-radius:12px">Pay $1,850.00</button>
+  </div>
+</div>
+
+<!-- PAYMENT SUCCESS -->
+<div id="s-pay-success" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center">
+    <div class="sring">✅</div>
+    <div class="txl fw8 mb2">Payment Received!</div>
+    <div class="t2x fw8 cs mb2">$1,850.00</div>
+    <div class="tsm cm mb1">June 2026 Rent</div>
+    <div class="tsm cm mb4">Oakwood Commons · Unit 1</div>
+    <div class="card w100" style="text-align:left">
+      <div class="rrow" style="padding:6px 0"><span class="txs cm" style="flex:1">Confirmation</span><span class="txs fw6">#RM-2026-4829</span></div>
+      <div class="rrow" style="padding:6px 0"><span class="txs cm" style="flex:1">Date</span><span class="txs fw6">May 31, 2026</span></div>
+      <div class="rrow" style="padding:6px 0"><span class="txs cm" style="flex:1">Method</span><span class="txs fw6">Visa ···4242</span></div>
+    </div>
+    <button class="btn btn-p mt3">Done</button>
+  </div>
+</div>
+
+<!-- EXPENSES -->
+<div id="s-expenses" class="screen">
+  <div class="ah">
+    <div class="ah-title">Expenses</div>
+    <div class="ah-actions"><div class="ib" id="add-exp-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div></div>
+  </div>
+  <div class="sc-inner">
+    <div class="row jb mb3"><div class="tsm cm">May 2026</div><div class="tsm fw7 cd">$1,235 this month</div></div>
+    <div class="erow"><div style="width:36px;height:36px;border-radius:9px;background:#fee2e2;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔧</div><div class="col g1" style="flex:1"><div class="tsm fw6">Plumbing repair</div><div class="txs cm">Oakwood Commons · May 28</div><div class="ecat">Repairs</div></div><div class="tsm fw6">$285</div></div>
+    <div class="erow"><div style="width:36px;height:36px;border-radius:9px;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🌿</div><div class="col g1" style="flex:1"><div class="tsm fw6">Lawn service</div><div class="txs cm">Riverside Drive · May 22</div><div class="ecat">Maintenance</div></div><div class="tsm fw6">$120</div></div>
+    <div class="erow"><div style="width:36px;height:36px;border-radius:9px;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">❄️</div><div class="col g1" style="flex:1"><div class="tsm fw6">HVAC filter</div><div class="txs cm">Pine Valley Court · May 15</div><div class="ecat">Repairs</div></div><div class="tsm fw6">$450</div></div>
+    <div class="erow"><div style="width:36px;height:36px;border-radius:9px;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🛡️</div><div class="col g1" style="flex:1"><div class="tsm fw6">Insurance premium</div><div class="txs cm">All Properties · May 1</div><div class="ecat">Insurance</div></div><div class="tsm fw6">$380</div></div>
+  </div>
+</div>
+
+<!-- ADD EXPENSE -->
+<div id="s-add-expense" class="screen">
+  <div class="ah"><div class="ah-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Back</div><div class="ah-title">Add Expense</div></div>
+  <div class="sc-inner">
+    <div class="ig"><div class="il">Property</div><div class="ifield" style="display:flex;align-items:center;justify-content:space-between"><span>Oakwood Commons</span><span class="cm">▾</span></div></div>
+    <div class="ig"><div class="il">Category</div><div class="ifield" style="display:flex;align-items:center;justify-content:space-between"><span>Repairs &amp; Maintenance</span><span class="cm">▾</span></div></div>
+    <div class="g2c">
+      <div class="ig"><div class="il">Amount</div><div class="ifield fw6">$285.00</div></div>
+      <div class="ig"><div class="il">Date</div><div class="ifield">May 28</div></div>
+    </div>
+    <div class="ig"><div class="il">Description</div><div style="width:100%;border:1.5px solid var(--border);border-radius:10px;background:#fafafa;padding:12px 14px;font-size:15px;color:var(--fg);min-height:70px">Plumbing repair - unit 1 bathroom</div></div>
+    <div style="border:1.5px dashed var(--border);border-radius:10px;padding:16px;text-align:center;margin-bottom:20px;cursor:pointer">
+      <div style="font-size:24px;margin-bottom:4px">📷</div>
+      <div class="tsm fw6">Attach Receipt</div>
+      <div class="txs cm mt1">Photo or PDF</div>
+    </div>
+    <button class="btn btn-p" id="save-exp-btn">Save Expense</button>
+  </div>
+</div>
+
+<!-- MILEAGE -->
+<div id="s-mileage" class="screen">
+  <div class="ah"><div class="ah-title">Mileage Tracker</div></div>
+  <div class="sc-inner">
+    <div class="map">
+      <div class="map-path"></div>
+      <div class="mdot s"></div><div class="mdot e"></div>
+      <div class="mlbl s">Oakwood Commons</div>
+      <div class="mlbl e">Pine Valley Ct</div>
+      <div class="minfo">
+        <div class="col g1"><div class="txs cm">ACTIVE TRIP</div><div class="tsm fw6">4.2 mi · 12 min</div></div>
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--destr);animation:blink 1s infinite"></div>
       </div>
     </div>
-
-    <!-- ══ SLIDE 6: Move-in Inspection ══ -->
-    <div class="slide" id="s6">
-      <div class="two-col">
-        <div class="phone phone-glow-blue">
-          <div class="phone-screen">
-            <div class="app-header">
-              <div class="app-logo"><div class="app-logo-icon">🏠</div>It Rents</div>
-              <span style="font-size:11px;color:var(--muted)">Inspection</span>
-            </div>
-            <div class="app-body">
-              <div class="a-card slide-in" style="margin-bottom:8px">
-                <div class="a-card-title">Move-in Inspection <span class="a-badge a-badge-green">Signed</span></div>
-                <div style="font-size:11px;color:var(--muted)">Oakwood Commons · June 1, 2025</div>
-              </div>
-              <div class="insp-item slide-in">
-                <div class="insp-item-name">🛋️ Living Room</div>
-                <div class="insp-item-rating"><span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span></div>
-                <div class="photo-grid">
-                  <div class="photo-cell">🛋️</div>
-                  <div class="photo-cell">🪟</div>
-                </div>
-              </div>
-              <div class="insp-item slide-in">
-                <div class="insp-item-name">🍳 Kitchen</div>
-                <div class="insp-item-rating"><span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span></div>
-                <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Minor scuff on cabinet door noted</div>
-                <div class="photo-grid">
-                  <div class="photo-cell">🍳</div>
-                  <div class="photo-cell">🚿</div>
-                </div>
-              </div>
-              <div class="a-card slide-in" style="border-color:rgba(45,158,106,0.3)">
-                <div style="font-size:11px;font-weight:600;color:#4ade80;margin-bottom:6px">✅ Both parties signed</div>
-                <div class="sig-line">Landlord: D. Johnson ✍️</div>
-                <div class="sig-line" style="margin-top:4px">Tenant: Sarah M. ✍️</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="copy">
-          <div class="eyebrow">Move-in Inspections</div>
-          <h2>Document everything. Protect everyone.</h2>
-          <p>Create a detailed room-by-room inspection with photo evidence, condition ratings, and notes. Both landlord and tenant sign off digitally.</p>
-          <ul>
-            <li><div class="check">✓</div><span>Room-by-room condition ratings with unlimited photo uploads</span></li>
-            <li><div class="check">✓</div><span>Tenant receives notification to review &amp; sign from their phone</span></li>
-            <li><div class="check">✓</div><span>Signed inspection stored permanently — protects your security deposit</span></li>
-            <li><div class="check">✓</div><span>Both landlord and tenant keep a digital copy</span></li>
-          </ul>
-        </div>
-      </div>
+    <button class="btn btn-d mb3">⏹ Stop Recording</button>
+    <div class="g2c mb3">
+      <div class="statcard"><div class="statlbl">2026 YTD Miles</div><div class="statval">127.4</div></div>
+      <div class="statcard"><div class="statlbl">Tax Deduction</div><div class="statval cs">$82.81</div></div>
     </div>
+    <div class="sl">Recent Trips</div>
+    <div class="rrow"><span style="font-size:16px">📍</span><div class="col g1" style="flex:1"><div class="tsm fw6">Oakwood → Pine Valley</div><div class="txs cm">May 30 · Inspection</div></div><div class="col" style="align-items:flex-end"><div class="tsm fw6">4.2 mi</div><div class="txs cs">$2.73</div></div></div>
+    <div class="rrow"><span style="font-size:16px">📍</span><div class="col g1" style="flex:1"><div class="tsm fw6">Home → Riverside Drive</div><div class="txs cm">May 27 · Maintenance</div></div><div class="col" style="align-items:flex-end"><div class="tsm fw6">7.1 mi</div><div class="txs cs">$4.61</div></div></div>
+    <div class="rrow"><span style="font-size:16px">📍</span><div class="col g1" style="flex:1"><div class="tsm fw6">Office → Pine Valley</div><div class="txs cm">May 24 · Meeting</div></div><div class="col" style="align-items:flex-end"><div class="tsm fw6">3.8 mi</div><div class="txs cs">$2.47</div></div></div>
+  </div>
+</div>
 
-    <!-- ══ SLIDE 7: Maintenance / Work Orders ══ -->
-    <div class="slide" id="s7">
-      <div class="two-col">
-        <div class="copy">
-          <div class="eyebrow">Maintenance</div>
-          <h2>Work orders — from request to done.</h2>
-          <p>Tenants submit maintenance requests from their app. You track status, upload photos, and close them out — all in one place.</p>
-          <ul>
-            <li><div class="check">✓</div><span>Tenants submit requests with photos directly from their phone</span></li>
-            <li><div class="check">✓</div><span>Urgency levels: routine, urgent, emergency</span></li>
-            <li><div class="check">✓</div><span>Full status history and photo documentation</span></li>
-            <li><div class="check">✓</div><span>Expenses logged against the work order for tax deductions</span></li>
-          </ul>
-        </div>
-        <div class="phone phone-glow-blue">
-          <div class="phone-screen">
-            <div class="app-header">
-              <div class="app-logo"><div class="app-logo-icon">🏠</div>It Rents</div>
-              <span style="font-size:11px;color:var(--muted)">Work Orders</span>
-            </div>
-            <div class="app-body">
-              <div class="a-card slide-in">
-                <div class="a-card-title">🔧 HVAC not cooling <span class="a-badge a-badge-red">Urgent</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Property</span><span>Riverside Drive</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Submitted</span><span>Jun 4, 2025</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Status</span><span style="color:#fbbf24">In Progress</span></div>
-                <div class="photo-grid">
-                  <div class="photo-cell">🌡️</div>
-                  <div class="photo-cell">🔧</div>
-                </div>
-              </div>
-              <div class="a-card slide-in">
-                <div class="a-card-title">🚰 Leaky faucet <span class="a-badge a-badge-gray">Routine</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Property</span><span>Oakwood Commons</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Status</span><span style="color:#4ade80">Completed</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Cost</span><span>$85 (logged)</span></div>
-              </div>
-              <div class="a-card slide-in">
-                <div class="a-card-title">🔒 Deadbolt sticky <span class="a-badge a-badge-gray">Routine</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Property</span><span>Elm Street #4</span></div>
-                <div class="a-row"><span style="color:var(--muted)">Status</span><span style="color:var(--muted)">Open</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+<!-- TAX REPORT -->
+<div id="s-tax" class="screen">
+  <div class="ah"><div class="ah-title">Tax Report 2026</div><div class="ah-actions"><div class="ib"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></div></div></div>
+  <div class="sc-inner">
+    <div class="card" style="background:linear-gradient(135deg,#dcfce7,#f0fdf4);border-color:#86efac;margin-bottom:16px;text-align:center">
+      <div style="font-size:28px;margin-bottom:8px">📊</div>
+      <div class="tbs fw7 cs">Schedule E Ready</div>
+      <div class="txs cm mt1">All income &amp; expenses tracked · IRS-ready</div>
     </div>
-
-    <!-- ══ SLIDE 8: CTA ══ -->
-    <div class="slide" id="s8" style="flex-direction:column;text-align:center;">
-      <div style="font-size:48px;margin-bottom:20px">🏠</div>
-      <h1 style="font-size:44px;font-weight:800;color:#fff;letter-spacing:-0.02em;margin-bottom:12px">Ready to simplify<br>your portfolio?</h1>
-      <p style="font-size:18px;color:var(--muted);max-width:460px;line-height:1.6;margin-bottom:36px">
-        It Rents handles rent collection, taxes, inspections, leases, and maintenance — so you can focus on growing your portfolio, not managing paperwork.
-      </p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:480px;width:100%;margin-bottom:36px">
-        <div class="mini-card" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:left">
-          <div style="font-size:24px;margin-bottom:6px">💳</div>
-          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px">Rent Collection</div>
-          <div style="font-size:11px;color:var(--muted)">Stripe · Cash App · Venmo · Zelle</div>
-        </div>
-        <div class="mini-card" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:left">
-          <div style="font-size:24px;margin-bottom:6px">📊</div>
-          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px">Tax Ready</div>
-          <div style="font-size:11px;color:var(--muted)">Schedule E · Mileage · Depreciation</div>
-        </div>
-        <div class="mini-card" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:left">
-          <div style="font-size:24px;margin-bottom:6px">📋</div>
-          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px">Inspections</div>
-          <div style="font-size:11px;color:var(--muted)">Photos · Ratings · Digital Signatures</div>
-        </div>
-        <div class="mini-card" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:left">
-          <div style="font-size:24px;margin-bottom:6px">✍️</div>
-          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px">Digital Leases</div>
-          <div style="font-size:11px;color:var(--muted)">Sign · Store · Download anytime</div>
-        </div>
-      </div>
-      <div style="font-size:28px;font-weight:800;color:var(--blue)">it-rents.com</div>
+    <div class="g2c mb3">
+      <div class="statcard"><div class="statlbl">Gross Income</div><div class="statval">$24,850</div></div>
+      <div class="statcard"><div class="statlbl">Total Expenses</div><div class="statval">$8,420</div></div>
     </div>
+    <div class="card" style="background:linear-gradient(135deg,#dbeafe,#eff6ff);border-color:#93c5fd;margin-bottom:16px;text-align:center">
+      <div class="txs fw7 mb1" style="color:#1e40af">NET TAXABLE INCOME</div>
+      <div class="t2x fw8 cp">$16,430</div>
+      <div class="txs cm mt1">Est. tax savings: $2,840 vs. no deductions</div>
+    </div>
+    <div class="sl">By Property</div>
+    <div class="csm row jb"><div class="col g1"><div class="tsm fw6">Oakwood Commons</div><div class="txs cm">Income $11,100 · Exp $2,840</div></div><div class="tsm fw6 cs">$8,260</div></div>
+    <div class="csm row jb"><div class="col g1"><div class="tsm fw6">Riverside Drive</div><div class="txs cm">Income $6,600 · Exp $1,980</div></div><div class="tsm fw6 cs">$4,620</div></div>
+    <div class="csm row jb mb4"><div class="col g1"><div class="tsm fw6">Pine Valley Court</div><div class="txs cm">Income $7,150 · Exp $3,600</div></div><div class="tsm fw6 cs">$3,550</div></div>
+    <button class="btn btn-p">Export PDF · Share with CPA</button>
+  </div>
+</div>
 
-  </div><!-- /slides -->
+<!-- INSPECTION LIST -->
+<div id="s-inspection" class="screen">
+  <div class="ah"><div class="ah-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Properties</div><div class="ah-title">Inspection</div></div>
+  <div class="sc-inner">
+    <div class="card mb3">
+      <div class="row jb mb2"><div class="col g1"><div class="tsm fw7">Move-In Inspection</div><div class="txs cm">Oakwood Commons · Unit 1</div></div><span class="badge bp">In Progress</span></div>
+      <div class="row g2"><div class="av avsm">MJ</div><div class="tsm fw6">Marcus Johnson · May 28, 2026</div></div>
+      <div class="div"></div>
+      <div class="row jb"><div class="txs cm">Progress</div><div class="txs fw6">3 of 7 complete</div></div>
+      <div class="pb mt1"><div class="pf" style="width:43%"></div></div>
+    </div>
+    <div class="sl">Rooms</div>
+    <div class="iroom"><div class="ichk done">✓</div><div class="tsm fw6" style="flex:1">Living Room</div><span class="badge bs">Good</span></div>
+    <div class="iroom"><div class="ichk done">✓</div><div class="tsm fw6" style="flex:1">Kitchen</div><span class="badge bs">Good</span></div>
+    <div class="iroom"><div class="ichk done">✓</div><div class="tsm fw6" style="flex:1">Bathroom</div><span class="badge bw">Fair</span></div>
+    <div class="iroom" id="insp-room"><div class="ichk cur">→</div><div class="tsm fw6" style="flex:1">Bedroom 1</div><span class="badge bm">Pending</span></div>
+    <div class="iroom"><div class="ichk todo">○</div><div class="tsm fw6" style="flex:1">Bedroom 2</div><span class="badge bm">Pending</span></div>
+    <div class="iroom"><div class="ichk todo">○</div><div class="tsm fw6" style="flex:1">Hallway</div><span class="badge bm">Pending</span></div>
+    <div class="iroom"><div class="ichk todo">○</div><div class="tsm fw6" style="flex:1">Exterior</div><span class="badge bm">Pending</span></div>
+  </div>
+</div>
 
-  <div class="progress-wrap" id="progressWrap"></div>
+<!-- INSPECTION PHOTOS -->
+<div id="s-insp-photos" class="screen">
+  <div class="ah"><div class="ah-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Inspection</div><div class="ah-title">Bedroom 1</div></div>
+  <div class="sc-inner">
+    <div class="ig"><div class="il">Condition</div><div class="ifield" style="display:flex;align-items:center;justify-content:space-between"><span>Good</span><span class="cm">▾</span></div></div>
+    <div class="il">Photos (4 added)</div>
+    <div class="pg">
+      <div class="pc" style="background:linear-gradient(135deg,#e0e7ff,#c7d2fe)"><span style="position:absolute;font-size:28px;opacity:.4">🛏️</span></div>
+      <div class="pc" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8)"><span style="position:absolute;font-size:28px;opacity:.4">🪟</span></div>
+      <div class="pc" style="background:linear-gradient(135deg,#d1fae5,#a7f3d0)"><span style="position:absolute;font-size:28px;opacity:.4">🔆</span></div>
+      <div class="pc" style="background:linear-gradient(135deg,#fef3c7,#fde68a)"><span style="position:absolute;font-size:28px;opacity:.4">🚪</span></div>
+      <div class="pc add" style="font-size:26px">+</div>
+      <div class="pc add" style="font-size:12px;font-weight:700">Camera</div>
+    </div>
+    <div class="ig mt2"><div class="il">Notes</div><div style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;color:var(--fg);min-height:70px;background:#fafafa">Fresh paint. Minor scuff on door near handle.</div></div>
+    <button class="btn btn-p mt2" id="insp-next-btn">Next Room →</button>
+  </div>
+</div>
+
+<!-- SIGN OFF -->
+<div id="s-sign-off" class="screen">
+  <div class="ah"><div class="ah-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Inspection</div><div class="ah-title">Sign &amp; Complete</div></div>
+  <div class="sc-inner">
+    <div class="card" style="background:#fffbeb;border-color:#fde68a;margin-bottom:20px">
+      <div class="tsm fw6 mb1" style="color:#92400e">Almost done!</div>
+      <div class="txs" style="color:#92400e">Both parties sign to confirm the property condition documented in this inspection.</div>
+    </div>
+    <div class="sl">Landlord Signature</div>
+    <div class="sigbox mb4">
+      <svg class="sigscrib" viewBox="0 0 280 40"><path d="M10,30 C30,10 50,35 70,20 C90,5 110,32 130,18 C150,4 170,28 190,22 C210,16 230,30 250,20" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round"/></svg>
+      <div class="sigline"></div>
+      <div class="signame">Tommy Stegmaier — Landlord</div>
+    </div>
+    <div class="sl">Tenant Signature</div>
+    <div class="sigbox mb4">
+      <svg class="sigscrib" viewBox="0 0 280 40"><path d="M10,28 C25,8 45,35 65,22 C85,9 100,30 120,20 C140,10 155,32 175,18 C195,4 215,26 235,22" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round"/></svg>
+      <div class="sigline"></div>
+      <div class="signame">Marcus Johnson — Tenant</div>
+    </div>
+    <button class="btn btn-s">✓ Complete Inspection</button>
+  </div>
+</div>
+
+<!-- WORK ORDERS -->
+<div id="s-work-orders" class="screen">
+  <div class="ah"><div class="ah-title">Work Orders</div><div class="ah-actions"><div class="ib"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div></div></div>
+  <div class="sc-inner">
+    <div class="row g2 mb3">
+      <div style="background:var(--primary);color:white;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600">Open (3)</div>
+      <div style="background:var(--muted);color:var(--muted-fg);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600">In Progress (1)</div>
+      <div style="background:var(--muted);color:var(--muted-fg);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600">Closed (12)</div>
+    </div>
+    <div class="wocard"><div class="wopri" style="background:var(--destr)"></div><div class="row jb mb1"><div class="tsm fw7">Leaky faucet — kitchen</div><span class="badge bd">High</span></div><div class="txs cm mb1">Oakwood Commons · Unit 1</div><div class="txs cm mb2">Submitted May 29 by Marcus Johnson</div><div class="row g2"><button class="bsm btn-p" style="background:var(--primary);color:white">Assign</button><button class="bsm btn-o" style="border:1.5px solid var(--primary);color:var(--primary);background:transparent">View</button></div></div>
+    <div class="wocard"><div class="wopri" style="background:var(--warning)"></div><div class="row jb mb1"><div class="tsm fw7">AC filter replacement</div><span class="badge bw">Medium</span></div><div class="txs cm mb1">Riverside Drive</div><div class="txs cm mb2">Submitted May 25 by Priya Patel</div><div class="row g2"><button class="bsm btn-p" style="background:var(--primary);color:white">Assign</button><button class="bsm btn-o" style="border:1.5px solid var(--primary);color:var(--primary);background:transparent">View</button></div></div>
+    <div class="wocard"><div class="wopri" style="background:var(--success)"></div><div class="row jb mb1"><div class="tsm fw7">Door weatherstripping</div><span class="badge bs">Low</span></div><div class="txs cm mb1">Pine Valley Court · Unit 2</div><div class="txs cm mb2">Submitted May 20</div><div class="row g2"><button class="bsm btn-p" style="background:var(--primary);color:white">Assign</button><button class="bsm btn-o" style="border:1.5px solid var(--primary);color:var(--primary);background:transparent">View</button></div></div>
+  </div>
+  <div class="tb">
+    <div class="ti"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h1M9 13h1M14 9h1M14 13h1M9 17h6"/></svg>Properties</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Rent</div>
+    <div class="ti on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Work</div>
+    <div class="ti"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>More</div>
+  </div>
+</div>
+
+<!-- OUTRO -->
+<div id="s-outro" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;background:linear-gradient(160deg,#1a3a60 0%,#0a1628 100%)">
+    <div style="font-size:48px;margin-bottom:16px">🏠</div>
+    <div class="ologo">RentalMap</div>
+    <div class="otag">Everything you need to manage your rentals</div>
+    <div class="flist">
+      <div class="fitem"><div class="ficon">💳</div>Collect rent via Stripe, Cash App, Venmo &amp; Zelle</div>
+      <div class="fitem"><div class="ficon">📊</div>Track expenses with photo receipts</div>
+      <div class="fitem"><div class="ficon">📍</div>GPS mileage tracking for tax deductions</div>
+      <div class="fitem"><div class="ficon">📋</div>Schedule E tax reports — IRS ready</div>
+      <div class="fitem"><div class="ficon">📸</div>Digital move-in inspections with photos</div>
+      <div class="fitem"><div class="ficon">✍️</div>E-signatures for landlord &amp; tenant</div>
+      <div class="fitem" style="border-bottom:none"><div class="ficon">🔔</div>Push notifications for every payment</div>
+    </div>
+    <button class="octa">Get Started Free</button>
+    <div class="ourl">rentalmap.app</div>
+  </div>
+</div>
+
+</div><!-- /sc -->
+
+<!-- tap indicator -->
+<div id="tap"></div>
+
+<!-- push notification -->
+<div id="notif">
+  <div style="display:flex;gap:12px;align-items:center">
+    <div style="width:40px;height:40px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🏠</div>
+    <div style="flex:1">
+      <div style="font-size:13px;font-weight:700;color:var(--fg)">RentalMap</div>
+      <div style="font-size:12px;color:var(--muted-fg);margin-top:2px">Rent received from Marcus Johnson — $1,850 for June 2026</div>
+    </div>
+    <div style="font-size:11px;color:var(--muted-fg)">now</div>
+  </div>
+</div>
+
+<!-- feature label -->
+<div id="flabel"></div>
+
+</div><!-- /phone -->
+</div><!-- /app -->
+
+<div id="ctrl">
+  <button class="cb" id="btn-prev">&#8592;</button>
+  <button class="cb" id="btn-pause">&#9646;&#9646;</button>
+  <span id="si">1 / 18</span>
+  <button class="cb" id="btn-next">&#8594;</button>
 </div>
 
 <script>
-  const SLIDE_COUNT = 9;
-  const DURATIONS = [5000, 7000, 7000, 7000, 7000, 7000, 7000, 7000, 8000];
-  let current = 0;
-  let paused = false;
-  let timer = null;
+const steps = [
+  {id:'s-splash',      label:null,                           dur:2200, trans:'fade',    tap:null},
+  {id:'s-home',        label:'Landlord Dashboard',           dur:3200, trans:'fade',    tap:{px:78,py:93}},
+  {id:'s-properties',  label:'All Your Properties',          dur:2600, trans:'forward', tap:{px:50,py:34}},
+  {id:'s-prop-detail', label:'Property Details & Tenants',   dur:2800, trans:'forward', tap:{px:38,py:93}},
+  {id:'s-rent',        label:'Rent Tracking',                dur:3200, trans:'fade',    tap:null},
+  {id:'s-tenant-home', label:'Tenant View',                  dur:2600, trans:'fade',    tap:{px:30,py:93}},
+  {id:'s-pay',         label:'Flexible Payment Options',     dur:2600, trans:'forward', tap:{px:50,py:47}},
+  {id:'s-stripe',      label:'Secure Card Payment',          dur:2500, trans:'forward', tap:{px:50,py:88}},
+  {id:'s-pay-success', label:'Instant Confirmation',         dur:2500, trans:'forward', tap:null},
+  {id:'s-expenses',    label:'Expense Tracking',             dur:2500, trans:'fade',    tap:{px:94,py:7}},
+  {id:'s-add-expense', label:'Log Any Expense + Receipt',    dur:2600, trans:'forward', tap:{px:50,py:92}},
+  {id:'s-mileage',     label:'GPS Mileage Tracking',         dur:3200, trans:'fade',    tap:null},
+  {id:'s-tax',         label:'Schedule E Tax Report',        dur:3200, trans:'fade',    tap:null},
+  {id:'s-inspection',  label:'Move-In Inspections',          dur:2600, trans:'fade',    tap:{px:50,py:59}},
+  {id:'s-insp-photos', label:'Photo Documentation',          dur:3000, trans:'forward', tap:{px:50,py:92}},
+  {id:'s-sign-off',    label:'Digital Signatures',           dur:2600, trans:'forward', tap:null},
+  {id:'s-work-orders', label:'Work Order Management',        dur:3000, trans:'fade',    notif:true},
+  {id:'s-outro',       label:null,                           dur:4500, trans:'fade',    tap:null},
+];
 
-  const slides = document.querySelectorAll('.slide');
-  const progressWrap = document.getElementById('progressWrap');
-  const pausedBadge = document.getElementById('pausedBadge');
+let cur = -1, paused = false, timer = null, tapTimer = null, labelTimer = null;
+const tapEl = document.getElementById('tap');
+const labelEl = document.getElementById('flabel');
+const notifEl = document.getElementById('notif');
+const siEl = document.getElementById('si');
+let activeEl = null;
 
-  // Build dots
-  for (let i = 0; i < SLIDE_COUNT; i++) {
-    const d = document.createElement('div');
-    d.className = 'progress-dot' + (i === 0 ? ' active' : '');
-    d.onclick = () => goTo(i);
-    d.style.cursor = 'pointer';
-    progressWrap.appendChild(d);
+function goTo(id, trans) {
+  const next = document.getElementById(id);
+  if (!next) return;
+  const E = 'cubic-bezier(0.25,0.46,0.45,0.94)', D = 330;
+  if (trans === 'fade') {
+    next.style.cssText = 'transform:translateX(0);opacity:0;transition:none';
+    next.offsetHeight;
+    next.style.cssText = `transform:translateX(0);opacity:1;transition:opacity ${D}ms ease`;
+    if (activeEl && activeEl !== next) {
+      const o = activeEl;
+      o.style.cssText = `transform:translateX(0);opacity:0;transition:opacity ${D}ms ease`;
+      setTimeout(() => { o.style.cssText = 'transform:translateX(100%);opacity:1;transition:none'; }, D + 50);
+    }
+  } else if (trans === 'back') {
+    next.style.cssText = 'transform:translateX(-40%);opacity:1;transition:none';
+    next.offsetHeight;
+    next.style.cssText = `transform:translateX(0);opacity:1;transition:transform ${D}ms ${E}`;
+    if (activeEl && activeEl !== next) {
+      const o = activeEl;
+      o.style.cssText = `transform:translateX(100%);opacity:1;transition:transform ${D}ms ${E}`;
+      setTimeout(() => { o.style.cssText = 'transform:translateX(100%);opacity:1;transition:none'; }, D + 50);
+    }
+  } else {
+    next.style.cssText = 'transform:translateX(100%);opacity:1;transition:none';
+    next.offsetHeight;
+    next.style.cssText = `transform:translateX(0);opacity:1;transition:transform ${D}ms ${E}`;
+    if (activeEl && activeEl !== next) {
+      const o = activeEl;
+      o.style.cssText = `transform:translateX(-40%);opacity:1;transition:transform ${D}ms ${E}`;
+      setTimeout(() => { o.style.cssText = 'transform:translateX(100%);opacity:1;transition:none'; }, D + 50);
+    }
   }
+  activeEl = next;
+}
 
-  function goTo(n) {
-    slides[current].classList.remove('active');
-    progressWrap.children[current].classList.remove('active');
-    current = (n + SLIDE_COUNT) % SLIDE_COUNT;
-    slides[current].classList.add('active');
-    progressWrap.children[current].classList.add('active');
-    // Re-trigger slide-in animations
-    const els = slides[current].querySelectorAll('.slide-in');
-    els.forEach(el => {
-      el.style.animation = 'none';
-      el.offsetHeight; // reflow
-      el.style.animation = '';
-    });
-    if (!paused) scheduleNext();
+function showTap(pxPct, pyPct) {
+  const phone = document.getElementById('phone');
+  const r = phone.getBoundingClientRect();
+  tapEl.style.left = (r.width * pxPct / 100) + 'px';
+  tapEl.style.top = (r.height * pyPct / 100) + 'px';
+  tapEl.classList.remove('go');
+  tapEl.offsetHeight;
+  tapEl.classList.add('go');
+  tapEl.addEventListener('animationend', () => tapEl.classList.remove('go'), {once:true});
+}
+
+function showLabel(text) {
+  if (!text) { labelEl.classList.remove('on'); return; }
+  labelEl.textContent = text;
+  labelEl.classList.add('on');
+  if (labelTimer) clearTimeout(labelTimer);
+  labelTimer = setTimeout(() => labelEl.classList.remove('on'), 2200);
+}
+
+function runStep(i) {
+  cur = ((i % steps.length) + steps.length) % steps.length;
+  const step = steps[cur];
+  siEl.textContent = `${cur + 1} / ${steps.length}`;
+  notifEl.classList.remove('show');
+  goTo(step.id, step.trans);
+  if (step.label) setTimeout(() => showLabel(step.label), 400);
+  if (step.tap) {
+    const delay = Math.max(step.dur - 800, 600);
+    if (tapTimer) clearTimeout(tapTimer);
+    tapTimer = setTimeout(() => { if (!paused) showTap(step.tap.px, step.tap.py); }, delay);
   }
-
-  function nextSlide() { goTo(current + 1); }
-  function prevSlide() { goTo(current - 1); }
-
-  function scheduleNext() {
-    clearTimeout(timer);
-    if (!paused) timer = setTimeout(nextSlide, DURATIONS[current]);
+  if (step.notif) {
+    setTimeout(() => { if (!paused) notifEl.classList.add('show'); }, 1600);
+    setTimeout(() => notifEl.classList.remove('show'), step.dur - 500);
   }
+  if (timer) clearTimeout(timer);
+  timer = setTimeout(() => { if (!paused) runStep(cur + 1); }, step.dur);
+}
 
-  function togglePause() {
-    paused = !paused;
-    pausedBadge.classList.toggle('visible', paused);
-    const btn = document.querySelector('.ctrl-btn:nth-child(2)');
-    btn.textContent = paused ? '▶ Resume' : '⏸ Pause';
-    if (!paused) scheduleNext();
-    else clearTimeout(timer);
+document.getElementById('btn-pause').addEventListener('click', () => {
+  paused = !paused;
+  document.getElementById('btn-pause').innerHTML = paused ? '&#9654;' : '&#9646;&#9646;';
+  if (paused) { if (timer) clearTimeout(timer); if (tapTimer) clearTimeout(tapTimer); }
+  else runStep(cur);
+});
+document.getElementById('btn-prev').addEventListener('click', () => {
+  if (timer) clearTimeout(timer); if (tapTimer) clearTimeout(tapTimer);
+  paused = false; document.getElementById('btn-pause').innerHTML = '&#9646;&#9646;';
+  runStep(cur - 1);
+});
+document.getElementById('btn-next').addEventListener('click', () => {
+  if (timer) clearTimeout(timer); if (tapTimer) clearTimeout(tapTimer);
+  paused = false; document.getElementById('btn-pause').innerHTML = '&#9646;&#9646;';
+  runStep(cur + 1);
+});
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowRight'||e.key==='ArrowDown') document.getElementById('btn-next').click();
+  else if (e.key==='ArrowLeft'||e.key==='ArrowUp') document.getElementById('btn-prev').click();
+  else if (e.key===' ') { e.preventDefault(); document.getElementById('btn-pause').click(); }
+});
+document.getElementById('phone').addEventListener('click', e => {
+  if (!e.target.closest('#ctrl') && !paused) {
+    if (timer) clearTimeout(timer); if (tapTimer) clearTimeout(tapTimer);
+    runStep(cur + 1);
   }
+});
 
-  // Keyboard nav
-  document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight' || e.key === 'Space') nextSlide();
-    if (e.key === 'ArrowLeft') prevSlide();
-    if (e.key === 'p' || e.key === 'P') togglePause();
-  });
-
-  // Start
-  scheduleNext();
+runStep(0);
 </script>
 </body>
 </html>
