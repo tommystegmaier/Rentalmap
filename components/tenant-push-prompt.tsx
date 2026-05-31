@@ -29,7 +29,8 @@ export function TenantPushPrompt() {
       'PushManager' in window &&
       typeof Notification !== 'undefined';
     const dismissed = localStorage.getItem(DISMISSED_KEY) === '1';
-    const alreadyDecided = Notification.permission !== 'default';
+    // Guard: Notification may be undefined on older iOS / non-push browsers.
+    const alreadyDecided = supported && Notification.permission !== 'default';
 
     if (isStandalone && supported && !dismissed && !alreadyDecided) {
       // Small delay so the page renders first.
