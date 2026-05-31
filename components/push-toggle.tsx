@@ -13,21 +13,44 @@ function urlBase64ToUint8Array(base64: string) {
   return out;
 }
 
+/** Returns the iOS major version, or null on non-iOS devices. */
+function iOSVersion(): number | null {
+  const m = navigator.userAgent.match(/OS (\d+)_/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
 export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string | null }) {
   const [supported, setSupported] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Reason why push isn't supported — used for the unsupported message.
+  const [unsupportedReason, setUnsupportedReason] = useState<'ios-old' | 'not-standalone' | 'browser' | null>(null);
 
   useEffect(() => {
-    const ok =
-      typeof window !== 'undefined' &&
+    const hasPush =
       'serviceWorker' in navigator &&
       'PushManager' in window &&
       typeof Notification !== 'undefined';
-    setSupported(ok);
 
-    if (!ok) return;
+    if (!hasPush) {
+      // Distinguish between iOS < 16.4 and a plain unsupported browser.
+      const ios = iOSVersion();
+      const isStandalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as { standalone?: boolean }).standalone === true;
+
+      if (ios !== null && ios < 16) {
+        setUnsupportedReason('ios-old');
+      } else if (ios !== null && !isStandalone) {
+        setUnsupportedReason('not-standalone');
+      } else {
+        setUnsupportedReason('browser');
+      }
+      return;
+    }
+
+    setSupported(true);
     navigator.serviceWorker
       .register('/sw.js')
       .then((reg) => reg.pushManager.getSubscription())
@@ -93,12 +116,14 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string | null }
   }
 
   if (!supported) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Push notifications aren&apos;t supported here. On iPhone, install the app to your home
-        screen first, then open it from the home screen icon to enable notifications.
-      </p>
-    );
+    const message =
+      unsupportedReason === 'ios-old'
+        ? 'Push notifications require iOS 16.4 or later. Update your iPhone to enable them.'
+        : unsupportedReason === 'not-standalone'
+          ? 'To enable notifications on iPhone, add this app to your Home Screen first, then open it from there.'
+          : 'Push notifications aren\'t supported in this browser.';
+
+    return <p className="text-sm text-muted-foreground">{message}</p>;
   }
 
   return (

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { copyToClipboard } from '@/lib/clipboard';
 import { BusyBar } from '@/components/busy-bar';
 import { Copy, CheckCheck } from 'lucide-react';
 
@@ -54,7 +55,7 @@ export function InviteForm({ leases }: InviteFormProps) {
 
   async function copyLink() {
     if (!inviteLink) return;
-    await navigator.clipboard.writeText(inviteLink);
+    await copyToClipboard(inviteLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   }

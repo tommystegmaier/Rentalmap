@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ExternalLink, Copy, Check } from 'lucide-react';
+import { copyToClipboard } from '@/lib/clipboard';
 import { formatCents } from '@/lib/utils';
 import { P2P_LABELS, displayHandle, p2pDeepLink, type P2PMethod } from '@/lib/p2p';
 import { submitP2PClaim } from './actions';
@@ -64,12 +65,10 @@ export function P2PClaimForm({
 
   async function copyHandle() {
     if (!shownHandle) return;
-    try {
-      await navigator.clipboard.writeText(shownHandle);
+    const ok = await copyToClipboard(shownHandle);
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard unavailable — tenant can still read the handle on screen.
     }
   }
 

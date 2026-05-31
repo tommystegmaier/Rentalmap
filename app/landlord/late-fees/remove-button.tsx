@@ -47,7 +47,7 @@ export function RemoveLateFeeButton({ id }: { id: string }) {
         value={note}
         onChange={(e) => setNote(e.target.value)}
         rows={2}
-        className="text-xs"
+        className="text-sm"
       />
       <div className="flex gap-2">
         <Button

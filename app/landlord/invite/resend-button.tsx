@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { RotateCw, CheckCheck, Copy } from 'lucide-react';
+import { copyToClipboard } from '@/lib/clipboard';
 
 export function ResendInviteButton({ email, leaseId }: { email: string; leaseId: string }) {
   const [state, setState] = useState<'idle' | 'busy' | 'sent' | 'link'>('idle');
@@ -40,7 +41,7 @@ export function ResendInviteButton({ email, leaseId }: { email: string; leaseId:
 
   async function copyLink() {
     if (!inviteLink) return;
-    await navigator.clipboard.writeText(inviteLink);
+    await copyToClipboard(inviteLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   }
