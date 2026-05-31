@@ -8,14 +8,20 @@ import { Label } from '@/components/ui/label';
 import { PenLine } from 'lucide-react';
 import { landlordSignLease } from './actions';
 import { BusyBar } from '@/components/busy-bar';
+import { SignaturePad } from '@/components/signature-pad';
 
 export function LandlordSignForm({ leaseId }: { leaseId: string }) {
   const [name, setName] = useState('');
+  const [hasSig, setHasSig] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSign(e: React.FormEvent) {
     e.preventDefault();
+    if (!hasSig) {
+      setError('Please draw your signature above before signing.');
+      return;
+    }
     setError(null);
     setBusy(true);
     try {
@@ -29,9 +35,13 @@ export function LandlordSignForm({ leaseId }: { leaseId: string }) {
   }
 
   return (
-    <form onSubmit={handleSign} className="space-y-3">
+    <form onSubmit={handleSign} className="space-y-4">
+      <div className="space-y-1.5">
+        <Label>Your signature</Label>
+        <SignaturePad onSign={setHasSig} disabled={busy} />
+      </div>
       <div className="space-y-1">
-        <Label htmlFor="landlord-name">Your full legal name</Label>
+        <Label htmlFor="landlord-name">Full legal name (typed)</Label>
         <Input
           id="landlord-name"
           value={name}
@@ -42,10 +52,10 @@ export function LandlordSignForm({ leaseId }: { leaseId: string }) {
       </div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <p className="text-xs text-muted-foreground">
-        By clicking below you are electronically signing this lease and agree to all terms stated
-        above.
+        By signing above and clicking below you are electronically signing this lease and agree
+        to all terms stated above.
       </p>
-      <Button type="submit" disabled={busy} className="w-full">
+      <Button type="submit" disabled={busy || !hasSig} className="w-full">
         <PenLine size={14} />
         {busy ? 'Signing…' : 'I agree — sign as landlord'}
       </Button>

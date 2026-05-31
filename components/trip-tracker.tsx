@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { MapPin, Navigation, X } from 'lucide-react';
+import { LiveMap } from '@/components/live-map';
+
+type Coord = { lat: number; lng: number };
 
 // Persisted across tab switches; watchPosition itself is runtime-only.
 type SavedTrip = {
@@ -10,12 +13,12 @@ type SavedTrip = {
   startedAt: number;
   lastLat: number | null;
   lastLng: number | null;
+  path: Coord[];
 };
 
 const TRIP_KEY = 'mileage_active_trip';
 
-// Raw Haversine with no correction factor — we accumulate real path segments
-// now, so there's no crow-flies gap to correct for.
+// Raw Haversine — accumulate real path segments, no crow-flies correction needed.
 function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 3958.8;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -28,11 +31,8 @@ function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number):
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Minimum meters of GPS accuracy to accept a fix.
 const MAX_ACCURACY_M = 200;
-// Minimum miles for a segment to count — filters GPS drift while stationary.
 const MIN_SEGMENT_MI = 0.01;
-// Maximum miles for a single GPS update — filters GPS teleportation jumps.
 const MAX_SEGMENT_MI = 0.75;
 
 function loadSaved(): SavedTrip | null {
@@ -64,21 +64,21 @@ interface Props {
 }
 
 export function TripTracker({ onMiles }: Props) {
-  const [active, setActive]         = useState(false);
-  const [displayMiles, setDisplay]  = useState(0);
-  const [startedAt, setStartedAt]   = useState<number | null>(null);
-  const [now, setNow]               = useState(Date.now());
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState<string | null>(null);
+  const [active, setActive]        = useState(false);
+  const [displayMiles, setDisplay] = useState(0);
+  const [startedAt, setStartedAt]  = useState<number | null>(null);
+  const [now, setNow]              = useState(Date.now());
+  const [loading, setLoading]      = useState(false);
+  const [error, setError]          = useState<string | null>(null);
+  const [path, setPath]            = useState<Coord[]>([]);
+  const [currentPos, setCurrentPos] = useState<Coord | null>(null);
 
-  // Mutable tracking state — in refs so the watchPosition callback always
-  // sees the latest values without triggering re-renders on every GPS fix.
-  const accMiles  = useRef(0);
-  const lastPos   = useRef<{ lat: number; lng: number } | null>(null);
-  const watchId   = useRef<number | null>(null);
-  const wakeLock  = useRef<WakeLockSentinel | null>(null);
+  const accMiles = useRef(0);
+  const lastPos  = useRef<Coord | null>(null);
+  const pathRef  = useRef<Coord[]>([]);
+  const watchId  = useRef<number | null>(null);
+  const wakeLock = useRef<WakeLockSentinel | null>(null);
 
-  // ── Wake lock helpers ────────────────────────────────────────────────────
   async function acquireWakeLock() {
     try {
       if ('wakeLock' in navigator) {
@@ -94,16 +94,18 @@ export function TripTracker({ onMiles }: Props) {
     wakeLock.current = null;
   }
 
-  // ── Core watch starter ───────────────────────────────────────────────────
-  const startWatch = useCallback((initialMiles: number, tripStart: number) => {
+  const startWatch = useCallback((initialMiles: number, tripStart: number, initialPath: Coord[]) => {
     if (!navigator.geolocation) return;
 
     accMiles.current = initialMiles;
+    pathRef.current = initialPath;
 
     const id = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude, longitude, accuracy } = pos.coords;
         if (accuracy > MAX_ACCURACY_M) return;
+
+        const newCoord: Coord = { lat: latitude, lng: longitude };
 
         if (lastPos.current) {
           const seg = haversineMiles(
@@ -112,31 +114,41 @@ export function TripTracker({ onMiles }: Props) {
           );
           if (seg >= MIN_SEGMENT_MI && seg <= MAX_SEGMENT_MI) {
             accMiles.current += seg;
-            // Round to one decimal for display; keep raw for final value.
             setDisplay(Math.round(accMiles.current * 10) / 10);
           }
+          // Record point for map even if segment too small (keeps route smooth).
+          if (seg >= 0.001) {
+            pathRef.current = [...pathRef.current, newCoord];
+            setPath([...pathRef.current]);
+          }
+        } else {
+          pathRef.current = [newCoord];
+          setPath([newCoord]);
         }
 
-        lastPos.current = { lat: latitude, lng: longitude };
+        lastPos.current = newCoord;
+        setCurrentPos(newCoord);
+
         persist({
           totalMiles: accMiles.current,
           startedAt: tripStart,
           lastLat: latitude,
           lastLng: longitude,
+          path: pathRef.current,
         });
       },
-      () => { /* transient GPS errors are normal while driving — suppress */ },
+      () => { /* transient GPS errors while driving — suppress */ },
       { enableHighAccuracy: true, maximumAge: 3_000, timeout: 10_000 },
     );
 
     watchId.current = id;
   }, []);
 
-  // ── Restore an in-progress trip on mount (e.g. after tab switch) ─────────
   useEffect(() => {
     const saved = loadSaved();
     if (!saved) return;
 
+    const restoredPath = saved.path ?? [];
     lastPos.current = saved.lastLat != null && saved.lastLng != null
       ? { lat: saved.lastLat, lng: saved.lastLng }
       : null;
@@ -144,7 +156,9 @@ export function TripTracker({ onMiles }: Props) {
     setActive(true);
     setDisplay(Math.round(saved.totalMiles * 10) / 10);
     setStartedAt(saved.startedAt);
-    startWatch(saved.totalMiles, saved.startedAt);
+    setPath(restoredPath);
+    if (lastPos.current) setCurrentPos(lastPos.current);
+    startWatch(saved.totalMiles, saved.startedAt, restoredPath);
 
     return () => {
       if (watchId.current != null) navigator.geolocation.clearWatch(watchId.current);
@@ -152,14 +166,12 @@ export function TripTracker({ onMiles }: Props) {
     };
   }, [startWatch]);
 
-  // ── Elapsed-time ticker ──────────────────────────────────────────────────
   useEffect(() => {
     if (!active) return;
     const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, [active]);
 
-  // ── User actions ─────────────────────────────────────────────────────────
   async function handleStart() {
     if (!navigator.geolocation) {
       setError('Geolocation is not supported in this browser.');
@@ -176,18 +188,22 @@ export function TripTracker({ onMiles }: Props) {
       );
 
       const tripStart = Date.now();
-      lastPos.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      const startCoord: Coord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      lastPos.current = startCoord;
       accMiles.current = 0;
+      pathRef.current = [startCoord];
 
-      persist({ totalMiles: 0, startedAt: tripStart, lastLat: pos.coords.latitude, lastLng: pos.coords.longitude });
+      persist({ totalMiles: 0, startedAt: tripStart, lastLat: startCoord.lat, lastLng: startCoord.lng, path: [startCoord] });
 
       setActive(true);
       setDisplay(0);
       setStartedAt(tripStart);
       setNow(Date.now());
+      setPath([startCoord]);
+      setCurrentPos(startCoord);
 
       await acquireWakeLock();
-      startWatch(0, tripStart);
+      startWatch(0, tripStart, [startCoord]);
     } catch (err) {
       setError(
         err instanceof Error && err.message
@@ -212,6 +228,8 @@ export function TripTracker({ onMiles }: Props) {
     setActive(false);
     setDisplay(0);
     setStartedAt(null);
+    setPath([]);
+    setCurrentPos(null);
     lastPos.current = null;
     accMiles.current = 0;
 
@@ -228,15 +246,17 @@ export function TripTracker({ onMiles }: Props) {
     setActive(false);
     setDisplay(0);
     setStartedAt(null);
+    setPath([]);
+    setCurrentPos(null);
     lastPos.current = null;
     accMiles.current = 0;
     setError(null);
   }
 
-  // ── Render: active trip ──────────────────────────────────────────────────
+  // ── Active trip ──────────────────────────────────────────────────────────
   if (active) {
     return (
-      <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+      <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Navigation size={16} className="animate-pulse text-primary" />
@@ -246,10 +266,12 @@ export function TripTracker({ onMiles }: Props) {
             {displayMiles.toFixed(1)} mi
           </p>
         </div>
+
+        <LiveMap path={path} current={currentPos} />
+
         <p className="text-xs text-muted-foreground">
-          Started {startedAt ? formatElapsed(now - startedAt) : ''}. GPS is tracking your
-          path continuously — keep this screen open for best accuracy. Tap{' '}
-          <strong>Mark arrival</strong> when you get there.
+          Started {startedAt ? formatElapsed(now - startedAt) : ''}. Keep this screen open
+          for best accuracy. Tap <strong>Mark arrival</strong> when you get there.
         </p>
         {error ? <p className="text-xs text-destructive">{error}</p> : null}
         <div className="flex gap-2">
@@ -269,7 +291,7 @@ export function TripTracker({ onMiles }: Props) {
     );
   }
 
-  // ── Render: idle ─────────────────────────────────────────────────────────
+  // ── Idle ─────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-2">
       <Button
