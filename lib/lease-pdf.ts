@@ -15,8 +15,10 @@ export interface LeasePdfData {
   termsNotes: string | null;
   landlordSignedAt: string | null;
   landlordSignedName: string | null;
+  landlordSignatureImage?: string | null;
   tenantSignedAt: string | null;
   tenantSignedName: string | null;
+  tenantSignatureImage?: string | null;
 }
 
 function fmt(cents: number): string {
@@ -171,6 +173,13 @@ export function generateLeasePdf(lease: LeasePdfData): Uint8Array {
   doc.text('LANDLORD', left, y);
   y += 16;
   if (lease.landlordSignedAt && lease.landlordSignedName) {
+    if (lease.landlordSignatureImage) {
+      ensureSpace(55);
+      try {
+        doc.addImage(lease.landlordSignatureImage, 'PNG', left, y, 200, 45);
+        y += 50;
+      } catch { /* skip image if it can't be rendered */ }
+    }
     doc.setTextColor(22, 130, 60);
     doc.setFont('helvetica', 'normal');
     doc.text(`✓ Electronically signed by: ${lease.landlordSignedName}`, left, y);
@@ -206,6 +215,13 @@ export function generateLeasePdf(lease: LeasePdfData): Uint8Array {
   doc.text('TENANT', left, y);
   y += 16;
   if (lease.tenantSignedAt && lease.tenantSignedName) {
+    if (lease.tenantSignatureImage) {
+      ensureSpace(55);
+      try {
+        doc.addImage(lease.tenantSignatureImage, 'PNG', left, y, 200, 45);
+        y += 50;
+      } catch { /* skip image if it can't be rendered */ }
+    }
     doc.setTextColor(22, 130, 60);
     doc.setFont('helvetica', 'normal');
     doc.text(`✓ Electronically signed by: ${lease.tenantSignedName}`, left, y);

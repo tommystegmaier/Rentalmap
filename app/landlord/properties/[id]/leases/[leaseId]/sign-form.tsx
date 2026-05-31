@@ -12,20 +12,20 @@ import { SignaturePad } from '@/components/signature-pad';
 
 export function LandlordSignForm({ leaseId }: { leaseId: string }) {
   const [name, setName] = useState('');
-  const [hasSig, setHasSig] = useState(false);
+  const [sigDataUrl, setSigDataUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSign(e: React.FormEvent) {
     e.preventDefault();
-    if (!hasSig) {
+    if (!sigDataUrl) {
       setError('Please draw your signature above before signing.');
       return;
     }
     setError(null);
     setBusy(true);
     try {
-      await landlordSignLease(leaseId, name);
+      await landlordSignLease(leaseId, name, sigDataUrl);
       toast.success('Lease signed as landlord');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign');
@@ -38,7 +38,7 @@ export function LandlordSignForm({ leaseId }: { leaseId: string }) {
     <form onSubmit={handleSign} className="space-y-4">
       <div className="space-y-1.5">
         <Label>Your signature</Label>
-        <SignaturePad onSign={setHasSig} disabled={busy} />
+        <SignaturePad onSign={setSigDataUrl} disabled={busy} />
       </div>
       <div className="space-y-1">
         <Label htmlFor="landlord-name">Full legal name (typed)</Label>
@@ -55,7 +55,7 @@ export function LandlordSignForm({ leaseId }: { leaseId: string }) {
         By signing above and clicking below you are electronically signing this lease and agree
         to all terms stated above.
       </p>
-      <Button type="submit" disabled={busy || !hasSig} className="w-full">
+      <Button type="submit" disabled={busy || !sigDataUrl} className="w-full">
         <PenLine size={14} />
         {busy ? 'Signing…' : 'I agree — sign as landlord'}
       </Button>

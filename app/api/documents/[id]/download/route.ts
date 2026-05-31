@@ -16,9 +16,10 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     .maybeSingle();
   if (error || !doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  const inline = new URL(_request.url).searchParams.has('inline');
   const { data: signed, error: sigErr } = await supabase.storage
     .from('documents')
-    .createSignedUrl(doc.file_url, 60 * 10, { download: doc.filename });
+    .createSignedUrl(doc.file_url, 60 * 10, inline ? undefined : { download: doc.filename });
   if (sigErr || !signed?.signedUrl) {
     return NextResponse.json({ error: sigErr?.message ?? 'Failed to sign URL' }, { status: 500 });
   }

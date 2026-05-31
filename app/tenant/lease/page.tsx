@@ -66,6 +66,13 @@ export default async function LeasePage() {
         .eq('property_id', prop.id)
     : { data: [] as Array<{ id: string; filename: string; type: string }> };
 
+  // Find the uploaded lease PDF (not the auto-generated signed copy).
+  const uploadedLease = (docs ?? []).find(
+    (d: { filename: string; type: string }) =>
+      (d.type === 'Lease' || d.type === 'Lease addendum') &&
+      d.filename !== 'Signed Lease Agreement.pdf',
+  ) as { id: string; filename: string } | undefined;
+
   const photoUrl = prop?.photo_url
     ? supabase.storage.from('property-photos').getPublicUrl(prop.photo_url).data.publicUrl
     : null;
@@ -157,7 +164,34 @@ export default async function LeasePage() {
         </div>
       )}
 
-      {/* Sign form */}
+      {/* Uploaded lease document — shown inline so tenant can read it before signing */}
+      {uploadedLease && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText size={16} />
+              Full lease document
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 p-0 pb-4 px-6">
+            <p className="text-sm text-muted-foreground">
+              Read the full lease before signing. Tap the button below to open it.
+            </p>
+            <a
+              href={`/api/documents/${uploadedLease.id}/download?inline=true`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <FileText size={13} />
+                Open full lease
+              </Button>
+            </a>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sign form — placed after the lease document so tenant reads first */}
       {needsMySignature && (
         <Card className="border-primary/30">
           <CardHeader>
@@ -168,8 +202,7 @@ export default async function LeasePage() {
           </CardHeader>
           <CardContent>
             <p className="mb-3 text-sm text-muted-foreground">
-              Your landlord has signed. Review the terms below, then add your signature to finalize
-              this lease.
+              Your landlord has signed.{uploadedLease ? ' Open the full lease above to review all terms, then' : ' Review the terms below, then'} add your signature to finalize this lease.
             </p>
             <TenantSignForm leaseId={lease.id} />
           </CardContent>

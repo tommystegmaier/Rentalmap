@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { generateLeasePdf } from '@/lib/lease-pdf';
+import { mergeWithUploadedLease } from '@/lib/merge-pdfs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,9 +19,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
       `id, start_date, end_date, monthly_rent_cents, due_day, late_after_day,
        late_fee_cents, security_deposit_cents, pets_allowed, utilities_paid_by,
        lawn_care_by, terms_notes,
-       landlord_signed_at, landlord_signed_name,
-       tenant_signed_at, tenant_signed_name,
-       properties:property_id(address, owner_id)`,
+       landlord_signed_at, landlord_signed_name, landlord_signature_image,
+       tenant_signed_at, tenant_signed_name, tenant_signature_image,
+       property_id, properties:property_id(address, owner_id)`,
     )
     .eq('id', params.id)
     .maybeSingle();
@@ -40,8 +41,27 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 
   const address = (prop as { address: string } | null)?.address ?? 'Unknown property';
+  const propertyId = (lease as { property_id: string }).property_id;
+  const isSigned = lease.landlord_signed_at && lease.tenant_signed_at;
 
-  const pdfBytes = generateLeasePdf({
+  // For fully signed leases, serve the stored copy (which has drawn signature
+  // images embedded). Fall through to regenerate if not found.
+  if (isSigned) {
+    const admin = createServiceRoleClient();
+    const { data: fileData } = await admin.storage
+      .from('documents')
+      .download(`${propertyId}/lease-signed-${params.id}.pdf`);
+    if (fileData) {
+      return new Response(await fileData.arrayBuffer(), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': 'attachment; filename="lease-signed.pdf"',
+        },
+      });
+    }
+  }
+
+  const termsBytes = generateLeasePdf({
     propertyAddress: address,
     startDate: lease.start_date as string,
     endDate: lease.end_date as string,
@@ -56,13 +76,17 @@ export async function GET(request: Request, { params }: { params: { id: string }
     termsNotes: (lease.terms_notes as string | null) ?? null,
     landlordSignedAt: (lease.landlord_signed_at as string | null) ?? null,
     landlordSignedName: (lease.landlord_signed_name as string | null) ?? null,
+    landlordSignatureImage: (lease.landlord_signature_image as string | null) ?? null,
     tenantSignedAt: (lease.tenant_signed_at as string | null) ?? null,
     tenantSignedName: (lease.tenant_signed_name as string | null) ?? null,
+    tenantSignatureImage: (lease.tenant_signature_image as string | null) ?? null,
   });
 
-  const isSigned = lease.landlord_signed_at && lease.tenant_signed_at;
-  const filename = isSigned ? 'lease-signed.pdf' : 'lease-draft.pdf';
+  // For draft PDFs (not yet fully signed), also prepend any uploaded lease.
+  const admin = createServiceRoleClient();
+  const pdfBytes = await mergeWithUploadedLease(admin, propertyId, params.id, termsBytes);
 
+  const filename = isSigned ? 'lease-signed.pdf' : 'lease-draft.pdf';
   return new Response(pdfBytes.buffer as ArrayBuffer, {
     headers: {
       'Content-Type': 'application/pdf',

@@ -4,8 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendPushToUser } from '@/lib/push';
 import { generateLeasePdf } from '@/lib/lease-pdf';
+import { mergeWithUploadedLease } from '@/lib/merge-pdfs';
 
-export async function tenantSignLease(leaseId: string, name: string) {
+export async function tenantSignLease(leaseId: string, name: string, signatureDataUrl?: string | null) {
   const supabase = createClient();
   const {
     data: { user },
@@ -33,7 +34,7 @@ export async function tenantSignLease(leaseId: string, name: string) {
       id, start_date, end_date, monthly_rent_cents, due_day, late_after_day,
       late_fee_cents, security_deposit_cents, pets_allowed, utilities_paid_by,
       lawn_care_by, terms_notes,
-      landlord_signed_at, landlord_signed_name,
+      landlord_signed_at, landlord_signed_name, landlord_signature_image,
       tenant_signed_at, tenant_signed_name,
       property_id,
       properties:property_id(id, address, owner_id)
@@ -52,7 +53,11 @@ export async function tenantSignLease(leaseId: string, name: string) {
 
   const { error: updateErr } = await admin
     .from('leases')
-    .update({ tenant_signed_at: signedAt, tenant_signed_name: trimmed })
+    .update({
+      tenant_signed_at: signedAt,
+      tenant_signed_name: trimmed,
+      ...(signatureDataUrl ? { tenant_signature_image: signatureDataUrl } : {}),
+    })
     .eq('id', leaseId);
   if (updateErr) throw updateErr;
 
@@ -64,7 +69,7 @@ export async function tenantSignLease(leaseId: string, name: string) {
   // Generate signed PDF and store it in the documents bucket.
   // Best-effort — don't fail the whole signing if storage has an issue.
   try {
-    const pdfBytes = generateLeasePdf({
+    const termsBytes = generateLeasePdf({
       propertyAddress: address,
       startDate: lease.start_date as string,
       endDate: lease.end_date as string,
@@ -79,9 +84,14 @@ export async function tenantSignLease(leaseId: string, name: string) {
       termsNotes: (lease.terms_notes as string | null) ?? null,
       landlordSignedAt: lease.landlord_signed_at as string,
       landlordSignedName: (lease.landlord_signed_name as string | null) ?? null,
+      landlordSignatureImage: (lease.landlord_signature_image as string | null) ?? null,
       tenantSignedAt: signedAt,
       tenantSignedName: trimmed,
+      tenantSignatureImage: signatureDataUrl ?? null,
     });
+
+    // Prepend the uploaded lease document if one exists.
+    const pdfBytes = await mergeWithUploadedLease(admin, propertyId, leaseId, termsBytes);
 
     const storagePath = `${propertyId}/lease-signed-${leaseId}.pdf`;
     await admin.storage.from('documents').upload(storagePath, pdfBytes, {
@@ -89,22 +99,31 @@ export async function tenantSignLease(leaseId: string, name: string) {
       upsert: true,
     });
 
-    await admin.from('documents').insert({
-      property_id: propertyId,
-      lease_id: leaseId,
-      type: 'Lease',
-      filename: 'Signed Lease Agreement.pdf',
-      file_url: storagePath,
-      visible_to_tenant: true,
-      uploaded_by: user.id,
-      date_added: signedAt.slice(0, 10),
-    });
+    // Upsert the document record (re-signing replaces the old copy).
+    const { data: existing } = await admin
+      .from('documents')
+      .select('id')
+      .eq('file_url', storagePath)
+      .maybeSingle();
+
+    if (existing) {
+      await admin.from('documents').update({ date_added: signedAt.slice(0, 10) }).eq('id', existing.id);
+    } else {
+      await admin.from('documents').insert({
+        property_id: propertyId,
+        lease_id: leaseId,
+        type: 'Lease',
+        filename: 'Signed Lease Agreement.pdf',
+        file_url: storagePath,
+        visible_to_tenant: true,
+        uploaded_by: user.id,
+        date_added: signedAt.slice(0, 10),
+      });
+    }
   } catch {
     // Don't let PDF storage failure block the signing confirmation
   }
 
-  // Push notification direct to landlord owner_id (more reliable than
-  // sendPushToLandlord which does a secondary properties lookup).
   await sendPushToUser(ownerId, {
     title: 'Lease fully signed',
     body: `${trimmed} has signed the lease for ${address}.`,

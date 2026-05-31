@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 
-export async function landlordSignLease(leaseId: string, name: string) {
+export async function landlordSignLease(leaseId: string, name: string, signatureDataUrl?: string | null) {
   const supabase = createClient();
   const {
     data: { user },
@@ -28,7 +28,11 @@ export async function landlordSignLease(leaseId: string, name: string) {
 
   const { error } = await supabase
     .from('leases')
-    .update({ landlord_signed_at: new Date().toISOString(), landlord_signed_name: trimmed })
+    .update({
+      landlord_signed_at: new Date().toISOString(),
+      landlord_signed_name: trimmed,
+      ...(signatureDataUrl ? { landlord_signature_image: signatureDataUrl } : {}),
+    })
     .eq('id', leaseId);
 
   if (error) throw error;

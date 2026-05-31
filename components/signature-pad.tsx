@@ -1,49 +1,39 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Eraser } from 'lucide-react';
 
 interface Props {
-  onSign: (hasSignature: boolean) => void;
+  onSign: (dataUrl: string | null) => void;
   disabled?: boolean;
 }
 
 export function SignaturePad({ onSign, disabled }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
+  const drewSomething = useRef(false);
   const [empty, setEmpty] = useState(true);
 
-  // Set canvas pixel dimensions to match its CSS size (device pixel ratio aware).
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      const ctx = canvas.getContext('2d')!;
-      ctx.scale(dpr, dpr);
-      ctx.strokeStyle = '#1e2433';
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-    };
-    resize();
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d')!;
+    ctx.scale(dpr, dpr);
+    ctx.strokeStyle = '#1e2433';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
   }, []);
 
   function getPos(e: React.PointerEvent<HTMLCanvasElement>) {
     const rect = canvasRef.current!.getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   }
-
-  const markUsed = useCallback(() => {
-    if (empty) {
-      setEmpty(false);
-      onSign(true);
-    }
-  }, [empty, onSign]);
 
   function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
     if (disabled) return;
@@ -61,11 +51,15 @@ export function SignaturePad({ onSign, disabled }: Props) {
     const { x, y } = getPos(e);
     ctx.lineTo(x, y);
     ctx.stroke();
-    markUsed();
+    if (empty) setEmpty(false);
+    drewSomething.current = true;
   }
 
   function handlePointerUp() {
     drawing.current = false;
+    if (drewSomething.current) {
+      onSign(canvasRef.current!.toDataURL('image/png'));
+    }
   }
 
   function clear() {
@@ -73,8 +67,9 @@ export function SignaturePad({ onSign, disabled }: Props) {
     const ctx = canvas.getContext('2d')!;
     const dpr = window.devicePixelRatio || 1;
     ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+    drewSomething.current = false;
     setEmpty(true);
-    onSign(false);
+    onSign(null);
   }
 
   return (
