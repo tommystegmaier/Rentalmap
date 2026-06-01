@@ -15,10 +15,14 @@ const DOC_TYPES = [
   'Move-in inspection',
   'Move-out inspection',
   'Insurance policy',
+  'Mortgage statement',
   'Tax document',
   'Receipt',
   'Other',
 ] as const;
+
+const MAX_MB = 50;
+const MAX_BYTES = MAX_MB * 1024 * 1024;
 
 interface UploadFormProps {
   propertyId: string;
@@ -34,34 +38,64 @@ export function UploadForm({ propertyId, leases }: UploadFormProps) {
   );
   const [visibleToTenant, setVisibleToTenant] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!file) {
-      setError('Pick a file to upload.');
+    if (!file) { setError('Pick a file to upload.'); return; }
+    if (file.size > MAX_BYTES) {
+      setError(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is ${MAX_MB} MB.`);
       return;
     }
+
     setBusy(true);
+    setProgress(0);
 
     try {
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
 
       const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
       const path = `${propertyId}/${Date.now()}-${safeName}`;
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
-      const { error: upErr } = await supabase.storage
-        .from('documents')
-        .upload(path, file, {
-          upsert: false,
-          contentType: file.type || 'application/octet-stream',
-        });
-      if (upErr) throw upErr;
+      // Use XHR instead of the SDK so we get real upload progress events.
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) setProgress(Math.round((ev.loaded / ev.total) * 100));
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            try {
+              const body = JSON.parse(xhr.responseText);
+              reject(new Error(body.error ?? body.message ?? `Upload failed (${xhr.status})`));
+            } catch {
+              reject(new Error(`Upload failed (${xhr.status})`));
+            }
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Upload failed — check your connection and try again.'));
+        xhr.ontimeout = () => reject(new Error('Upload timed out. Check your connection or try a smaller file.'));
+        xhr.timeout = 180_000; // 3 minutes
+
+        xhr.open('POST', `${supabaseUrl}/storage/v1/object/documents/${path}`);
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        xhr.setRequestHeader('x-upsert', 'false');
+        if (file.type) xhr.setRequestHeader('Content-Type', file.type);
+        xhr.send(file);
+      });
 
       const isLease = type === 'Lease' || type === 'Lease addendum';
       const { error: insertErr } = await supabase.from('documents').insert({
@@ -81,6 +115,7 @@ export function UploadForm({ propertyId, leases }: UploadFormProps) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -106,9 +141,7 @@ export function UploadForm({ propertyId, leases }: UploadFormProps) {
         <Label htmlFor="type">Type</Label>
         <Select id="type" value={type} onChange={(e) => setType(e.target.value as (typeof DOC_TYPES)[number])}>
           {DOC_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
+            <option key={t} value={t}>{t}</option>
           ))}
         </Select>
       </div>
@@ -131,11 +164,7 @@ export function UploadForm({ propertyId, leases }: UploadFormProps) {
         const isLease = type === 'Lease' || type === 'Lease addendum';
         const effectiveVisible = isLease ? true : visibleToTenant;
         return (
-          <label
-            className={`flex items-start gap-3 rounded-lg border p-3 text-sm ${
-              isLease ? 'opacity-70' : ''
-            }`}
-          >
+          <label className={`flex items-start gap-3 rounded-lg border p-3 text-sm ${isLease ? 'opacity-70' : ''}`}>
             <input
               type="checkbox"
               checked={effectiveVisible}
@@ -157,10 +186,25 @@ export function UploadForm({ propertyId, leases }: UploadFormProps) {
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
+      {progress !== null && (
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Uploading…</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-200"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? 'Uploading…' : 'Upload document'}
       </Button>
-      <BusyBar active={busy} />
+      <BusyBar active={busy && progress === null} />
     </form>
   );
 }
