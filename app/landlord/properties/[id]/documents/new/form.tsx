@@ -21,8 +21,36 @@ const DOC_TYPES = [
   'Other',
 ] as const;
 
-const MAX_MB = 50;
-const MAX_BYTES = MAX_MB * 1024 * 1024;
+async function compressImage(file: File): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX_DIM = 2048;
+      let { width, height } = img;
+      if (width > MAX_DIM || height > MAX_DIM) {
+        const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob || blob.size >= file.size) { resolve(file); return; }
+          resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+        },
+        'image/jpeg',
+        0.85,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
 
 interface UploadFormProps {
   propertyId: string;
@@ -45,10 +73,6 @@ export function UploadForm({ propertyId, leases }: UploadFormProps) {
     e.preventDefault();
     setError(null);
     if (!file) { setError('Pick a file to upload.'); return; }
-    if (file.size > MAX_BYTES) {
-      setError(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is ${MAX_MB} MB.`);
-      return;
-    }
 
     setBusy(true);
     setProgress(0);
@@ -61,6 +85,7 @@ export function UploadForm({ propertyId, leases }: UploadFormProps) {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
+      const uploadFile = file.type.startsWith('image/') ? await compressImage(file) : file;
       const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
       const path = `${propertyId}/${Date.now()}-${safeName}`;
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -93,8 +118,8 @@ export function UploadForm({ propertyId, leases }: UploadFormProps) {
         xhr.open('POST', `${supabaseUrl}/storage/v1/object/documents/${path}`);
         xhr.setRequestHeader('Authorization', `Bearer ${token}`);
         xhr.setRequestHeader('x-upsert', 'false');
-        if (file.type) xhr.setRequestHeader('Content-Type', file.type);
-        xhr.send(file);
+        if (uploadFile.type) xhr.setRequestHeader('Content-Type', uploadFile.type);
+        xhr.send(uploadFile);
       });
 
       const isLease = type === 'Lease' || type === 'Lease addendum';
@@ -132,7 +157,8 @@ export function UploadForm({ propertyId, leases }: UploadFormProps) {
         />
         {file ? (
           <p className="text-xs text-muted-foreground">
-            {file.name} · {(file.size / 1024).toFixed(0)} KB
+            {file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB
+            {file.type.startsWith('image/') ? ' (will be compressed before upload)' : ''}
           </p>
         ) : null}
       </div>
