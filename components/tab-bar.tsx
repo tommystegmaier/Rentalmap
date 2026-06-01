@@ -18,7 +18,7 @@ export function TabBar({ items }: { items: TabItem[] }) {
       className="fixed inset-x-0 bottom-0 z-50 px-3"
       style={{ paddingBottom: 'calc(max(env(safe-area-inset-bottom), 8px) + 4px)' }}
     >
-      <nav className="mx-auto max-w-md overflow-hidden rounded-2xl border border-border/40 bg-card/95 shadow-2xl backdrop-blur-md">
+      <nav className="mx-auto max-w-md overflow-hidden rounded-2xl border border-white/10 bg-card/50 shadow-2xl backdrop-blur-xl">
         <ul className="flex items-stretch justify-around">
           {items.map((item) => {
             const active =
