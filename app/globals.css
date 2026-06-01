@@ -93,6 +93,13 @@
     min-height: 44px;
     min-width: 44px;
   }
+
+  /* Header padding that clears the iOS status bar / notch when the PWA runs
+     in standalone mode with a translucent status bar. Falls back to 0 on
+     devices without a safe-area inset. */
+  .pt-safe {
+    padding-top: calc(env(safe-area-inset-top) + 0.75rem);
+  }
 }
 
 /* Splash screen animations */

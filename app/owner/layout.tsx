@@ -29,7 +29,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
 
   return (
     <div className="mx-auto min-h-screen max-w-md pb-20">
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 px-4 py-3 backdrop-blur">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 px-4 pb-3 pt-safe backdrop-blur">
         <Logo size={28} showWordmark />
         <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Owner
