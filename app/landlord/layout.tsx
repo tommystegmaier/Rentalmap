@@ -74,7 +74,7 @@ export default async function LandlordLayout({ children }: { children: React.Rea
   ];
 
   return (
-    <div className="mx-auto min-h-screen max-w-md pb-20">
+    <div className="mx-auto min-h-screen max-w-md pb-28">
       <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 px-4 py-3 backdrop-blur">
         <Logo size={28} showWordmark />
         <div className="flex items-center gap-3">
