@@ -4,6 +4,44 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 
+export async function updatePropertyRecord(
+  propertyId: string,
+  updates: {
+    address: string;
+    type: string;
+    purchase_price_cents: number | null;
+    placed_in_service: string | null;
+    depreciable_basis_cents: number | null;
+    annual_depreciation_cents: number | null;
+    asking_rent_cents: number | null;
+    notes: string | null;
+    photo_url?: string;
+  },
+) {
+  const supabase = createClient();
+  const { error } = await supabase.from('properties').update(updates).eq('id', propertyId);
+  if (error) throw error;
+  revalidatePath(`/landlord/properties/${propertyId}`);
+  revalidatePath('/landlord/properties');
+  revalidatePath('/landlord');
+}
+
+export async function insertDocumentRecord(data: {
+  property_id: string;
+  lease_id: string | null;
+  type: string;
+  filename: string;
+  file_url: string;
+  visible_to_tenant: boolean;
+}) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  const { error } = await supabase.from('documents').insert({ ...data, uploaded_by: user.id });
+  if (error) throw error;
+  revalidatePath(`/landlord/properties/${data.property_id}`);
+}
+
 export async function deleteProperty(propertyId: string) {
   const supabase = createClient();
   const {

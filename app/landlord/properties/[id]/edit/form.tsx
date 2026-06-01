@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { parseDollarsToCents } from '@/lib/utils';
-import { deleteProperty } from '../actions';
+import { deleteProperty, updatePropertyRecord } from '../actions';
 import { BusyBar } from '@/components/busy-bar';
 
 interface Property {
@@ -65,7 +65,7 @@ export function EditPropertyForm({ property }: { property: Property }) {
         if (upErr) throw upErr;
       }
 
-      const updates: Record<string, unknown> = {
+      const updates = {
         address: address.trim(),
         type,
         purchase_price_cents: parseDollarsToCents(purchasePrice),
@@ -74,14 +74,10 @@ export function EditPropertyForm({ property }: { property: Property }) {
         annual_depreciation_cents: parseDollarsToCents(annualDepreciation),
         asking_rent_cents: parseDollarsToCents(askingRent),
         notes: notes.trim() || null,
+        ...(newPhotoPath ? { photo_url: newPhotoPath } : {}),
       };
-      if (newPhotoPath) updates.photo_url = newPhotoPath;
 
-      const { error: updErr } = await supabase
-        .from('properties')
-        .update(updates)
-        .eq('id', property.id);
-      if (updErr) throw updErr;
+      await updatePropertyRecord(property.id, updates);
 
       // Clean up old photo file if we uploaded a new one
       if (newPhotoPath && property.photo_url) {

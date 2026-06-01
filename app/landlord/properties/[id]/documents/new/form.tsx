@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { BusyBar } from '@/components/busy-bar';
+import { insertDocumentRecord } from '../actions';
 
 const DOC_TYPES = [
   'Lease',
@@ -123,16 +124,14 @@ export function UploadForm({ propertyId, leases }: UploadFormProps) {
       });
 
       const isLease = type === 'Lease' || type === 'Lease addendum';
-      const { error: insertErr } = await supabase.from('documents').insert({
+      await insertDocumentRecord({
         property_id: propertyId,
         lease_id: leaseId || null,
         type,
         filename: file.name,
         file_url: path,
         visible_to_tenant: isLease ? true : visibleToTenant,
-        uploaded_by: user.id,
       });
-      if (insertErr) throw insertErr;
 
       router.push(`/landlord/properties/${propertyId}`);
     } catch (err) {
