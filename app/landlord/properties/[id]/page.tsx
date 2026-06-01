@@ -10,6 +10,7 @@ import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { RemoveLateFeeButton } from '@/app/landlord/late-fees/remove-button';
 import { RemoveTenantButton } from './remove-tenant-button';
+import { LateFeeToggleButton } from './late-fee-toggle-button';
 import {
   FileText,
   FileSignature,
@@ -508,16 +509,25 @@ export default async function PropertyDetail({ params }: { params: { id: string 
       {/* Late fees */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex items-center justify-between gap-2">
             <span className="flex items-center gap-2">
               <AlertCircle size={18} className="text-muted-foreground" />
               Late fees
             </span>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/landlord/late-fees">
-                Manage all
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              {activeLease && (
+                <LateFeeToggleButton
+                  leaseId={activeLease.id}
+                  propertyId={params.id}
+                  enabled={!!(activeLease as Record<string, unknown>).late_fee_enabled}
+                />
+              )}
+              <Button asChild size="sm" variant="outline">
+                <Link href="/landlord/late-fees">
+                  Manage all
+                </Link>
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm">
