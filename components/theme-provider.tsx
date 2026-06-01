@@ -26,7 +26,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window === 'undefined') return 'system';
     const stored = localStorage.getItem('theme') as Theme | null;
-    return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'light';
+    return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'dark';
   });
 
   useEffect(() => {

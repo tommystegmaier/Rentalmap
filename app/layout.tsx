@@ -24,10 +24,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0c0e12' },
-  ],
+  themeColor: '#000000',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -37,7 +34,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const themeCookie = cookies().get('theme')?.value;
-  const isDark = themeCookie === 'dark';
+  const isDark = themeCookie !== 'light';
 
   return (
     <html lang="en" className={isDark ? 'dark' : ''} suppressHydrationWarning>
@@ -45,7 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Runs before first paint to prevent flash of wrong theme */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark');document.documentElement.style.background=d?'#0c0e12':'#ffffff'}catch(e){}})()`,
+            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t!=='light'&&(t==='dark'||t==null||(t==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches));if(d)document.documentElement.classList.add('dark');document.documentElement.style.background='#000000'}catch(e){}})()`,
           }}
         />
       </head>
