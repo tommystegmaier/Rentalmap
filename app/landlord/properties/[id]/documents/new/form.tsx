@@ -135,7 +135,6 @@ export function UploadForm({ propertyId, leases }: UploadFormProps) {
       if (insertErr) throw insertErr;
 
       router.push(`/landlord/properties/${propertyId}`);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {

@@ -114,7 +114,6 @@ export function MortgageForm({ properties, initialPropertyId }: Props) {
 
       toast.success('Mortgage payment recorded');
       router.push('/landlord/expenses');
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {

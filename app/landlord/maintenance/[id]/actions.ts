@@ -18,7 +18,6 @@ export async function markRelatedNotificationsRead(workOrderId: string) {
     .eq('user_id', user.id)
     .eq('related_id', workOrderId)
     .is('read_at', null);
-  revalidatePath('/landlord', 'layout');
 }
 
 type Status = 'open' | 'in_progress' | 'closed';

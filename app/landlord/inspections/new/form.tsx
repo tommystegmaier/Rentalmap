@@ -346,7 +346,6 @@ export function NewInspectionForm({ properties, initialPropertyId, editInspectio
         if (actionError) throw new Error(actionError);
         router.push(`/landlord/inspections/${inspectionId}`);
       }
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {

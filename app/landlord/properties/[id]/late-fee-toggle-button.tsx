@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { toggleLateFeeEnabled } from './late-fee-toggle-action';
 
@@ -13,21 +13,23 @@ export function LateFeeToggleButton({
   propertyId: string;
   enabled: boolean;
 }) {
-  const [pending, startTransition] = useTransition();
+  const [optimisticEnabled, setOptimisticEnabled] = useState(enabled);
+  const [, startTransition] = useTransition();
 
   function handleToggle() {
-    startTransition(() => toggleLateFeeEnabled(leaseId, propertyId, !enabled));
+    const next = !optimisticEnabled;
+    setOptimisticEnabled(next);
+    startTransition(() => toggleLateFeeEnabled(leaseId, propertyId, next));
   }
 
   return (
     <Button
       type="button"
       size="sm"
-      variant={enabled ? 'outline' : 'default'}
-      disabled={pending}
+      variant={optimisticEnabled ? 'outline' : 'default'}
       onClick={handleToggle}
     >
-      {pending ? '…' : enabled ? 'Disable auto fees' : 'Enable auto fees'}
+      {optimisticEnabled ? 'Disable auto fees' : 'Enable auto fees'}
     </Button>
   );
 }

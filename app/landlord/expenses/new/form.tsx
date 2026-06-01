@@ -144,7 +144,6 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
       } else {
         router.push('/landlord/expenses');
       }
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {

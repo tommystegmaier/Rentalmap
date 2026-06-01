@@ -136,7 +136,6 @@ export function MaintenanceEventForm({
       router.push(
         `/landlord/properties/${propertyId}/appliances/${applianceId}?tab=schedule`,
       );
-      router.refresh();
     });
   }
 

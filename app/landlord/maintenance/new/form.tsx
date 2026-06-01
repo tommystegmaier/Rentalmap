@@ -105,7 +105,6 @@ export function LandlordWorkOrderForm({ properties }: Props) {
       }
 
       router.push(`/landlord/maintenance/${inserted.id}`);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {

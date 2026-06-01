@@ -107,7 +107,6 @@ export function WorkOrderForm({ leaseId, propertyId }: WorkOrderFormProps) {
       }).catch(() => {});
 
       router.push(`/tenant/maintenance/${inserted.id}`);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {

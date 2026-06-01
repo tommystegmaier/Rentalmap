@@ -190,7 +190,6 @@ export function DepreciationForm({ propertyId, initial }: Props) {
       });
       toast.success('Depreciation saved');
       router.push(`/landlord/properties/${propertyId}`);
-      router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save');
       setSaving(false);

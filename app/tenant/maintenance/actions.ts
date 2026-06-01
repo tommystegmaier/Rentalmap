@@ -25,7 +25,6 @@ export async function markAllWorkOrderUpdatesRead() {
     .is('read_at', null);
 
   revalidatePath('/tenant');
-  revalidatePath('/tenant', 'layout');
 }
 
 // Clear unread updates for a single work order, e.g. when the tenant opens it
@@ -46,5 +45,4 @@ export async function markWorkOrderUpdatesRead(workOrderId: string) {
     .is('read_at', null);
 
   revalidatePath('/tenant');
-  revalidatePath('/tenant', 'layout');
 }

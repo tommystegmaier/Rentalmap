@@ -12,7 +12,6 @@ export async function dismissNotification(formData: FormData) {
     .update({ dismissed_at: new Date().toISOString() })
     .eq('id', id);
   revalidatePath('/landlord/notifications');
-  revalidatePath('/landlord', 'layout');
 }
 
 export async function dismissAllNotifications() {
@@ -27,5 +26,4 @@ export async function dismissAllNotifications() {
     .eq('user_id', user.id)
     .is('dismissed_at', null);
   revalidatePath('/landlord/notifications');
-  revalidatePath('/landlord', 'layout');
 }

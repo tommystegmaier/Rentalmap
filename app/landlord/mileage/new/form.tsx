@@ -117,7 +117,6 @@ export function MileageForm({ properties, initialPropertyId, defaultRate, today 
       await createMileageTrip(fd);
       toast.success('Trip logged');
       router.push('/landlord/mileage');
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
       setBusy(false);

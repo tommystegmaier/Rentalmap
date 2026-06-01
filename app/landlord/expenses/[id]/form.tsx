@@ -154,7 +154,6 @@ export function EditExpenseForm({
 
       toast.success('Expense saved');
       router.push('/landlord/expenses');
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {

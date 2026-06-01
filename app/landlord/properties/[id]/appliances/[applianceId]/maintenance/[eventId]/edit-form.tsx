@@ -186,7 +186,6 @@ export default function EditMaintenanceEventPage({
       } satisfies UpdateMaintenanceEventInput);
       if (result.error) { setError(result.error); return; }
       router.push(`/landlord/properties/${propertyId}/appliances/${applianceId}?tab=schedule`);
-      router.refresh();
     });
   }
 
@@ -195,7 +194,6 @@ export default function EditMaintenanceEventPage({
       const result = await completeMaintenanceEvent(eventId, propertyId, applianceId);
       if (result.error) { setError(result.error); return; }
       router.push(`/landlord/properties/${propertyId}/appliances/${applianceId}?tab=schedule`);
-      router.refresh();
     });
   }
 
@@ -205,7 +203,6 @@ export default function EditMaintenanceEventPage({
       const result = await deleteMaintenanceEvent(eventId, propertyId, applianceId);
       if (result.error) { setError(result.error); return; }
       router.push(`/landlord/properties/${propertyId}/appliances/${applianceId}?tab=schedule`);
-      router.refresh();
     });
   }
 

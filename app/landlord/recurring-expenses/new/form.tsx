@@ -86,7 +86,6 @@ export function RecurringExpenseForm({ properties, initial }: Props) {
         toast.success('Recurring expense created');
       }
       router.push('/landlord/recurring-expenses');
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save');
     } finally {

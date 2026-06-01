@@ -62,7 +62,6 @@ export function EditVendorForm({ vendor }: EditVendorFormProps) {
       try {
         await updateVendor(vendor.id, formData);
         router.push(`/landlord/vendors/${vendor.id}`);
-        router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to save vendor.');
       }

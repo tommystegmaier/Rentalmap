@@ -72,7 +72,6 @@ export async function approveClaim(claimId: string) {
   });
 
   revalidatePath('/landlord/rent');
-  revalidatePath('/landlord', 'layout');
 }
 
 export async function denyClaim(claimId: string, reason?: string) {
@@ -136,6 +135,5 @@ export async function denyClaim(claimId: string, reason?: string) {
   });
 
   revalidatePath('/landlord/rent');
-  revalidatePath('/landlord', 'layout');
 }
 

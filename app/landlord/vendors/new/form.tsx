@@ -47,7 +47,6 @@ export function NewVendorForm() {
       try {
         await createVendor(formData);
         router.push('/landlord/vendors');
-        router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to save vendor.');
       }

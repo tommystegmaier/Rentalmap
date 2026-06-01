@@ -18,7 +18,6 @@ export function DeleteRecurringExpenseButton({ id }: { id: string }) {
     try {
       await deleteRecurringExpense(id);
       router.push('/landlord/recurring-expenses');
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete');
     } finally {

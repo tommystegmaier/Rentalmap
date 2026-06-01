@@ -89,7 +89,6 @@ export function EditPropertyForm({ property }: { property: Property }) {
       }
 
       router.push(`/landlord/properties/${property.id}`);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
