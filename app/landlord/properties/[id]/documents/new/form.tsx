@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { BusyBar } from '@/components/busy-bar';
-import { insertDocumentRecord } from '../actions';
+import { insertDocumentRecord } from '../../actions';
 
 const DOC_TYPES = [
   'Lease',
