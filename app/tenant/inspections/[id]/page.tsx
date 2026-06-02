@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -101,7 +101,8 @@ export default async function TenantInspectionDetailPage({
   const allPaths = items.flatMap((itm) => itm.photo_urls);
   const signedUrlMap = new Map<string, string>();
   if (allPaths.length > 0) {
-    const { data: signed } = await supabase.storage
+    const admin = createServiceRoleClient();
+    const { data: signed } = await admin.storage
       .from('inspection-photos')
       .createSignedUrls(allPaths, 3600);
     for (const entry of signed ?? []) {

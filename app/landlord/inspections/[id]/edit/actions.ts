@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 
 interface InspectionItemInput {
   room: string;
@@ -78,9 +78,21 @@ export async function updateInspection(
 
 export async function deleteInspection(id: string): Promise<void> {
   const supabase = createClient();
+  const admin = createServiceRoleClient();
+
+  // Fetch property_id so we can revalidate the property page too
+  const { data: insp } = await admin
+    .from('inspections')
+    .select('property_id')
+    .eq('id', id)
+    .maybeSingle();
 
   await supabase.from('inspections').delete().eq('id', id);
 
   revalidatePath('/landlord/inspections');
+  revalidatePath('/tenant/inspections');
+  revalidatePath('/tenant');
+  if (insp?.property_id) revalidatePath(`/landlord/properties/${insp.property_id}`);
+
   redirect('/landlord/inspections');
 }
