@@ -12,9 +12,8 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 import { parseDollarsToCents } from '@/lib/utils';
-import { isIsoDate } from '@/lib/image';
+import { isIsoDate, resizeForUpload } from '@/lib/image';
 import { prepareScanUpload } from '@/lib/scan-upload';
-import { receiptToPdf } from '@/lib/receipt-pdf';
 import { BusyBar } from '@/components/busy-bar';
 
 interface ExpenseFormProps {
@@ -116,12 +115,24 @@ export function ExpenseForm({ properties, initialPropertyId, returnPropertyId }:
 
       let receipt_url: string | null = null;
       if (receipt) {
-        // Archive the receipt as a PDF for cleaner tax documentation.
-        const { blob, ext, contentType } = await receiptToPdf(receipt);
+        const isPdf =
+          receipt.type === 'application/pdf' || receipt.name.toLowerCase().endsWith('.pdf');
+        let uploadBlob: Blob = receipt;
+        let ext = receipt.name.split('.').pop()?.toLowerCase() || 'jpg';
+        let contentType = receipt.type || 'image/jpeg';
+        if (!isPdf) {
+          try {
+            uploadBlob = await resizeForUpload(receipt, { maxDimension: 2000, quality: 0.85 });
+            ext = 'jpg';
+            contentType = 'image/jpeg';
+          } catch {
+            // fall back to original
+          }
+        }
         const path = `${propertyId}/${Date.now()}.${ext}`;
         const { error: uploadErr } = await supabase.storage
           .from('receipts')
-          .upload(path, blob, { upsert: false, contentType });
+          .upload(path, uploadBlob, { upsert: false, contentType });
         if (uploadErr) throw uploadErr;
         receipt_url = path;
       }

@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { parseDollarsToCents } from '@/lib/utils';
 import { prepareScanUpload } from '@/lib/scan-upload';
-import { receiptToPdf } from '@/lib/receipt-pdf';
+import { resizeForUpload } from '@/lib/image';
 import { createMortgageExpenses } from './actions';
 
 interface Props {
@@ -87,15 +87,27 @@ export function MortgageForm({ properties, initialPropertyId }: Props) {
         return;
       }
 
-      // Archive the statement as a PDF and attach it to every line.
       let receiptPath: string | null = null;
       if (statement) {
         const supabase = createClient();
-        const { blob, ext, contentType } = await receiptToPdf(statement);
+        const isPdf =
+          statement.type === 'application/pdf' || statement.name.toLowerCase().endsWith('.pdf');
+        let uploadBlob: Blob = statement;
+        let ext = statement.name.split('.').pop()?.toLowerCase() || 'jpg';
+        let contentType = statement.type || 'image/jpeg';
+        if (!isPdf) {
+          try {
+            uploadBlob = await resizeForUpload(statement, { maxDimension: 2000, quality: 0.85 });
+            ext = 'jpg';
+            contentType = 'image/jpeg';
+          } catch {
+            // fall back to original
+          }
+        }
         const path = `${propertyId}/mortgage-${Date.now()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from('receipts')
-          .upload(path, blob, { upsert: false, contentType });
+          .upload(path, uploadBlob, { upsert: false, contentType });
         if (upErr) throw upErr;
         receiptPath = path;
       }

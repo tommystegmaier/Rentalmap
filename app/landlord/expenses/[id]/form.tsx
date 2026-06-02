@@ -12,9 +12,8 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EXPENSE_CATEGORIES, type ExpenseCategory } from '@/lib/constants';
 import { parseDollarsToCents } from '@/lib/utils';
-import { isIsoDate } from '@/lib/image';
+import { isIsoDate, resizeForUpload } from '@/lib/image';
 import { prepareScanUpload } from '@/lib/scan-upload';
-import { receiptToPdf } from '@/lib/receipt-pdf';
 import { BusyBar } from '@/components/busy-bar';
 import { ReceiptViewer } from '@/components/receipt-viewer';
 import { format, parseISO } from 'date-fns';
@@ -123,11 +122,24 @@ export function EditExpenseForm({
 
       // If they uploaded a new file, swap it in and delete the old.
       if (newReceipt) {
-        const { blob, ext, contentType } = await receiptToPdf(newReceipt);
+        const isPdf =
+          newReceipt.type === 'application/pdf' || newReceipt.name.toLowerCase().endsWith('.pdf');
+        let uploadBlob: Blob = newReceipt;
+        let ext = newReceipt.name.split('.').pop()?.toLowerCase() || 'jpg';
+        let contentType = newReceipt.type || 'image/jpeg';
+        if (!isPdf) {
+          try {
+            uploadBlob = await resizeForUpload(newReceipt, { maxDimension: 2000, quality: 0.85 });
+            ext = 'jpg';
+            contentType = 'image/jpeg';
+          } catch {
+            // fall back to original
+          }
+        }
         const path = `${propertyId}/${Date.now()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from('receipts')
-          .upload(path, blob, { upsert: false, contentType });
+          .upload(path, uploadBlob, { upsert: false, contentType });
         if (upErr) throw upErr;
         if (expense.receipt_url) {
           await supabase.storage.from('receipts').remove([expense.receipt_url]);
