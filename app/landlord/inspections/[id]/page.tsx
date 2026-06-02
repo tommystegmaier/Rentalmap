@@ -101,11 +101,11 @@ export default async function InspectionDetailPage({
     const { data: signed } = await supabase.storage
       .from('inspection-photos')
       .createSignedUrls(allPaths, 3600);
-    for (const entry of signed ?? []) {
-      if (entry.signedUrl && entry.path) {
-        signedUrlMap.set(entry.path, entry.signedUrl);
+    (signed ?? []).forEach((entry, i) => {
+      if (entry.signedUrl && allPaths[i]) {
+        signedUrlMap.set(allPaths[i], entry.signedUrl);
       }
-    }
+    });
   }
 
   const prop = one(insp.properties);

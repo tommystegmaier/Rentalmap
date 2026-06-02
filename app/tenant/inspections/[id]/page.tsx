@@ -97,7 +97,9 @@ export default async function TenantInspectionDetailPage({
     roomMap.set(itm.room, list);
   }
 
-  // Generate signed URLs for photos
+  // Generate signed URLs for photos using the service role client so storage
+  // RLS does not block tenant access. Use index-based mapping because
+  // entry.path can be null in the service role response.
   const allPaths = items.flatMap((itm) => itm.photo_urls);
   const signedUrlMap = new Map<string, string>();
   if (allPaths.length > 0) {
@@ -105,11 +107,11 @@ export default async function TenantInspectionDetailPage({
     const { data: signed } = await admin.storage
       .from('inspection-photos')
       .createSignedUrls(allPaths, 3600);
-    for (const entry of signed ?? []) {
-      if (entry.signedUrl && entry.path) {
-        signedUrlMap.set(entry.path, entry.signedUrl);
+    (signed ?? []).forEach((entry, i) => {
+      if (entry.signedUrl && allPaths[i]) {
+        signedUrlMap.set(allPaths[i], entry.signedUrl);
       }
-    }
+    });
   }
 
   const prop = one(insp.properties);
