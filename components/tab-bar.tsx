@@ -1,4 +1,5 @@
 'use client';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -12,6 +13,9 @@ export interface TabItem {
 
 export function TabBar({ items }: { items: TabItem[] }) {
   const pathname = usePathname();
+  const navRef = useRef<HTMLElement>(null);
+  const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const [bubble, setBubble] = useState<{ left: number; width: number } | null>(null);
 
   const activeIndex = items.findIndex(
     (item) =>
@@ -19,33 +23,50 @@ export function TabBar({ items }: { items: TabItem[] }) {
       (item.href !== '/landlord' && item.href !== '/tenant' && pathname.startsWith(item.href)),
   );
 
+  useEffect(() => {
+    function measure() {
+      const nav = navRef.current;
+      const li = itemRefs.current[activeIndex];
+      if (!nav || !li || activeIndex < 0) return;
+      const navRect = nav.getBoundingClientRect();
+      const liRect = li.getBoundingClientRect();
+      setBubble({ left: liRect.left - navRect.left, width: liRect.width });
+    }
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [activeIndex]);
+
   return (
     <div
       className="fixed inset-x-0 bottom-0 z-50 px-4"
       style={{ paddingBottom: 'calc(max(env(safe-area-inset-bottom), 8px) + 4px)' }}
     >
-      <nav className="relative mx-auto max-w-md overflow-hidden rounded-full bg-neutral-950/80 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-        {/* Sliding bubble — inset-x-1 matches ul's px-1 so cells align */}
-        <div className="pointer-events-none absolute inset-x-1 bottom-2 top-2">
-          {activeIndex >= 0 && (
-            <div
-              className="absolute inset-y-0"
-              style={{
-                width: `${100 / items.length}%`,
-                left: `${(activeIndex / items.length) * 100}%`,
-                transition: 'left 350ms ease-in-out',
-              }}
-            >
-              <div className="mx-0.5 h-full rounded-2xl bg-white/[0.15]" />
-            </div>
-          )}
-        </div>
+      <nav
+        ref={navRef}
+        className="relative mx-auto max-w-md overflow-hidden rounded-full bg-neutral-950/80 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+      >
+        {/* Bubble positioned from measured li coords — pixel-perfect centering */}
+        {bubble && (
+          <div
+            className="pointer-events-none absolute bottom-2 top-2 rounded-2xl bg-white/[0.15]"
+            style={{
+              left: bubble.left + 4,
+              width: bubble.width - 8,
+              transition: 'left 350ms ease-in-out, width 350ms ease-in-out',
+            }}
+          />
+        )}
 
-        <ul className="relative flex items-center justify-around px-1 py-2">
+        <ul className="relative flex items-center px-1 py-2">
           {items.map((item, index) => {
             const active = index === activeIndex;
             return (
-              <li key={item.href} className="flex-1">
+              <li
+                key={item.href}
+                ref={(el) => { itemRefs.current[index] = el; }}
+                className="flex-1"
+              >
                 <Link
                   href={item.href}
                   className="flex w-full flex-col items-center justify-center tap-44"
