@@ -19,7 +19,7 @@ export function TabBar({ items }: { items: TabItem[] }) {
       style={{ paddingBottom: 'calc(max(env(safe-area-inset-bottom), 8px) + 4px)' }}
     >
       <nav className="mx-auto max-w-md overflow-hidden rounded-full bg-neutral-950/80 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-        <ul className="flex items-stretch justify-around">
+        <ul className="flex items-center justify-around px-1 py-2">
           {items.map((item) => {
             const active =
               pathname === item.href ||
@@ -28,25 +28,24 @@ export function TabBar({ items }: { items: TabItem[] }) {
               <li key={item.href} className="flex-1">
                 <Link
                   href={item.href}
-                  className={cn(
-                    'flex flex-col items-center justify-center gap-0.5 px-1 py-3 text-[11px] tap-44 transition-colors duration-150',
-                    active ? 'text-white' : 'text-white/35',
-                  )}
+                  className="flex flex-col items-center justify-center tap-44"
                 >
-                  <span aria-hidden className="relative">
-                    {item.icon}
-                    {item.badge && item.badge > 0 ? (
-                      <span className="absolute -right-2 -top-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold leading-none text-white">
-                        {item.badge > 99 ? '99+' : item.badge}
-                      </span>
-                    ) : null}
+                  <span
+                    className={cn(
+                      'flex flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 text-[11px] text-white transition-colors duration-150',
+                      active ? 'bg-white/[0.15] font-medium' : '',
+                    )}
+                  >
+                    <span aria-hidden className="relative">
+                      {item.icon}
+                      {item.badge && item.badge > 0 ? (
+                        <span className="absolute -right-2 -top-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold leading-none text-white">
+                          {item.badge > 99 ? '99+' : item.badge}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="max-w-full truncate">{item.label}</span>
                   </span>
-                  <span className={cn('max-w-full truncate', active && 'font-medium')}>
-                    {item.label}
-                  </span>
-                  {active && (
-                    <span className="mt-0.5 h-1 w-1 rounded-full bg-primary" />
-                  )}
                 </Link>
               </li>
             );
