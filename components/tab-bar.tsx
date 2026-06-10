@@ -15,10 +15,10 @@ export function TabBar({ items }: { items: TabItem[] }) {
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-50 px-3"
+      className="fixed inset-x-0 bottom-0 z-50 px-4"
       style={{ paddingBottom: 'calc(max(env(safe-area-inset-bottom), 8px) + 4px)' }}
     >
-      <nav className="mx-auto max-w-md overflow-hidden rounded-2xl border border-white/10 bg-card/50 shadow-2xl backdrop-blur-xl">
+      <nav className="mx-auto max-w-md overflow-hidden rounded-full bg-neutral-950/80 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl">
         <ul className="flex items-stretch justify-around">
           {items.map((item) => {
             const active =
@@ -29,8 +29,8 @@ export function TabBar({ items }: { items: TabItem[] }) {
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex flex-col items-center justify-center gap-0.5 px-1 py-2.5 text-[11px] tap-44 transition-colors duration-150',
-                    active ? 'text-foreground' : 'text-muted-foreground/55',
+                    'flex flex-col items-center justify-center gap-0.5 px-1 py-3 text-[11px] tap-44 transition-colors duration-150',
+                    active ? 'text-white' : 'text-white/35',
                   )}
                 >
                   <span aria-hidden className="relative">
