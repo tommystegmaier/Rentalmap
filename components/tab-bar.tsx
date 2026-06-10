@@ -1,4 +1,5 @@
 'use client';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -12,6 +13,8 @@ export interface TabItem {
 
 export function TabBar({ items }: { items: TabItem[] }) {
   const pathname = usePathname();
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const prevIndexRef = useRef(-1);
 
   const activeIndex = items.findIndex(
     (item) =>
@@ -19,25 +22,44 @@ export function TabBar({ items }: { items: TabItem[] }) {
       (item.href !== '/landlord' && item.href !== '/tenant' && pathname.startsWith(item.href)),
   );
 
+  // Play squish animation when the active tab changes (skip on first mount)
+  useEffect(() => {
+    if (prevIndexRef.current !== -1 && prevIndexRef.current !== activeIndex && bubbleRef.current) {
+      const el = bubbleRef.current;
+      el.style.animation = 'none';
+      void el.getBoundingClientRect(); // force reflow to restart animation
+      el.style.animation = 'tab-bubble-squish 380ms cubic-bezier(0.34, 1.4, 0.64, 1)';
+    }
+    prevIndexRef.current = activeIndex;
+  }, [activeIndex]);
+
   return (
     <div
       className="fixed inset-x-0 bottom-0 z-50 px-4"
       style={{ paddingBottom: 'calc(max(env(safe-area-inset-bottom), 8px) + 4px)' }}
     >
       <nav className="relative mx-auto max-w-md overflow-hidden rounded-full bg-neutral-950/80 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-        {/* Sliding bubble — translates to the active tab */}
-        {activeIndex >= 0 && (
-          <div
-            className="pointer-events-none absolute bottom-2 top-2 px-0.5"
-            style={{
-              width: `${100 / items.length}%`,
-              transform: `translateX(${activeIndex * 100}%)`,
-              transition: 'transform 300ms cubic-bezier(0.34, 1.2, 0.64, 1)',
-            }}
-          >
-            <div className="h-full rounded-2xl bg-white/[0.15]" />
-          </div>
-        )}
+        {/*
+          Bubble wrapper uses inset-x-1 to match the ul's px-1, so
+          width: 100%/n correctly sizes to one tab cell.
+        */}
+        <div className="pointer-events-none absolute inset-x-1 bottom-2 top-2">
+          {activeIndex >= 0 && (
+            <div
+              className="absolute inset-y-0"
+              style={{
+                width: `${100 / items.length}%`,
+                transform: `translateX(${activeIndex * 100}%)`,
+                transition: 'transform 380ms cubic-bezier(0.34, 1.2, 0.64, 1)',
+              }}
+            >
+              <div
+                ref={bubbleRef}
+                className="mx-0.5 h-full rounded-2xl bg-white/[0.15]"
+              />
+            </div>
+          )}
+        </div>
 
         <ul className="relative flex items-center justify-around px-1 py-2">
           {items.map((item, index) => {

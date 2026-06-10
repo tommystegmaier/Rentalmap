@@ -145,3 +145,11 @@
     transform: translateX(400%);
   }
 }
+
+/* Tab bar active bubble: compress while traveling, spring open on landing */
+@keyframes tab-bubble-squish {
+  0%   { transform: scaleX(1); }
+  30%  { transform: scaleX(0.62); }
+  68%  { transform: scaleX(0.62); }
+  100% { transform: scaleX(1); }
+}
