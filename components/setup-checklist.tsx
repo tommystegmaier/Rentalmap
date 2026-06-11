@@ -1,7 +1,12 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2, Circle, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+
+const DISMISSED_KEY = 'setup_checklist_dismissed';
 
 interface Step {
   label: string;
@@ -20,7 +25,18 @@ interface Props {
 
 export function SetupChecklist({ hasProperty, hasLease, hasTenant, hasStripe }: Props) {
   const allDone = hasProperty && hasLease && hasTenant && hasStripe;
-  if (allDone) return null;
+  const [dismissed, setDismissed] = useState(true); // start hidden to avoid flash
+
+  useEffect(() => {
+    setDismissed(localStorage.getItem(DISMISSED_KEY) === '1');
+  }, []);
+
+  if (allDone || dismissed) return null;
+
+  function dismiss() {
+    localStorage.setItem(DISMISSED_KEY, '1');
+    setDismissed(true);
+  }
 
   const steps: Step[] = [
     {
@@ -39,7 +55,7 @@ export function SetupChecklist({ hasProperty, hasLease, hasTenant, hasStripe }: 
     },
     {
       label: 'Invite your tenant',
-      description: 'Send an invitation link so your tenant can log in and pay rent.',
+      description: 'Send an invitation so your tenant can log in and pay rent.',
       done: hasTenant,
       href: '/landlord/invite',
       cta: 'Invite tenant',
@@ -59,9 +75,19 @@ export function SetupChecklist({ hasProperty, hasLease, hasTenant, hasStripe }: 
   return (
     <Card className="border-primary/30 bg-primary/5">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">
-          Get started — {completedCount}/{steps.length} complete
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base">
+            Get started — {completedCount}/{steps.length} complete
+          </CardTitle>
+          <button
+            type="button"
+            aria-label="Dismiss setup checklist"
+            onClick={dismiss}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/50"
+          >
+            <X size={15} />
+          </button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {steps.map((step) => (

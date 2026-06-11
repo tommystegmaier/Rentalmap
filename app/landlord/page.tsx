@@ -54,7 +54,7 @@ export default async function LandlordDashboard() {
       .select('id', { count: 'exact', head: true })
       .is('landlord_viewed_at', null)
       .neq('status', 'closed'),
-    supabase.from('users').select('stripe_account_id').eq('id', user.id).maybeSingle(),
+    supabase.from('users').select('stripe_connect_account_id').eq('id', user.id).maybeSingle(),
     supabase
       .from('lease_tenants')
       .select('id', { count: 'exact', head: true }),
@@ -79,7 +79,7 @@ export default async function LandlordDashboard() {
     ),
   ];
 
-  const hasStripe = !!(userProfile as { stripe_account_id: string | null } | null)?.stripe_account_id;
+  const hasStripe = !!(userProfile as { stripe_connect_account_id: string | null } | null)?.stripe_connect_account_id;
 
   return (
     <div className="space-y-6">
