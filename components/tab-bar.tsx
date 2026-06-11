@@ -44,7 +44,7 @@ export function TabBar({ items }: { items: TabItem[] }) {
     >
       <nav
         ref={navRef}
-        className="relative mx-auto max-w-md overflow-hidden rounded-full bg-neutral-950/40 shadow-[0_8px_32px_rgba(0,0,0,0.25)] backdrop-blur-xl"
+        className="relative mx-auto max-w-md overflow-hidden rounded-full bg-neutral-950/20 shadow-[0_4px_16px_rgba(0,0,0,0.15)] backdrop-blur-md"
       >
         {/* Bubble positioned from measured li coords — pixel-perfect centering */}
         {bubble && (
