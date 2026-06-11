@@ -49,7 +49,7 @@ export function TabBar({ items }: { items: TabItem[] }) {
         {/* Bubble positioned from measured li coords — pixel-perfect centering */}
         {bubble && (
           <div
-            className="pointer-events-none absolute bottom-2 top-2 rounded-2xl bg-white/[0.15]"
+            className="pointer-events-none absolute bottom-2 top-2 rounded-2xl bg-white/[0.075]"
             style={{
               left: bubble.left + 4,
               width: bubble.width - 8,
