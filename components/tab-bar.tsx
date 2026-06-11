@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, cloneElement, isValidElement } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -78,7 +78,9 @@ export function TabBar({ items }: { items: TabItem[] }) {
                     )}
                   >
                     <span aria-hidden className="relative">
-                      {item.icon}
+                      {active && isValidElement(item.icon)
+                        ? cloneElement(item.icon as React.ReactElement<Record<string, unknown>>, { fill: 'currentColor', strokeWidth: 0 })
+                        : item.icon}
                       {item.badge && item.badge > 0 ? (
                         <span className="absolute -right-2 -top-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold leading-none text-white">
                           {item.badge > 99 ? '99+' : item.badge}
