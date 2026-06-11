@@ -16,6 +16,7 @@ import { DeleteWorkOrderButton } from '@/components/delete-work-order-button';
 import { SuccessToast } from '@/components/success-toast';
 import { WorkOrderReceipt } from '@/components/work-order-receipt';
 import { WorkOrderRepairPhotos } from '@/components/work-order-repair-photos';
+import { PhotoGrid } from '@/components/photo-grid';
 
 interface WorkOrderDetailRow {
   id: string;
@@ -164,17 +165,8 @@ export default async function WorkOrderDetail({
         <CardContent className="text-sm">
           <p className="whitespace-pre-wrap">{wo.description}</p>
           {photoSignedUrls.length > 0 ? (
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {photoSignedUrls.map((url, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={i}
-                  src={url}
-                  alt={`Work order photo ${i + 1}`}
-                  className="aspect-square w-full rounded-lg border object-cover"
-                  loading="lazy"
-                />
-              ))}
+            <div className="mt-3">
+              <PhotoGrid urls={photoSignedUrls} />
             </div>
           ) : null}
         </CardContent>

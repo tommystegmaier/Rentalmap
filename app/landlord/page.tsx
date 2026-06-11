@@ -10,6 +10,7 @@ import { formatCents } from '@/lib/utils';
 import { differenceInDays, parseISO } from 'date-fns';
 import { Wrench, ReceiptText, Send, MessageSquare, Home as HomeIcon, Car, Calculator } from 'lucide-react';
 import { OfflinePrefetch } from '@/components/offline-prefetch';
+import { SetupChecklist } from '@/components/setup-checklist';
 
 export default async function LandlordDashboard() {
   const supabase = createClient();
@@ -29,6 +30,8 @@ export default async function LandlordDashboard() {
     { data: ytdExpenses },
     { count: unreadMessages },
     { count: unviewedMaintenance },
+    { data: userProfile },
+    { count: tenantCount },
   ] = await Promise.all([
     supabase.from('properties').select('*').order('created_at'),
     supabase
@@ -51,6 +54,10 @@ export default async function LandlordDashboard() {
       .select('id', { count: 'exact', head: true })
       .is('landlord_viewed_at', null)
       .neq('status', 'closed'),
+    supabase.from('users').select('stripe_account_id').eq('id', user.id).maybeSingle(),
+    supabase
+      .from('lease_tenants')
+      .select('id', { count: 'exact', head: true }),
   ]);
 
   const ytdIncomeCents = (ytdPayments ?? [])
@@ -72,10 +79,19 @@ export default async function LandlordDashboard() {
     ),
   ];
 
+  const hasStripe = !!(userProfile as { stripe_account_id: string | null } | null)?.stripe_account_id;
+
   return (
     <div className="space-y-6">
       <OfflinePrefetch urls={prefetchUrls} />
       <PageHeader title="Dashboard" description="Your portfolio at a glance" />
+
+      <SetupChecklist
+        hasProperty={(properties?.length ?? 0) > 0}
+        hasLease={(leases?.length ?? 0) > 0}
+        hasTenant={(tenantCount ?? 0) > 0}
+        hasStripe={hasStripe}
+      />
 
       <StripeSetupBanner variant="dashboard" />
 

@@ -9,22 +9,27 @@ import { format, parseISO } from 'date-fns';
 import { ReceiptText } from 'lucide-react';
 import { ExpensePropertyFilter } from '@/components/expense-property-filter';
 import { ExpenseSortToggle } from '@/components/expense-sort-toggle';
+import { ExpenseSearchFilter } from '@/components/expense-search-filter';
 
 export default async function ExpensesPage({
   searchParams,
 }: {
-  searchParams: { property_id?: string; sort?: string };
+  searchParams: { property_id?: string; sort?: string; q?: string; category?: string };
 }) {
   const supabase = createClient();
   const propertyId = searchParams.property_id;
   const sortBy = searchParams.sort === 'expense' ? 'date' : 'created_at';
+  const q = searchParams.q?.trim() ?? '';
+  const category = searchParams.category ?? '';
 
   let query = supabase
     .from('expenses')
-    .select('id, vendor, category, date, created_at, amount_cents, properties:property_id(address)')
+    .select('id, vendor, category, date, created_at, amount_cents, notes, properties:property_id(address)')
     .order(sortBy, { ascending: false })
-    .limit(100);
+    .limit(200);
   if (propertyId) query = query.eq('property_id', propertyId);
+  if (category) query = query.eq('category', category);
+  if (q) query = query.or(`vendor.ilike.%${q}%,notes.ilike.%${q}%,category.ilike.%${q}%`);
 
   const [{ data: expenses }, { data: properties }] = await Promise.all([
     query,
@@ -63,6 +68,7 @@ export default async function ExpensesPage({
         {propertyList.length > 0 ? (
           <ExpensePropertyFilter properties={propertyList} current={propertyId ?? null} />
         ) : null}
+        <ExpenseSearchFilter />
         <ExpenseSortToggle />
       </div>
 

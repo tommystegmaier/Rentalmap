@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
@@ -6,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
-import { ChevronLeft } from 'lucide-react';
 import { MarkWorkOrderUpdatesRead } from '../mark-read';
 import { BackButton } from '@/components/back-button';
+import { PhotoGrid } from '@/components/photo-grid';
+import { AddWorkOrderPhotos } from './add-photos';
 
 export default async function TenantWorkOrderDetail({
   params,
@@ -78,22 +78,18 @@ export default async function TenantWorkOrderDetail({
 
       <Card>
         <CardHeader>
-          <CardTitle>Your description</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            Your description
+            {wo.status !== 'closed' ? (
+              <AddWorkOrderPhotos workOrderId={params.id} />
+            ) : null}
+          </CardTitle>
         </CardHeader>
         <CardContent className="text-sm">
           <p className="whitespace-pre-wrap">{wo.description}</p>
           {photoSignedUrls.length > 0 ? (
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {photoSignedUrls.map((url, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={i}
-                  src={url}
-                  alt={`Photo ${i + 1}`}
-                  className="aspect-square w-full rounded-lg border object-cover"
-                  loading="lazy"
-                />
-              ))}
+            <div className="mt-3">
+              <PhotoGrid urls={photoSignedUrls} />
             </div>
           ) : null}
         </CardContent>
@@ -105,18 +101,7 @@ export default async function TenantWorkOrderDetail({
             <CardTitle>Repair photos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-2">
-              {repairSignedUrls.map((url, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={i}
-                  src={url}
-                  alt={`Repair photo ${i + 1}`}
-                  className="aspect-square w-full rounded-lg border object-cover"
-                  loading="lazy"
-                />
-              ))}
-            </div>
+            <PhotoGrid urls={repairSignedUrls} />
           </CardContent>
         </Card>
       ) : null}

@@ -1,9 +1,7 @@
 import { FileText } from 'lucide-react';
 import { isPdfReceipt } from '@/lib/receipt';
+import { PhotoLightbox } from './photo-lightbox';
 
-// Renders a stored receipt: an image inline, or a PDF as a tappable link
-// (PDFs don't render reliably in <img>/<iframe> on mobile). No hooks, so this
-// works in both server and client components.
 export function ReceiptViewer({
   signedUrl,
   path,
@@ -26,13 +24,5 @@ export function ReceiptViewer({
       </a>
     );
   }
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={signedUrl}
-      alt={alt}
-      className="aspect-video w-full rounded-lg border bg-white object-contain"
-      loading="lazy"
-    />
-  );
+  return <PhotoLightbox src={signedUrl} alt={alt} />;
 }
