@@ -53,7 +53,7 @@ export function TabBar({ items }: { items: TabItem[] }) {
             style={{
               left: bubble.left + 4,
               width: bubble.width - 8,
-              transition: 'left 350ms ease-in-out, width 350ms ease-in-out',
+              transition: 'left 380ms cubic-bezier(0.34, 1.56, 0.64, 1), width 350ms cubic-bezier(0.4, 0, 0.2, 1)',
             }}
           />
         )}
