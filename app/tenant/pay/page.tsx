@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cardChargeCents, formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
-import { currentRentPeriodDue } from '@/lib/rent-period';
+import { nextUnpaidRentPeriod } from '@/lib/rent-period';
 import { PayButton } from './pay-button';
 import { AutopayControls } from './autopay-controls';
 import { getStripe } from '@/lib/stripe';
@@ -91,9 +91,10 @@ export default async function PayRentPage({
   let autopay: { id: string; status: string } | null = null;
   type LateFeeRow = { id: string; charge_date: string; amount_cents: number; period_start: string };
   let lateFees: LateFeeRow[] = [];
+  let paidExpectedDates: string[] = [];
 
   if (lease) {
-    const [{ data: autopayData }, { data: feeData }] = await Promise.all([
+    const [{ data: autopayData }, { data: feeData }, { data: paidDatesData }] = await Promise.all([
       supabase
         .from('autopay_subscriptions')
         .select('id, status')
@@ -107,16 +108,23 @@ export default async function PayRentPage({
         .eq('lease_id', lease.id)
         .eq('waived', false)
         .order('charge_date', { ascending: false }),
+      supabase
+        .from('rent_payments')
+        .select('expected_date')
+        .eq('lease_id', lease.id)
+        .in('status', ['settled', 'manual']),
     ]);
     autopay = autopayData as { id: string; status: string } | null;
     lateFees = (feeData ?? []) as LateFeeRow[];
+    paidExpectedDates = (paidDatesData ?? []).map((p: { expected_date: string }) => p.expected_date);
   }
 
   const totalLateFeesCents = lateFees.reduce((s, f) => s + f.amount_cents, 0);
 
   const today = new Date();
-  const periodDue = lease ? currentRentPeriodDue(lease.due_day, today) : today;
+  const periodDue = lease ? nextUnpaidRentPeriod(lease.due_day, paidExpectedDates, today) : today;
   const expectedDate = format(periodDue, 'yyyy-MM-dd');
+  const payingEarly = periodDue > today;
 
   return (
     <div className="space-y-6">
@@ -139,6 +147,11 @@ export default async function PayRentPage({
           <p className="mt-1 text-sm text-muted-foreground">
             For {format(periodDue, 'MMMM yyyy')} · due {format(periodDue, 'MMMM d')}
           </p>
+          {payingEarly ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Paying early — this month&apos;s rent is already settled.
+            </p>
+          ) : null}
           {totalLateFeesCents > 0 ? (
             <div className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
               <AlertCircle size={15} className="shrink-0" />

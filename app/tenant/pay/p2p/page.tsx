@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCents } from '@/lib/utils';
 import { format } from 'date-fns';
-import { currentRentPeriodDue } from '@/lib/rent-period';
+import { nextUnpaidRentPeriod } from '@/lib/rent-period';
 import { ChevronLeft } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
 import {
@@ -76,8 +76,15 @@ export default async function P2PClaimPage({
     if (landlord) handle = handleForMethod(method, landlord as LandlordHandles);
   }
 
+  const { data: paidDatesData } = await supabase
+    .from('rent_payments')
+    .select('expected_date')
+    .eq('lease_id', lease.id)
+    .in('status', ['settled', 'manual']);
+
+  const paidExpectedDates = (paidDatesData ?? []).map((p: { expected_date: string }) => p.expected_date);
   const today = new Date();
-  const periodDue = currentRentPeriodDue(lease.due_day, today);
+  const periodDue = nextUnpaidRentPeriod(lease.due_day, paidExpectedDates, today);
   const expectedDate = format(periodDue, 'yyyy-MM-dd');
   const periodLabel = format(periodDue, 'MMMM yyyy');
   const note = `${periodLabel} rent${prop?.address ? ` · ${prop.address}` : ''}`;

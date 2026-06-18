@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
-import { format, parseISO, differenceInCalendarDays, addMonths, setDate } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays } from 'date-fns';
+import { nextUnpaidRentPeriod } from '@/lib/rent-period';
 import { Home as HomeIcon, Wallet, Wrench, FileText, MessageSquare, ChevronRight, ClipboardList, CheckCircle2, PenLine } from 'lucide-react';
 import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
 
@@ -83,6 +84,7 @@ export default async function TenantDashboard() {
     { count: unreadMessages },
     { count: unreadWoUpdates },
     { data: inspectionRows },
+    { data: paidDatesData },
   ] = await Promise.all([
     supabase
       .from('rent_payments')
@@ -123,11 +125,16 @@ export default async function TenantDashboard() {
       .eq('lease_id', leaseId)
       .order('conducted_date', { ascending: false })
       .limit(10),
+    supabase
+      .from('rent_payments')
+      .select('expected_date')
+      .eq('lease_id', lease.id)
+      .in('status', ['settled', 'manual']),
   ]);
 
   const today = new Date();
-  let nextDue = setDate(today, lease.due_day);
-  if (nextDue < today) nextDue = addMonths(nextDue, 1);
+  const paidExpectedDates = (paidDatesData ?? []).map((p: { expected_date: string }) => p.expected_date);
+  const nextDue = nextUnpaidRentPeriod(lease.due_day, paidExpectedDates, today);
   const daysUntil = differenceInCalendarDays(nextDue, today);
 
   return (
