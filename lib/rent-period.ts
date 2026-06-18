@@ -37,3 +37,34 @@ export function nextUnpaidRentPeriod(
   }
   return candidate;
 }
+
+export interface RentPeriodOption {
+  value: string;
+  label: string;
+  paid: boolean;
+}
+
+/**
+ * Generates a list of selectable rent period options centred on today:
+ * monthsBefore months in the past through monthsAfter months in the future.
+ * Each option is flagged if it already has a settled/manual payment.
+ */
+export function rentPeriodOptions(
+  dueDay: number,
+  paidExpectedDates: string[],
+  monthsBefore = 6,
+  monthsAfter = 12,
+): RentPeriodOption[] {
+  const paid = new Set(paidExpectedDates);
+  const today = new Date();
+  const options: RentPeriodOption[] = [];
+
+  for (let i = -monthsBefore; i <= monthsAfter; i++) {
+    const month = addMonths(today, i);
+    const due = rentDueForMonth(dueDay, month);
+    const value = format(due, 'yyyy-MM-dd');
+    options.push({ value, label: format(due, 'MMMM yyyy'), paid: paid.has(value) });
+  }
+
+  return options;
+}

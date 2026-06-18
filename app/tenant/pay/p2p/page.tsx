@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCents } from '@/lib/utils';
 import { format } from 'date-fns';
-import { nextUnpaidRentPeriod } from '@/lib/rent-period';
+import { nextUnpaidRentPeriod, rentPeriodOptions } from '@/lib/rent-period';
 import { ChevronLeft } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
 import {
@@ -20,7 +20,7 @@ import { P2PClaimForm } from './form';
 export default async function P2PClaimPage({
   searchParams,
 }: {
-  searchParams: { method?: string };
+  searchParams: { method?: string; period?: string };
 }) {
   const supabase = createClient();
   const {
@@ -84,9 +84,15 @@ export default async function P2PClaimPage({
 
   const paidExpectedDates = (paidDatesData ?? []).map((p: { expected_date: string }) => p.expected_date);
   const today = new Date();
-  const periodDue = nextUnpaidRentPeriod(lease.due_day, paidExpectedDates, today);
-  const expectedDate = format(periodDue, 'yyyy-MM-dd');
-  const periodLabel = format(periodDue, 'MMMM yyyy');
+  const options = rentPeriodOptions(lease.due_day, paidExpectedDates);
+
+  // Accept a pre-selected period from the pay page (?period=YYYY-MM-DD).
+  const periodFromQuery = options.find((o) => o.value === searchParams.period);
+  const defaultPeriodDue = periodFromQuery
+    ? new Date(periodFromQuery.value)
+    : nextUnpaidRentPeriod(lease.due_day, paidExpectedDates, today);
+  const expectedDate = format(defaultPeriodDue, 'yyyy-MM-dd');
+  const periodLabel = format(defaultPeriodDue, 'MMMM yyyy');
   const note = `${periodLabel} rent${prop?.address ? ` · ${prop.address}` : ''}`;
 
   // Check for an existing pending claim for this period (any method)
@@ -129,6 +135,7 @@ export default async function P2PClaimPage({
         expectedDate={expectedDate}
         note={note}
         hasPending={!!existing}
+        periodOptions={options}
       />
 
       <p className="text-xs text-muted-foreground">

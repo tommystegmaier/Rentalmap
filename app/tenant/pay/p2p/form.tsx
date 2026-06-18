@@ -11,6 +11,7 @@ import { formatCents } from '@/lib/utils';
 import { P2P_LABELS, displayHandle, p2pDeepLink, type P2PMethod } from '@/lib/p2p';
 import { submitP2PClaim } from './actions';
 import { BusyBar } from '@/components/busy-bar';
+import type { RentPeriodOption } from '@/lib/rent-period';
 
 interface Props {
   method: P2PMethod;
@@ -20,6 +21,7 @@ interface Props {
   expectedDate: string;
   note: string;
   hasPending: boolean;
+  periodOptions: RentPeriodOption[];
 }
 
 export function P2PClaimForm({
@@ -30,8 +32,10 @@ export function P2PClaimForm({
   expectedDate,
   note,
   hasPending,
+  periodOptions,
 }: Props) {
   const router = useRouter();
+  const [selectedDate, setSelectedDate] = useState(expectedDate);
   const [memo, setMemo] = useState(note);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +45,7 @@ export function P2PClaimForm({
   const label = P2P_LABELS[method];
   const deepLink = handle ? p2pDeepLink(method, handle, amountCents, memo) : null;
   const shownHandle = handle ? displayHandle(method, handle) : null;
+  const selectedOption = periodOptions.find((o) => o.value === selectedDate);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -50,7 +55,7 @@ export function P2PClaimForm({
       const fd = new FormData();
       fd.set('lease_id', leaseId);
       fd.set('amount_cents', String(amountCents));
-      fd.set('expected_date', expectedDate);
+      fd.set('expected_date', selectedDate);
       fd.set('method', method);
       fd.set('note', memo.trim());
       await submitP2PClaim(fd);
@@ -133,6 +138,24 @@ export function P2PClaimForm({
       {/* Step 2 — confirm */}
       <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border bg-card p-4">
         <p className="text-sm font-medium">Step 2 · Confirm you sent it</p>
+        <div className="space-y-1.5">
+          <Label htmlFor="period">Paying for</Label>
+          <select
+            id="period"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+          >
+            {periodOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}{opt.paid ? ' · paid' : ''}
+              </option>
+            ))}
+          </select>
+          {selectedOption?.paid ? (
+            <p className="text-xs text-warning">This period already has a payment on record.</p>
+          ) : null}
+        </div>
         <div className="space-y-2">
           <Label htmlFor="memo">Note / memo</Label>
           <Textarea

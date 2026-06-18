@@ -1,15 +1,12 @@
 import Link from 'next/link';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cardChargeCents, formatCents } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
-import { nextUnpaidRentPeriod } from '@/lib/rent-period';
-import { PayButton } from './pay-button';
-import { AutopayControls } from './autopay-controls';
+import { cardChargeCents } from '@/lib/utils';
+import { format } from 'date-fns';
+import { nextUnpaidRentPeriod, rentPeriodOptions } from '@/lib/rent-period';
 import { getStripe } from '@/lib/stripe';
-import { AlertCircle, ClipboardList, ChevronRight } from 'lucide-react';
-import { P2P_METHODS, P2P_LABELS } from '@/lib/p2p';
+import { ClipboardList } from 'lucide-react';
+import { PayPageContent } from './pay-page-content';
 
 export default async function PayRentPage({
   searchParams,
@@ -48,9 +45,6 @@ export default async function PayRentPage({
       : lease.properties
     : null;
 
-  // Look up landlord's Stripe connect status (service role — tenant can't read landlord row).
-  // We check charges_enabled via Stripe API, not just whether an ID is stored in the DB,
-  // so the UI correctly reflects whether payments can actually be accepted.
   let landlordConnected = false;
   let landlordHasAccount = false;
   let achFeePayer: 'landlord' | 'tenant' = 'landlord';
@@ -119,12 +113,14 @@ export default async function PayRentPage({
     paidExpectedDates = (paidDatesData ?? []).map((p: { expected_date: string }) => p.expected_date);
   }
 
-  const totalLateFeesCents = lateFees.reduce((s, f) => s + f.amount_cents, 0);
-
   const today = new Date();
-  const periodDue = lease ? nextUnpaidRentPeriod(lease.due_day, paidExpectedDates, today) : today;
-  const expectedDate = format(periodDue, 'yyyy-MM-dd');
-  const payingEarly = periodDue > today;
+  const defaultPeriodDue = lease
+    ? nextUnpaidRentPeriod(lease.due_day, paidExpectedDates, today)
+    : today;
+  const defaultExpectedDate = format(defaultPeriodDue, 'yyyy-MM-dd');
+  const periodOptions = lease
+    ? rentPeriodOptions(lease.due_day, paidExpectedDates)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -136,165 +132,24 @@ export default async function PayRentPage({
         </div>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Amount due</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-semibold">
-            {lease ? formatCents(lease.monthly_rent_cents) : '—'}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            For {format(periodDue, 'MMMM yyyy')} · due {format(periodDue, 'MMMM d')}
-          </p>
-          {payingEarly ? (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Paying early — this month&apos;s rent is already settled.
-            </p>
-          ) : null}
-          {totalLateFeesCents > 0 ? (
-            <div className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-              <AlertCircle size={15} className="shrink-0" />
-              <span>
-                <strong>{formatCents(totalLateFeesCents)}</strong> in outstanding late fees — see below.
-              </span>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
       {lease ? (
-        landlordConnected ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Pay securely with Stripe</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div className="rounded-xl border bg-card p-4 space-y-2">
-                <div className="flex items-baseline justify-between">
-                  <p className="font-medium">Pay with bank (ACH)</p>
-                  <p className="text-lg font-semibold">{formatCents(achTotalCents)}</p>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {achFeePayer === 'tenant'
-                    ? `Includes a $0.80 processing fee. Settles in 1–3 business days.`
-                    : 'No fee for you. Settles in 1–3 business days.'}
-                </p>
-                <PayButton
-                  leaseId={lease.id}
-                  expectedDate={expectedDate}
-                  method="ach"
-                  label={`Pay ${formatCents(achTotalCents)} by bank`}
-                />
-              </div>
-
-              <div className="rounded-xl border bg-card p-4 space-y-2">
-                <div className="flex items-baseline justify-between">
-                  <p className="font-medium">Card · Apple Pay · Cash App</p>
-                  <p className="text-lg font-semibold">{formatCents(cardTotalCents)}</p>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {cardFeePayer === 'tenant'
-                    ? `Includes a 2.9% + $0.30 processing fee (${formatCents(cardTotalCents - lease.monthly_rent_cents)}). Clears immediately. Apple Pay and Cash App available at checkout.`
-                    : 'No fee for you. Clears immediately. Apple Pay and Cash App available at checkout.'}
-                </p>
-                <PayButton
-                  leaseId={lease.id}
-                  expectedDate={expectedDate}
-                  method="card"
-                  variant="outline"
-                  label={`Pay ${formatCents(cardTotalCents)} by card / Apple Pay`}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="p-4 text-sm">
-              <p className="text-muted-foreground">
-                {landlordHasAccount
-                  ? "Your landlord's payment account is being verified by Stripe and isn't ready yet. Please continue paying via Zelle, Venmo, or check in the meantime."
-                  : "Your landlord hasn't set up online payments yet. Please continue paying via Zelle, Venmo, or check; payments will be logged here."}
-              </p>
-            </CardContent>
-          </Card>
-        )
-      ) : null}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Auto-pay</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <p className="text-muted-foreground">
-            Authorize Stripe to charge rent automatically each month. Cancel any time.
-          </p>
-          {lease ? (
-            <AutopayControls
-              leaseId={lease.id}
-              autopay={autopay}
-              landlordConnected={landlordConnected}
-            />
-          ) : null}
-        </CardContent>
-      </Card>
-
-      {lease ? (
-        <Card>
-          <CardContent className="space-y-3 p-4">
-            <div>
-              <p className="text-sm font-medium">Pay by Venmo, Cash App, or Zelle</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Fee-free. Send the payment, then confirm it here — your landlord approves it and
-                it gets logged automatically.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              {P2P_METHODS.map((m) => (
-                <Link
-                  key={m}
-                  href={`/tenant/pay/p2p?method=${m}`}
-                  className="flex items-center justify-between gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition hover:bg-muted/30"
-                >
-                  <span>Pay with {P2P_LABELS[m]}</span>
-                  <ChevronRight size={16} className="text-muted-foreground" />
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {lateFees.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle size={18} />
-              Outstanding late fees
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1 text-sm">
-            {lateFees.map((fee) => (
-              <div
-                key={fee.id}
-                className="flex items-center justify-between gap-2 border-b py-2.5 last:border-0"
-              >
-                <div>
-                  <p className="font-medium">{formatCents(fee.amount_cents)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Period starting {format(parseISO(fee.period_start), 'MMM d, yyyy')}
-                  </p>
-                </div>
-                <span className="text-xs text-destructive font-medium">Due</span>
-              </div>
-            ))}
-            <p className="pt-2 text-xs text-muted-foreground">
-              Contact your landlord to arrange payment or request a waiver.
-            </p>
-          </CardContent>
-        </Card>
-      ) : null}
+        <PayPageContent
+          leaseId={lease.id}
+          monthlyCents={lease.monthly_rent_cents}
+          achTotalCents={achTotalCents}
+          cardTotalCents={cardTotalCents}
+          achFeePayer={achFeePayer}
+          cardFeePayer={cardFeePayer}
+          landlordConnected={landlordConnected}
+          landlordHasAccount={landlordHasAccount}
+          autopay={autopay}
+          lateFees={lateFees}
+          periodOptions={periodOptions}
+          defaultExpectedDate={defaultExpectedDate}
+        />
+      ) : (
+        <p className="text-sm text-muted-foreground">No active lease found.</p>
+      )}
 
       <div className="flex justify-center">
         <Link
