@@ -11,7 +11,7 @@ import { DeletePaymentButton } from '@/components/delete-payment-button';
 import { PaymentHandles } from '@/app/landlord/settings/payment-handles';
 import { formatCents, one } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
-import { Wallet } from 'lucide-react';
+import { Pencil, Wallet } from 'lucide-react';
 import { isP2PMethod } from '@/lib/p2p';
 
 export default async function RentPage() {
@@ -46,7 +46,7 @@ export default async function RentPage() {
     supabase
       .from('leases')
       .select(
-        'id, monthly_rent_cents, due_day, property_id, properties:property_id(address), lease_tenants(users:user_id(name))',
+        'id, monthly_rent_cents, due_day, late_after_day, property_id, properties:property_id(address), lease_tenants(users:user_id(name))',
       )
       .eq('status', 'active')
       .order('created_at'),
@@ -63,10 +63,13 @@ export default async function RentPage() {
     id: string;
     monthly_rent_cents: number;
     due_day: number;
+    late_after_day: number;
     property_id: string;
     properties: { address: string } | { address: string }[] | null;
     lease_tenants: { users: { name: string | null } | { name: string | null }[] | null }[] | null;
   }[];
+
+  const todayDayOfMonth = now.getDate();
 
   // Fetch this month's payments for active leases
   let paidLeaseIds = new Set<string>();
@@ -140,6 +143,7 @@ export default async function RentPage() {
               ? one(firstTenant.users)?.name ?? null
               : null;
             const paid = paidLeaseIds.has(lease.id);
+            const isLate = !paid && todayDayOfMonth > lease.late_after_day;
             return (
               <Card key={lease.id}>
                 <CardContent className="flex items-center justify-between gap-2 p-3">
@@ -147,17 +151,19 @@ export default async function RentPage() {
                     <p className="truncate text-sm font-medium">{addr}</p>
                     <p className="text-xs text-muted-foreground">
                       {tenantName ?? 'No tenant'} · {formatCents(lease.monthly_rent_cents)}/mo
-                      {lease.due_day ? ` · due day ${lease.due_day}` : ''}
+                      {lease.due_day ? ` · due ${lease.due_day}th` : ''}
                     </p>
                   </div>
                   <Badge
                     className={
                       paid
                         ? 'shrink-0 border-transparent bg-success/10 text-success'
-                        : 'shrink-0 border-transparent bg-muted text-muted-foreground'
+                        : isLate
+                          ? 'shrink-0 border-transparent bg-destructive/10 text-destructive'
+                          : 'shrink-0 border-transparent bg-muted text-muted-foreground'
                     }
                   >
-                    {paid ? 'Paid' : 'Unpaid'}
+                    {paid ? 'Paid' : isLate ? 'Late' : 'Unpaid'}
                   </Badge>
                 </CardContent>
               </Card>
@@ -227,6 +233,13 @@ export default async function RentPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={p.status} />
+                    <Link
+                      href={`/landlord/rent/${p.id}`}
+                      className="flex h-7 w-7 items-center justify-center rounded-md border text-muted-foreground hover:bg-muted/50"
+                      aria-label="Edit payment"
+                    >
+                      <Pencil size={13} />
+                    </Link>
                     <a
                       href={`/api/payments/${p.id}/receipt`}
                       className="text-xs text-primary underline-offset-4 hover:underline"

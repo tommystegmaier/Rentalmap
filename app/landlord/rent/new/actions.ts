@@ -12,17 +12,18 @@ export async function logRentPayment(formData: FormData) {
   if (!user) throw new Error('Not authenticated');
 
   const lease_id = String(formData.get('lease_id'));
+  const expected_date = String(formData.get('expected_date'));
   const amount_cents = parseDollarsToCents(String(formData.get('amount') ?? ''));
   const received_date = String(formData.get('received_date'));
   const method = String(formData.get('method')) as
     | 'ach' | 'card' | 'zelle' | 'venmo' | 'cashapp' | 'check' | 'cash' | 'other';
   const notes = (formData.get('notes') as string | null) ?? null;
 
-  if (!lease_id || !amount_cents) throw new Error('Missing required fields');
+  if (!lease_id || !expected_date || !amount_cents) throw new Error('Missing required fields');
 
   const { error } = await supabase.from('rent_payments').insert({
     lease_id,
-    expected_date: received_date,
+    expected_date,
     received_date,
     amount_cents,
     method,

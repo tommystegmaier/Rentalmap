@@ -122,7 +122,7 @@ export default async function P2PClaimPage({
           <p className="font-medium">Amount</p>
           <p className="text-2xl font-semibold">{formatCents(lease.monthly_rent_cents)}</p>
           <p className="text-xs text-muted-foreground">
-            For {periodLabel} · due {format(periodDue, 'MMMM d')}
+            For {periodLabel} · due {format(defaultPeriodDue, 'MMMM d')}
           </p>
         </CardContent>
       </Card>

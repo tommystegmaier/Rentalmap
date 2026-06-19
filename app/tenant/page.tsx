@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
-import { format, parseISO, differenceInCalendarDays } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays, setDate } from 'date-fns';
 import { nextUnpaidRentPeriod } from '@/lib/rent-period';
 import { Home as HomeIcon, Wallet, Wrench, FileText, MessageSquare, ChevronRight, ClipboardList, CheckCircle2, PenLine } from 'lucide-react';
 import { URGENCY_LABELS, type Urgency } from '@/lib/constants';
@@ -136,6 +136,10 @@ export default async function TenantDashboard() {
   const paidExpectedDates = (paidDatesData ?? []).map((p: { expected_date: string }) => p.expected_date);
   const nextDue = nextUnpaidRentPeriod(lease.due_day, paidExpectedDates, today);
   const daysUntil = differenceInCalendarDays(nextDue, today);
+  const lateAfterDate = setDate(nextDue, lease.late_after_day);
+  const isOverdue = daysUntil < 0;
+  const isLate = isOverdue && today > lateAfterDate;
+  const isGrace = isOverdue && !isLate;
 
   return (
     <div className="space-y-6">
@@ -217,17 +221,35 @@ export default async function TenantDashboard() {
           );
         })}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Next rent due</CardTitle>
+      <Card className={isLate ? 'border-destructive/40' : isGrace ? 'border-warning/40' : ''}>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle>Next rent due</CardTitle>
+            {isLate ? (
+              <Badge className="border-transparent bg-destructive/10 text-destructive">Late</Badge>
+            ) : null}
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-baseline justify-between">
             <p className="text-2xl font-semibold">{formatCents(lease.monthly_rent_cents)}</p>
-            <p className="text-sm text-muted-foreground">
-              {format(nextDue, 'MMM d')} · {daysUntil} day{daysUntil === 1 ? '' : 's'}
+            <p className={`text-sm ${isLate ? 'text-destructive' : isGrace ? 'text-warning' : 'text-muted-foreground'}`}>
+              {isLate
+                ? `${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? '' : 's'} overdue`
+                : isGrace
+                  ? `${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? '' : 's'} past due`
+                  : daysUntil === 0
+                    ? 'Due today'
+                    : `${format(nextDue, 'MMM d')} · in ${daysUntil} day${daysUntil === 1 ? '' : 's'}`}
             </p>
           </div>
+          {isLate ? (
+            <p className="text-xs text-destructive">Late fees are accruing.</p>
+          ) : isGrace ? (
+            <p className="text-xs text-warning">
+              Pay before the {lease.late_after_day}th to avoid late fees.
+            </p>
+          ) : null}
           <Button asChild className="w-full">
             <Link href="/tenant/pay">
               <Wallet size={16} className="mr-2" />

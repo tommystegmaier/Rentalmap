@@ -9,18 +9,23 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { BusyBar } from '@/components/busy-bar';
 import { logRentPayment } from './actions';
+import type { RentPeriodOption } from '@/lib/rent-period';
 
 export interface LeaseOption {
   id: string;
   monthly_rent_cents: number;
   address: string;
+  defaultExpectedDate: string;
+  periodOptions: RentPeriodOption[];
 }
 
 export function RentPaymentForm({ leases }: { leases: LeaseOption[] }) {
   const router = useRouter();
-  const [leaseId, setLeaseId] = useState(leases[0]?.id ?? '');
+  const first = leases[0];
+  const [leaseId, setLeaseId] = useState(first?.id ?? '');
+  const [selectedDate, setSelectedDate] = useState(first?.defaultExpectedDate ?? '');
   const [amount, setAmount] = useState(
-    leases[0] ? (leases[0].monthly_rent_cents / 100).toFixed(2) : '',
+    first ? (first.monthly_rent_cents / 100).toFixed(2) : '',
   );
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [method, setMethod] = useState('zelle');
@@ -28,10 +33,16 @@ export function RentPaymentForm({ leases }: { leases: LeaseOption[] }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const currentLease = leases.find((l) => l.id === leaseId);
+  const selectedOption = currentLease?.periodOptions.find((o) => o.value === selectedDate);
+
   function handleLeaseChange(id: string) {
     setLeaseId(id);
     const lease = leases.find((l) => l.id === id);
-    if (lease) setAmount((lease.monthly_rent_cents / 100).toFixed(2));
+    if (lease) {
+      setAmount((lease.monthly_rent_cents / 100).toFixed(2));
+      setSelectedDate(lease.defaultExpectedDate);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -41,6 +52,7 @@ export function RentPaymentForm({ leases }: { leases: LeaseOption[] }) {
     try {
       const fd = new FormData();
       fd.set('lease_id', leaseId);
+      fd.set('expected_date', selectedDate);
       fd.set('amount', amount);
       fd.set('received_date', date);
       fd.set('method', method);
@@ -69,6 +81,25 @@ export function RentPaymentForm({ leases }: { leases: LeaseOption[] }) {
           ))}
         </Select>
       </div>
+
+      {currentLease ? (
+        <div className="space-y-2">
+          <Label>Period (which month this payment is for)</Label>
+          <Select
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+          >
+            {currentLease.periodOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}{opt.paid ? ' · paid' : ''}
+              </option>
+            ))}
+          </Select>
+          {selectedOption?.paid ? (
+            <p className="text-xs text-warning">This period already has a payment on record.</p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
@@ -103,6 +134,8 @@ export function RentPaymentForm({ leases }: { leases: LeaseOption[] }) {
           <option value="zelle">Zelle</option>
           <option value="venmo">Venmo</option>
           <option value="cashapp">Cash App</option>
+          <option value="ach">ACH / Bank</option>
+          <option value="card">Card</option>
           <option value="check">Check</option>
           <option value="cash">Cash</option>
           <option value="other">Other</option>
