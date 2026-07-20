@@ -15,7 +15,7 @@ export default async function LateFeesPage() {
   const { data: charges } = await supabase
     .from('late_fee_charges')
     .select(
-      'id, charge_date, amount_cents, period_start, reason, waived, waived_at, waive_note, paid, paid_at, ' +
+      'id, charge_date, amount_cents, period_start, reason, waived, waived_at, waive_note, paid, paid_at, units, ' +
       'leases:lease_id(monthly_rent_cents, properties:property_id(address))',
     )
     .order('charge_date', { ascending: false })
@@ -80,7 +80,14 @@ function LateFeeRow({ charge }: { charge: Charge }) {
       <CardContent className="p-3">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-sm font-medium">{formatCents(charge.amount_cents)}</p>
+            <p className="text-sm font-medium">
+              {formatCents(charge.amount_cents)}
+              {charge.units > 1 ? (
+                <span className="ml-1 font-normal text-muted-foreground">
+                  ({charge.units} × {formatCents(Math.round(charge.amount_cents / charge.units))})
+                </span>
+              ) : null}
+            </p>
             <p className="text-xs text-muted-foreground">
               {addr} · period {format(parseISO(charge.period_start), 'MMM yyyy')}
             </p>
@@ -118,5 +125,6 @@ type Charge = {
   waive_note: string | null;
   paid: boolean;
   paid_at: string | null;
+  units: number;
   leases: { properties: { address: string } | { address: string }[] | null } | { properties: { address: string } | { address: string }[] | null }[] | null;
 };

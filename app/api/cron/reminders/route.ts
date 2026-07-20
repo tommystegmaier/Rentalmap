@@ -210,37 +210,57 @@ export async function GET(request: Request) {
 
     if ((paidCount ?? 0) > 0) continue; // paid — no late fee
 
-    // How many fees SHOULD exist by now for this period, given the frequency:
+    // How many fee "units" SHOULD have accrued by now for this period:
     //   once   → 1 flat fee
     //   weekly → one per 7 days past the grace deadline
     //   daily  → one per day past the grace deadline
     const frequency = lease.late_fee_frequency ?? 'once';
-    let expectedCount = 1;
-    if (frequency === 'daily') expectedCount = Math.min(daysLate, DAILY_CAP);
-    else if (frequency === 'weekly') expectedCount = Math.min(Math.ceil(daysLate / 7), WEEKLY_CAP);
+    let expectedUnits = 1;
+    if (frequency === 'daily') expectedUnits = Math.min(daysLate, DAILY_CAP);
+    else if (frequency === 'weekly') expectedUnits = Math.min(Math.ceil(daysLate / 7), WEEKLY_CAP);
 
-    // How many non-waived fees are already on record for this period.
-    const { count: feeCount } = await supabase
+    // Existing non-waived charges for this period. We keep ONE growing row per
+    // period rather than one row per day, so consolidate here.
+    const { data: periodFees } = await supabase
       .from('late_fee_charges')
-      .select('id', { count: 'exact', head: true })
+      .select('id, units, paid')
       .eq('lease_id', lease.id)
       .eq('period_start', periodStart)
       .eq('waived', false);
 
-    const toAdd = expectedCount - (feeCount ?? 0);
-    if (toAdd <= 0) continue; // already up to date for this period
+    const accruedUnits = (periodFees ?? []).reduce(
+      (s, f: { units: number | null }) => s + (f.units ?? 1),
+      0,
+    );
+    const unitsToAdd = expectedUnits - accruedUnits;
+    if (unitsToAdd <= 0) continue; // already up to date for this period
 
-    // Insert the missing late-fee charges (usually 1 — more only if the cron
-    // missed days). period_start groups them to the rent period they belong to.
-    await supabase.from('late_fee_charges').insert(
-      Array.from({ length: toAdd }, () => ({
+    // Prefer to grow the active (unpaid) row so the period stays a single line
+    // item; only start a fresh row if there isn't one (e.g. after payment).
+    const activeRow = (periodFees ?? []).find((f: { paid: boolean }) => !f.paid) as
+      | { id: string; units: number | null }
+      | undefined;
+
+    if (activeRow) {
+      const newUnits = (activeRow.units ?? 1) + unitsToAdd;
+      await supabase
+        .from('late_fee_charges')
+        .update({
+          units: newUnits,
+          amount_cents: newUnits * lease.late_fee_cents,
+          charge_date: today,
+        })
+        .eq('id', activeRow.id);
+    } else {
+      await supabase.from('late_fee_charges').insert({
         lease_id: lease.id,
         charge_date: today,
-        amount_cents: lease.late_fee_cents,
+        amount_cents: unitsToAdd * lease.late_fee_cents,
+        units: unitsToAdd,
         period_start: periodStart,
-      })),
-    );
-    lateFeeCount += toAdd;
+      });
+    }
+    lateFeeCount += unitsToAdd;
 
     // Notify tenants on this lease.
     const { data: tenantLinks } = await supabase
@@ -249,7 +269,7 @@ export async function GET(request: Request) {
       .eq('lease_id', lease.id);
 
     const eachLabel = `$${(lease.late_fee_cents / 100).toFixed(0)}`;
-    const feeLabel = toAdd > 1 ? `${toAdd} × ${eachLabel}` : eachLabel;
+    const feeLabel = unitsToAdd > 1 ? `${unitsToAdd} × ${eachLabel}` : eachLabel;
     for (const link of (tenantLinks ?? []) as { user_id: string }[]) {
       await createNotification(supabase, link.user_id, {
         type: 'late_fee_applied',

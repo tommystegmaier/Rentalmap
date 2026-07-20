@@ -196,6 +196,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
     waived: boolean;
     waive_note: string | null;
     paid: boolean;
+    units: number;
   };
 
   let securityDeposit: DepositRow | null = null;
@@ -210,7 +211,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         .maybeSingle(),
       supabase
         .from('late_fee_charges')
-        .select('id, charge_date, amount_cents, period_start, waived, waive_note, paid')
+        .select('id, charge_date, amount_cents, period_start, waived, waive_note, paid, units')
         .eq('lease_id', activeLease.id)
         .order('charge_date', { ascending: false })
         .limit(10),
@@ -552,7 +553,14 @@ export default async function PropertyDetail({ params }: { params: { id: string 
                 <div key={fee.id} className="border-b py-2.5 last:border-0">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="font-medium">{formatCents(fee.amount_cents)}</p>
+                      <p className="font-medium">
+                        {formatCents(fee.amount_cents)}
+                        {fee.units > 1 ? (
+                          <span className="ml-1 font-normal text-muted-foreground">
+                            ({fee.units} × {formatCents(Math.round(fee.amount_cents / fee.units))})
+                          </span>
+                        ) : null}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         Period starting {format(parseISO(fee.period_start), 'MMM d, yyyy')}
                         {fee.waived ? ` · Removed${fee.waive_note ? `: ${fee.waive_note}` : ''}` : ''}
