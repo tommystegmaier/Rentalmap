@@ -511,14 +511,19 @@ export default async function PropertyDetail({ params }: { params: { id: string 
 
       {/* Late fees */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-2">
+        <CardHeader className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="flex items-center gap-2">
               <AlertCircle size={18} className="text-muted-foreground" />
               Late fees
-            </span>
-            <div className="flex items-center gap-2">
-              {activeLease && !!(activeLease as Record<string, unknown>).late_fee_enabled && (
+            </CardTitle>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/landlord/late-fees">Manage all</Link>
+            </Button>
+          </div>
+          {activeLease ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {!!(activeLease as Record<string, unknown>).late_fee_enabled && (
                 <LateFeeFrequencySelect
                   leaseId={activeLease.id}
                   propertyId={params.id}
@@ -531,20 +536,13 @@ export default async function PropertyDetail({ params }: { params: { id: string 
                   }
                 />
               )}
-              {activeLease && (
-                <LateFeeToggleButton
-                  leaseId={activeLease.id}
-                  propertyId={params.id}
-                  enabled={!!(activeLease as Record<string, unknown>).late_fee_enabled}
-                />
-              )}
-              <Button asChild size="sm" variant="outline">
-                <Link href="/landlord/late-fees">
-                  Manage all
-                </Link>
-              </Button>
+              <LateFeeToggleButton
+                leaseId={activeLease.id}
+                propertyId={params.id}
+                enabled={!!(activeLease as Record<string, unknown>).late_fee_enabled}
+              />
             </div>
-          </CardTitle>
+          ) : null}
         </CardHeader>
         <CardContent className="text-sm">
           {lateFeeCharges.length > 0 ? (
