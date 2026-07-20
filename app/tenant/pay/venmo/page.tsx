@@ -44,6 +44,21 @@ export default async function VenmoClaimPage() {
   if (nextDue < today) nextDue = addMonths(nextDue, 1);
   const expectedDate = format(nextDue, 'yyyy-MM-dd');
 
+  // Outstanding late fees are added to the Venmo amount so the tenant sends
+  // everything they owe. They're marked paid when the landlord approves.
+  const { data: feeData } = await supabase
+    .from('late_fee_charges')
+    .select('amount_cents')
+    .eq('lease_id', lease.id)
+    .eq('waived', false)
+    .eq('paid', false);
+  const lateFeesCents = (feeData ?? []).reduce(
+    (s: number, f: { amount_cents: number }) => s + f.amount_cents,
+    0,
+  );
+  const rentCents = lease.monthly_rent_cents;
+  const totalCents = rentCents + lateFeesCents;
+
   // Check for existing pending claim for this period
   const { data: existing } = await supabase
     .from('venmo_payment_claims')
@@ -67,16 +82,29 @@ export default async function VenmoClaimPage() {
       <Card>
         <CardContent className="space-y-1 p-4 text-sm">
           <p className="font-medium">Amount</p>
-          <p className="text-2xl font-semibold">{formatCents(lease.monthly_rent_cents)}</p>
+          <p className="text-2xl font-semibold">{formatCents(totalCents)}</p>
           <p className="text-xs text-muted-foreground">
             For {format(nextDue, 'MMMM yyyy')} · due {format(nextDue, 'MMMM d')}
           </p>
+          {lateFeesCents > 0 ? (
+            <div className="mt-2 space-y-0.5 border-t pt-2 text-xs">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Rent</span>
+                <span>{formatCents(rentCents)}</span>
+              </div>
+              <div className="flex items-center justify-between text-destructive">
+                <span>Late fees</span>
+                <span>{formatCents(lateFeesCents)}</span>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
       <VenmoClaimForm
         leaseId={lease.id}
-        amountCents={lease.monthly_rent_cents}
+        amountCents={totalCents}
+        lateFeesCents={lateFeesCents}
         expectedDate={expectedDate}
         hasPending={!!existing}
       />

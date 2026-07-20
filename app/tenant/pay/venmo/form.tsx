@@ -10,11 +10,18 @@ import { submitVenmoClaim } from './actions';
 interface Props {
   leaseId: string;
   amountCents: number;
+  lateFeesCents?: number;
   expectedDate: string;
   hasPending: boolean;
 }
 
-export function VenmoClaimForm({ leaseId, amountCents, expectedDate, hasPending }: Props) {
+export function VenmoClaimForm({
+  leaseId,
+  amountCents,
+  lateFeesCents = 0,
+  expectedDate,
+  hasPending,
+}: Props) {
   const router = useRouter();
   const [venmoNote, setVenmoNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -29,6 +36,7 @@ export function VenmoClaimForm({ leaseId, amountCents, expectedDate, hasPending 
       const fd = new FormData();
       fd.set('lease_id', leaseId);
       fd.set('amount_cents', String(amountCents));
+      fd.set('late_fees_cents', String(lateFeesCents));
       fd.set('expected_date', expectedDate);
       fd.set('venmo_note', venmoNote.trim());
       await submitVenmoClaim(fd);

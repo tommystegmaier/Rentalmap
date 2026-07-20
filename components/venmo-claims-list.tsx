@@ -12,6 +12,7 @@ import { approveClaim, denyClaim } from '@/app/landlord/rent/claims/actions';
 export interface VenmoClaim {
   id: string;
   amount_cents: number;
+  late_fees_cents?: number;
   expected_date: string;
   venmo_note: string | null;
   submitted_at: string;
@@ -70,6 +71,11 @@ function VenmoClaimCard({ claim }: { claim: VenmoClaim }) {
               {format(parseISO(claim.expected_date), 'MMMM yyyy')} · submitted{' '}
               {format(parseISO(claim.submitted_at), 'MMM d')}
             </p>
+            {claim.late_fees_cents && claim.late_fees_cents > 0 ? (
+              <p className="text-xs text-destructive">
+                Includes {formatCents(claim.late_fees_cents)} late fees
+              </p>
+            ) : null}
             {claim.property_address ? (
               <p className="text-xs text-muted-foreground">{claim.property_address}</p>
             ) : null}

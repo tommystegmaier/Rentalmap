@@ -13,20 +13,39 @@ export async function submitVenmoClaim(formData: FormData) {
   if (!user) throw new Error('Not authenticated');
 
   const lease_id = String(formData.get('lease_id'));
-  const amount_cents = parseInt(String(formData.get('amount_cents')), 10);
   const expected_date = String(formData.get('expected_date'));
   const venmo_note = String(formData.get('venmo_note') ?? '').trim() || null;
 
-  if (!lease_id || !amount_cents || !expected_date) throw new Error('Missing required fields');
+  if (!lease_id || !expected_date) throw new Error('Missing required fields');
 
   // Verify tenant is on this lease
   const { data: link } = await supabase
     .from('lease_tenants')
-    .select('lease_id')
+    .select('lease_id, leases:lease_id(monthly_rent_cents)')
     .eq('user_id', user.id)
     .eq('lease_id', lease_id)
     .maybeSingle();
   if (!link) throw new Error('Forbidden');
+
+  const leaseRow = Array.isArray(link.leases) ? link.leases[0] : link.leases;
+  const rentCents = (leaseRow as { monthly_rent_cents: number } | null)?.monthly_rent_cents ?? 0;
+
+  // Recompute outstanding late fees server-side rather than trusting the client,
+  // so the recorded amount and the fees marked paid on approval always match.
+  const { data: feeData } = await supabase
+    .from('late_fee_charges')
+    .select('id, amount_cents')
+    .eq('lease_id', lease_id)
+    .eq('waived', false)
+    .eq('paid', false);
+  const lateFeeIds = (feeData ?? []).map((f: { id: string }) => f.id);
+  const lateFeesCents = (feeData ?? []).reduce(
+    (s: number, f: { amount_cents: number }) => s + f.amount_cents,
+    0,
+  );
+  const amount_cents = rentCents + lateFeesCents;
+
+  if (!amount_cents) throw new Error('Missing required fields');
 
   const { data: insertedClaim, error } = await supabase
     .from('venmo_payment_claims')
@@ -34,6 +53,8 @@ export async function submitVenmoClaim(formData: FormData) {
       lease_id,
       tenant_user_id: user.id,
       amount_cents,
+      late_fees_cents: lateFeesCents,
+      late_fee_ids: lateFeeIds,
       expected_date,
       venmo_note,
     })
