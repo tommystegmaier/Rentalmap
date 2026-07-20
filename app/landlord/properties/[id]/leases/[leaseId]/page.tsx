@@ -35,7 +35,7 @@ export default async function LeaseDetailPage({
     .from('leases')
     .select(
       `id, start_date, end_date, monthly_rent_cents, due_day, late_after_day,
-       late_fee_cents, security_deposit_cents, pets_allowed, utilities_paid_by,
+       late_fee_cents, late_fee_frequency, security_deposit_cents, pets_allowed, utilities_paid_by,
        lawn_care_by, terms_notes, status, late_fee_enabled,
        landlord_signed_at, landlord_signed_name,
        tenant_signed_at, tenant_signed_name,
@@ -146,7 +146,16 @@ export default async function LeaseDetailPage({
           <Field label="Monthly rent" value={`${formatCents(lease.monthly_rent_cents)}/mo`} />
           <Field label="Due day" value={`${lease.due_day} of month`} />
           <Field label="Late after" value={`Day ${lease.late_after_day}`} />
-          <Field label="Late fee" value={formatCents(lease.late_fee_cents)} />
+          <Field
+            label="Late fee"
+            value={`${formatCents(lease.late_fee_cents)}${
+              (lease as { late_fee_frequency?: string }).late_fee_frequency === 'daily'
+                ? ' / day late'
+                : (lease as { late_fee_frequency?: string }).late_fee_frequency === 'weekly'
+                  ? ' / week late'
+                  : ''
+            }`}
+          />
           <Field label="Security deposit" value={formatCents(lease.security_deposit_cents)} />
           <Field label="Pets" value={lease.pets_allowed ? 'Allowed' : 'Not allowed'} />
           <Field

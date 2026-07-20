@@ -11,6 +11,7 @@ import { format, parseISO } from 'date-fns';
 import { RemoveLateFeeButton } from '@/app/landlord/late-fees/remove-button';
 import { RemoveTenantButton } from './remove-tenant-button';
 import { LateFeeToggleButton } from './late-fee-toggle-button';
+import { LateFeeFrequencySelect } from './late-fee-frequency-select';
 import {
   FileText,
   FileSignature,
@@ -516,6 +517,19 @@ export default async function PropertyDetail({ params }: { params: { id: string 
               Late fees
             </span>
             <div className="flex items-center gap-2">
+              {activeLease && !!(activeLease as Record<string, unknown>).late_fee_enabled && (
+                <LateFeeFrequencySelect
+                  leaseId={activeLease.id}
+                  propertyId={params.id}
+                  frequency={
+                    (((activeLease as Record<string, unknown>).late_fee_frequency as
+                      | 'once'
+                      | 'weekly'
+                      | 'daily'
+                      | null) ?? 'once')
+                  }
+                />
+              )}
               {activeLease && (
                 <LateFeeToggleButton
                   leaseId={activeLease.id}

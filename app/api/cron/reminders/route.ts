@@ -4,7 +4,7 @@ import { syncRemindersForLandlord } from '@/lib/reminders-run';
 import { runScheduledTaxReports } from '@/lib/tax-report-run';
 import { sendPushToUser } from '@/lib/push';
 import { createNotification, type NotificationType } from '@/lib/notifications';
-import { addDays, addMonths, getDaysInMonth, setDate, format, parseISO, subDays } from 'date-fns';
+import { addDays, addMonths, differenceInCalendarDays, getDaysInMonth, setDate, format, parseISO, subDays } from 'date-fns';
 
 /**
  * Daily cron. Vercel triggers this via vercel.json. To prevent random hits,
@@ -154,7 +154,7 @@ export async function GET(request: Request) {
   const { data: lateLeases } = await supabase
     .from('leases')
     .select(
-      'id, due_day, late_after_day, late_fee_cents, monthly_rent_cents, property_id, ' +
+      'id, due_day, late_after_day, late_fee_cents, late_fee_frequency, monthly_rent_cents, property_id, ' +
       'properties:property_id(owner_id)',
     )
     .eq('status', 'active')
@@ -163,11 +163,16 @@ export async function GET(request: Request) {
   let lateFeeCount = 0;
   const todayDate = parseISO(today);
 
+  // Safety caps so an unpaid lease can't create an unbounded number of charges.
+  const DAILY_CAP = 90;
+  const WEEKLY_CAP = 26;
+
   type LateLease = {
     id: string;
     due_day: number;
     late_after_day: number;
     late_fee_cents: number;
+    late_fee_frequency: 'once' | 'weekly' | 'daily' | null;
     monthly_rent_cents: number;
     property_id: string;
     properties: { owner_id: string } | { owner_id: string }[] | null;
@@ -190,7 +195,8 @@ export async function GET(request: Request) {
     }
 
     const graceDeadline = addDays(dueDate, lease.late_after_day);
-    if (todayDate <= graceDeadline) continue; // still within grace period
+    const daysLate = differenceInCalendarDays(todayDate, graceDeadline);
+    if (daysLate <= 0) continue; // still within grace period
 
     const periodStart = format(dueDate, 'yyyy-MM-dd');
 
@@ -204,7 +210,16 @@ export async function GET(request: Request) {
 
     if ((paidCount ?? 0) > 0) continue; // paid — no late fee
 
-    // Check if a late fee was already charged for this period.
+    // How many fees SHOULD exist by now for this period, given the frequency:
+    //   once   → 1 flat fee
+    //   weekly → one per 7 days past the grace deadline
+    //   daily  → one per day past the grace deadline
+    const frequency = lease.late_fee_frequency ?? 'once';
+    let expectedCount = 1;
+    if (frequency === 'daily') expectedCount = Math.min(daysLate, DAILY_CAP);
+    else if (frequency === 'weekly') expectedCount = Math.min(Math.ceil(daysLate / 7), WEEKLY_CAP);
+
+    // How many non-waived fees are already on record for this period.
     const { count: feeCount } = await supabase
       .from('late_fee_charges')
       .select('id', { count: 'exact', head: true })
@@ -212,16 +227,20 @@ export async function GET(request: Request) {
       .eq('period_start', periodStart)
       .eq('waived', false);
 
-    if ((feeCount ?? 0) > 0) continue; // already charged
+    const toAdd = expectedCount - (feeCount ?? 0);
+    if (toAdd <= 0) continue; // already up to date for this period
 
-    // Insert the late fee charge.
-    await supabase.from('late_fee_charges').insert({
-      lease_id: lease.id,
-      charge_date: today,
-      amount_cents: lease.late_fee_cents,
-      period_start: periodStart,
-    });
-    lateFeeCount++;
+    // Insert the missing late-fee charges (usually 1 — more only if the cron
+    // missed days). period_start groups them to the rent period they belong to.
+    await supabase.from('late_fee_charges').insert(
+      Array.from({ length: toAdd }, () => ({
+        lease_id: lease.id,
+        charge_date: today,
+        amount_cents: lease.late_fee_cents,
+        period_start: periodStart,
+      })),
+    );
+    lateFeeCount += toAdd;
 
     // Notify tenants on this lease.
     const { data: tenantLinks } = await supabase
@@ -229,7 +248,8 @@ export async function GET(request: Request) {
       .select('user_id')
       .eq('lease_id', lease.id);
 
-    const feeLabel = `$${(lease.late_fee_cents / 100).toFixed(0)}`;
+    const eachLabel = `$${(lease.late_fee_cents / 100).toFixed(0)}`;
+    const feeLabel = toAdd > 1 ? `${toAdd} × ${eachLabel}` : eachLabel;
     for (const link of (tenantLinks ?? []) as { user_id: string }[]) {
       await createNotification(supabase, link.user_id, {
         type: 'late_fee_applied',

@@ -96,6 +96,14 @@ export default async function NewLeasePage({ params }: { params: { id: string } 
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="late_fee_frequency">Late fee charged</Label>
+            <Select id="late_fee_frequency" name="late_fee_frequency" defaultValue="once">
+              <option value="once">Once (flat)</option>
+              <option value="weekly">Weekly late</option>
+              <option value="daily">Each day late</option>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="security_deposit">Security deposit ($)</Label>
             <Input
               id="security_deposit"

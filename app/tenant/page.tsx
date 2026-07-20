@@ -85,6 +85,7 @@ export default async function TenantDashboard() {
     { count: unreadWoUpdates },
     { data: inspectionRows },
     { data: paidDatesData },
+    { data: lateFeeData },
   ] = await Promise.all([
     supabase
       .from('rent_payments')
@@ -130,7 +131,19 @@ export default async function TenantDashboard() {
       .select('expected_date')
       .eq('lease_id', lease.id)
       .in('status', ['settled', 'manual']),
+    supabase
+      .from('late_fee_charges')
+      .select('amount_cents')
+      .eq('lease_id', lease.id)
+      .eq('waived', false)
+      .eq('paid', false),
   ]);
+
+  const outstandingLateFeesCents = ((lateFeeData ?? []) as { amount_cents: number }[]).reduce(
+    (s, f) => s + f.amount_cents,
+    0,
+  );
+  const totalDueCents = lease.monthly_rent_cents + outstandingLateFeesCents;
 
   const today = new Date();
   const paidExpectedDates = (paidDatesData ?? []).map((p: { expected_date: string }) => p.expected_date);
@@ -232,7 +245,7 @@ export default async function TenantDashboard() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-baseline justify-between">
-            <p className="text-2xl font-semibold">{formatCents(lease.monthly_rent_cents)}</p>
+            <p className="text-2xl font-semibold">{formatCents(totalDueCents)}</p>
             <p className={`text-sm ${isLate ? 'text-destructive' : isGrace ? 'text-warning' : 'text-muted-foreground'}`}>
               {isLate
                 ? `${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? '' : 's'} overdue`
@@ -243,6 +256,22 @@ export default async function TenantDashboard() {
                     : `${format(nextDue, 'MMM d')} · in ${daysUntil} day${daysUntil === 1 ? '' : 's'}`}
             </p>
           </div>
+          {outstandingLateFeesCents > 0 ? (
+            <div className="space-y-1 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Rent</span>
+                <span>{formatCents(lease.monthly_rent_cents)}</span>
+              </div>
+              <div className="flex items-center justify-between text-destructive">
+                <span>Late fees</span>
+                <span className="font-medium">{formatCents(outstandingLateFeesCents)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-destructive/20 pt-1 font-medium">
+                <span>Total due</span>
+                <span>{formatCents(totalDueCents)}</span>
+              </div>
+            </div>
+          ) : null}
           {isLate ? (
             <p className="text-xs text-destructive">Late fees are accruing.</p>
           ) : isGrace ? (
