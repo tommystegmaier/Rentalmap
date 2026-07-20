@@ -16,7 +16,7 @@ export async function approveClaim(claimId: string) {
   const admin = createServiceRoleClient();
   const { data: claim } = await admin
     .from('venmo_payment_claims')
-    .select('id, lease_id, tenant_user_id, amount_cents, expected_date, method')
+    .select('id, lease_id, tenant_user_id, amount_cents, late_fees_cents, late_fee_ids, expected_date, method')
     .eq('id', claimId)
     .eq('status', 'pending')
     .maybeSingle();
@@ -34,16 +34,33 @@ export async function approveClaim(claimId: string) {
   const methodLabel = P2P_LABELS[claimMethod];
   const today = new Date().toISOString().split('T')[0];
 
+  // The claim amount may include late fees. Record only the rent portion in the
+  // rent ledger; the fee portion is reconciled by marking the fees paid.
+  const lateFeesCents = (claim.late_fees_cents as number | null) ?? 0;
+  const rentPortionCents = claim.amount_cents - lateFeesCents;
+  const lateFeeIds = (claim.late_fee_ids as string[] | null) ?? [];
+
   await Promise.all([
     admin.from('rent_payments').insert({
       lease_id: claim.lease_id,
       expected_date: claim.expected_date,
       received_date: today,
-      amount_cents: claim.amount_cents,
+      amount_cents: rentPortionCents,
       method: claimMethod,
       status: 'manual',
       recorded_by: user.id,
     }),
+    // Mark the covered late fees paid — scoped to this lease and still-outstanding
+    // so a tampered claim can't clear arbitrary fees.
+    lateFeeIds.length > 0
+      ? admin
+          .from('late_fee_charges')
+          .update({ paid: true, paid_at: new Date().toISOString() })
+          .in('id', lateFeeIds)
+          .eq('lease_id', claim.lease_id)
+          .eq('waived', false)
+          .eq('paid', false)
+      : Promise.resolve(),
     admin
       .from('venmo_payment_claims')
       .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: user.id })

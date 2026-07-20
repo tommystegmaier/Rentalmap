@@ -70,18 +70,6 @@ export default async function PayRentPage({
     if (landlord?.card_fee_payer) cardFeePayer = landlord.card_fee_payer as 'landlord' | 'tenant';
   }
 
-  const ACH_FEE_CENTS = 80;
-  const achTotalCents = lease
-    ? achFeePayer === 'tenant'
-      ? lease.monthly_rent_cents + ACH_FEE_CENTS
-      : lease.monthly_rent_cents
-    : 0;
-  const cardTotalCents = lease
-    ? cardFeePayer === 'tenant'
-      ? cardChargeCents(lease.monthly_rent_cents)
-      : lease.monthly_rent_cents
-    : 0;
-
   let autopay: { id: string; status: string } | null = null;
   type LateFeeRow = { id: string; charge_date: string; amount_cents: number; period_start: string };
   let lateFees: LateFeeRow[] = [];
@@ -101,6 +89,7 @@ export default async function PayRentPage({
         .select('id, charge_date, amount_cents, period_start')
         .eq('lease_id', lease.id)
         .eq('waived', false)
+        .eq('paid', false)
         .order('charge_date', { ascending: false }),
       supabase
         .from('rent_payments')
@@ -112,6 +101,24 @@ export default async function PayRentPage({
     lateFees = (feeData ?? []) as LateFeeRow[];
     paidExpectedDates = (paidDatesData ?? []).map((p: { expected_date: string }) => p.expected_date);
   }
+
+  // The tenant owes rent plus any outstanding late fees. Processing fees are
+  // grossed up on that combined base so the landlord nets the full amount.
+  const totalLateFeesCents = lateFees.reduce((s, f) => s + f.amount_cents, 0);
+  const rentCents = lease?.monthly_rent_cents ?? 0;
+  const baseDueCents = rentCents + totalLateFeesCents;
+
+  const ACH_FEE_CENTS = 80;
+  const achTotalCents = lease
+    ? achFeePayer === 'tenant'
+      ? baseDueCents + ACH_FEE_CENTS
+      : baseDueCents
+    : 0;
+  const cardTotalCents = lease
+    ? cardFeePayer === 'tenant'
+      ? cardChargeCents(baseDueCents)
+      : baseDueCents
+    : 0;
 
   const today = new Date();
   const defaultPeriodDue = lease
@@ -136,6 +143,7 @@ export default async function PayRentPage({
         <PayPageContent
           leaseId={lease.id}
           monthlyCents={lease.monthly_rent_cents}
+          baseDueCents={baseDueCents}
           achTotalCents={achTotalCents}
           cardTotalCents={cardTotalCents}
           achFeePayer={achFeePayer}

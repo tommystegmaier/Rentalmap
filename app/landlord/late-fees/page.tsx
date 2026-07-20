@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { formatCents } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { RemoveLateFeeButton } from './remove-button';
+import { MarkLateFeePaidButton } from './mark-paid-button';
 import { CircleDollarSign } from 'lucide-react';
 
 export default async function LateFeesPage() {
@@ -14,14 +15,15 @@ export default async function LateFeesPage() {
   const { data: charges } = await supabase
     .from('late_fee_charges')
     .select(
-      'id, charge_date, amount_cents, period_start, reason, waived, waived_at, waive_note, ' +
+      'id, charge_date, amount_cents, period_start, reason, waived, waived_at, waive_note, paid, paid_at, ' +
       'leases:lease_id(monthly_rent_cents, properties:property_id(address))',
     )
     .order('charge_date', { ascending: false })
     .limit(100);
 
   const rows = (charges ?? []) as unknown as Charge[];
-  const active = rows.filter((c) => !c.waived);
+  const active = rows.filter((c) => !c.waived && !c.paid);
+  const paid = rows.filter((c) => c.paid && !c.waived);
   const waived = rows.filter((c) => c.waived);
   const totalOutstanding = active.reduce((s, c) => s + c.amount_cents, 0);
 
@@ -36,7 +38,7 @@ export default async function LateFeesPage() {
         }
       />
 
-      {active.length === 0 && waived.length === 0 ? (
+      {active.length === 0 && paid.length === 0 && waived.length === 0 ? (
         <EmptyState
           icon={<CircleDollarSign size={32} />}
           title="No late fees"
@@ -51,9 +53,16 @@ export default async function LateFeesPage() {
         </div>
       ) : null}
 
+      {paid.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Paid</p>
+          {paid.map((c) => <LateFeeRow key={c.id} charge={c} />)}
+        </div>
+      ) : null}
+
       {waived.length > 0 ? (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Waived</p>
+          <p className="text-sm font-medium text-muted-foreground">Removed</p>
           {waived.map((c) => <LateFeeRow key={c.id} charge={c} />)}
         </div>
       ) : null}
@@ -82,9 +91,12 @@ function LateFeeRow({ charge }: { charge: Charge }) {
           <div className="flex shrink-0 items-center gap-2">
             {charge.waived ? (
               <Badge className="border-transparent bg-muted text-muted-foreground">Removed</Badge>
+            ) : charge.paid ? (
+              <Badge className="border-transparent bg-success/10 text-success">Paid</Badge>
             ) : (
               <>
                 <Badge className="border-transparent bg-destructive/10 text-destructive">Outstanding</Badge>
+                <MarkLateFeePaidButton id={charge.id} />
                 <RemoveLateFeeButton id={charge.id} />
               </>
             )}
@@ -104,5 +116,7 @@ type Charge = {
   waived: boolean;
   waived_at: string | null;
   waive_note: string | null;
+  paid: boolean;
+  paid_at: string | null;
   leases: { properties: { address: string } | { address: string }[] | null } | { properties: { address: string } | { address: string }[] | null }[] | null;
 };

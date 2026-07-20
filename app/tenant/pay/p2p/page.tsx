@@ -76,13 +76,26 @@ export default async function P2PClaimPage({
     if (landlord) handle = handleForMethod(method, landlord as LandlordHandles);
   }
 
-  const { data: paidDatesData } = await supabase
-    .from('rent_payments')
-    .select('expected_date')
-    .eq('lease_id', lease.id)
-    .in('status', ['settled', 'manual']);
+  const [{ data: paidDatesData }, { data: feeData }] = await Promise.all([
+    supabase
+      .from('rent_payments')
+      .select('expected_date')
+      .eq('lease_id', lease.id)
+      .in('status', ['settled', 'manual']),
+    supabase
+      .from('late_fee_charges')
+      .select('amount_cents')
+      .eq('lease_id', lease.id)
+      .eq('waived', false)
+      .eq('paid', false),
+  ]);
 
   const paidExpectedDates = (paidDatesData ?? []).map((p: { expected_date: string }) => p.expected_date);
+  const lateFeesCents = (feeData ?? []).reduce(
+    (s: number, f: { amount_cents: number }) => s + f.amount_cents,
+    0,
+  );
+  const totalCents = lease.monthly_rent_cents + lateFeesCents;
   const today = new Date();
   const options = rentPeriodOptions(lease.due_day, paidExpectedDates);
 
@@ -120,10 +133,22 @@ export default async function P2PClaimPage({
       <Card>
         <CardContent className="space-y-1 p-4 text-sm">
           <p className="font-medium">Amount</p>
-          <p className="text-2xl font-semibold">{formatCents(lease.monthly_rent_cents)}</p>
+          <p className="text-2xl font-semibold">{formatCents(totalCents)}</p>
           <p className="text-xs text-muted-foreground">
             For {periodLabel} · due {format(defaultPeriodDue, 'MMMM d')}
           </p>
+          {lateFeesCents > 0 ? (
+            <div className="mt-2 space-y-0.5 border-t pt-2 text-xs">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Rent</span>
+                <span>{formatCents(lease.monthly_rent_cents)}</span>
+              </div>
+              <div className="flex items-center justify-between text-destructive">
+                <span>Late fees</span>
+                <span>{formatCents(lateFeesCents)}</span>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -131,7 +156,8 @@ export default async function P2PClaimPage({
         method={method}
         handle={handle}
         leaseId={lease.id}
-        amountCents={lease.monthly_rent_cents}
+        amountCents={totalCents}
+        lateFeesCents={lateFeesCents}
         expectedDate={expectedDate}
         note={note}
         hasPending={!!existing}

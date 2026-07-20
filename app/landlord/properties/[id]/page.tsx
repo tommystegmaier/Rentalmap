@@ -194,6 +194,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
     period_start: string;
     waived: boolean;
     waive_note: string | null;
+    paid: boolean;
   };
 
   let securityDeposit: DepositRow | null = null;
@@ -208,7 +209,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         .maybeSingle(),
       supabase
         .from('late_fee_charges')
-        .select('id, charge_date, amount_cents, period_start, waived, waive_note')
+        .select('id, charge_date, amount_cents, period_start, waived, waive_note, paid')
         .eq('lease_id', activeLease.id)
         .order('charge_date', { ascending: false })
         .limit(10),
@@ -547,6 +548,10 @@ export default async function PropertyDetail({ params }: { params: { id: string 
                       {fee.waived ? (
                         <Badge className="border-transparent bg-muted text-muted-foreground">
                           Removed
+                        </Badge>
+                      ) : fee.paid ? (
+                        <Badge className="border-transparent bg-success/10 text-success">
+                          Paid
                         </Badge>
                       ) : (
                         <>

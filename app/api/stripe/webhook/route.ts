@@ -107,6 +107,23 @@ export async function POST(request: Request) {
 
     case 'payment_intent.succeeded': {
       const pi = event.data.object;
+
+      // Mark any late fees this payment collected as paid.
+      const lateFeeIds = (pi.metadata?.late_fee_ids ?? '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (lateFeeIds.length > 0) {
+        await supabase
+          .from('late_fee_charges')
+          .update({
+            paid: true,
+            paid_at: new Date().toISOString(),
+            paid_payment_intent_id: pi.id,
+          })
+          .in('id', lateFeeIds);
+      }
+
       const { data: updated } = await supabase
         .from('rent_payments')
         .update({

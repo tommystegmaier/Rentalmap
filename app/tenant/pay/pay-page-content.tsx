@@ -16,6 +16,7 @@ type LateFeeRow = { id: string; charge_date: string; amount_cents: number; perio
 interface Props {
   leaseId: string;
   monthlyCents: number;
+  baseDueCents: number;
   achTotalCents: number;
   cardTotalCents: number;
   achFeePayer: 'landlord' | 'tenant';
@@ -31,6 +32,7 @@ interface Props {
 export function PayPageContent({
   leaseId,
   monthlyCents,
+  baseDueCents,
   achTotalCents,
   cardTotalCents,
   achFeePayer,
@@ -71,7 +73,7 @@ export function PayPageContent({
             </select>
           </div>
 
-          <p className="text-3xl font-semibold">{formatCents(monthlyCents)}</p>
+          <p className="text-3xl font-semibold">{formatCents(baseDueCents)}</p>
           <p className="text-sm text-muted-foreground">
             For {format(periodDue, 'MMMM yyyy')} · due {format(periodDue, 'MMMM d')}
           </p>
@@ -87,11 +89,22 @@ export function PayPageContent({
           ) : null}
 
           {totalLateFeesCents > 0 ? (
-            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-              <AlertCircle size={15} className="shrink-0" />
-              <span>
-                <strong>{formatCents(totalLateFeesCents)}</strong> in outstanding late fees — see below.
-              </span>
+            <div className="space-y-1 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Rent</span>
+                <span>{formatCents(monthlyCents)}</span>
+              </div>
+              <div className="flex items-center justify-between text-destructive">
+                <span className="flex items-center gap-1.5">
+                  <AlertCircle size={14} className="shrink-0" />
+                  Late fees
+                </span>
+                <span className="font-medium">{formatCents(totalLateFeesCents)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-destructive/20 pt-1 font-medium">
+                <span>Total due</span>
+                <span>{formatCents(baseDueCents)}</span>
+              </div>
             </div>
           ) : null}
         </CardContent>
@@ -128,7 +141,7 @@ export function PayPageContent({
               </div>
               <p className="text-xs text-muted-foreground">
                 {cardFeePayer === 'tenant'
-                  ? `Includes a 2.9% + $0.30 processing fee (${formatCents(cardTotalCents - monthlyCents)}). Clears immediately. Apple Pay and Cash App available at checkout.`
+                  ? `Includes a 2.9% + $0.30 processing fee (${formatCents(cardTotalCents - baseDueCents)}). Clears immediately. Apple Pay and Cash App available at checkout.`
                   : 'No fee for you. Clears immediately. Apple Pay and Cash App available at checkout.'}
               </p>
               <PayButton
@@ -217,7 +230,7 @@ export function PayPageContent({
               </div>
             ))}
             <p className="pt-2 text-xs text-muted-foreground">
-              Contact your landlord to arrange payment or request a waiver.
+              These are included in your total above and settled with your payment.
             </p>
           </CardContent>
         </Card>

@@ -18,6 +18,7 @@ interface Props {
   handle: string | null;
   leaseId: string;
   amountCents: number;
+  lateFeesCents?: number;
   expectedDate: string;
   note: string;
   hasPending: boolean;
@@ -29,6 +30,7 @@ export function P2PClaimForm({
   handle,
   leaseId,
   amountCents,
+  lateFeesCents = 0,
   expectedDate,
   note,
   hasPending,
@@ -55,6 +57,7 @@ export function P2PClaimForm({
       const fd = new FormData();
       fd.set('lease_id', leaseId);
       fd.set('amount_cents', String(amountCents));
+      fd.set('late_fees_cents', String(lateFeesCents));
       fd.set('expected_date', selectedDate);
       fd.set('method', method);
       fd.set('note', memo.trim());

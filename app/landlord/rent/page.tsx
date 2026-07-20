@@ -39,7 +39,7 @@ export default async function RentPage() {
     supabase
       .from('venmo_payment_claims')
       .select(
-        'id, amount_cents, expected_date, method, venmo_note, submitted_at, tenant:tenant_user_id(name, email), lease:lease_id(properties:property_id(address))',
+        'id, amount_cents, late_fees_cents, expected_date, method, venmo_note, submitted_at, tenant:tenant_user_id(name, email), lease:lease_id(properties:property_id(address))',
       )
       .eq('status', 'pending')
       .order('submitted_at', { ascending: false }),
@@ -93,6 +93,7 @@ export default async function RentPage() {
   const pendingClaims: VenmoClaim[] = (rawClaims ?? []).map((c: {
     id: string;
     amount_cents: number;
+    late_fees_cents: number | null;
     expected_date: string;
     method: string | null;
     venmo_note: string | null;
@@ -106,6 +107,7 @@ export default async function RentPage() {
     return {
       id: c.id,
       amount_cents: c.amount_cents,
+      late_fees_cents: c.late_fees_cents ?? 0,
       expected_date: c.expected_date,
       method: isP2PMethod(c.method) ? c.method : 'venmo',
       venmo_note: c.venmo_note,
