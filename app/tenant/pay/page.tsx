@@ -74,18 +74,6 @@ export default async function PayRentPage({
     if (landlord?.card_fee_payer) cardFeePayer = landlord.card_fee_payer as 'landlord' | 'tenant';
   }
 
-  const ACH_FEE_CENTS = 80;
-  const achTotalCents = lease
-    ? achFeePayer === 'tenant'
-      ? lease.monthly_rent_cents + ACH_FEE_CENTS
-      : lease.monthly_rent_cents
-    : 0;
-  const cardTotalCents = lease
-    ? cardFeePayer === 'tenant'
-      ? cardChargeCents(lease.monthly_rent_cents)
-      : lease.monthly_rent_cents
-    : 0;
-
   let autopay: { id: string; status: string } | null = null;
   type LateFeeRow = { id: string; charge_date: string; amount_cents: number; period_start: string };
   let lateFees: LateFeeRow[] = [];
@@ -104,6 +92,7 @@ export default async function PayRentPage({
         .select('id, charge_date, amount_cents, period_start')
         .eq('lease_id', lease.id)
         .eq('waived', false)
+        .eq('paid', false)
         .order('charge_date', { ascending: false }),
     ]);
     autopay = autopayData as { id: string; status: string } | null;
@@ -111,6 +100,23 @@ export default async function PayRentPage({
   }
 
   const totalLateFeesCents = lateFees.reduce((s, f) => s + f.amount_cents, 0);
+
+  // The tenant owes rent plus any outstanding late fees. Processing fees are
+  // computed on that combined base so the landlord nets the full amount.
+  const rentCents = lease?.monthly_rent_cents ?? 0;
+  const baseDueCents = rentCents + totalLateFeesCents;
+
+  const ACH_FEE_CENTS = 80;
+  const achTotalCents = lease
+    ? achFeePayer === 'tenant'
+      ? baseDueCents + ACH_FEE_CENTS
+      : baseDueCents
+    : 0;
+  const cardTotalCents = lease
+    ? cardFeePayer === 'tenant'
+      ? cardChargeCents(baseDueCents)
+      : baseDueCents
+    : 0;
 
   const today = new Date();
   let nextDue = lease ? setDate(today, lease.due_day) : today;
@@ -133,17 +139,28 @@ export default async function PayRentPage({
         </CardHeader>
         <CardContent>
           <p className="text-3xl font-semibold">
-            {lease ? formatCents(lease.monthly_rent_cents) : '—'}
+            {lease ? formatCents(baseDueCents) : '—'}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             Next due {format(nextDue, 'MMMM d, yyyy')}
           </p>
-          {totalLateFeesCents > 0 ? (
-            <div className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-              <AlertCircle size={15} className="shrink-0" />
-              <span>
-                <strong>{formatCents(totalLateFeesCents)}</strong> in outstanding late fees — see below.
-              </span>
+          {totalLateFeesCents > 0 && lease ? (
+            <div className="mt-3 space-y-1 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Rent</span>
+                <span>{formatCents(rentCents)}</span>
+              </div>
+              <div className="flex items-center justify-between text-destructive">
+                <span className="flex items-center gap-1.5">
+                  <AlertCircle size={14} className="shrink-0" />
+                  Late fees
+                </span>
+                <span className="font-medium">{formatCents(totalLateFeesCents)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-destructive/20 pt-1 font-medium">
+                <span>Total due</span>
+                <span>{formatCents(baseDueCents)}</span>
+              </div>
             </div>
           ) : null}
         </CardContent>
@@ -181,7 +198,7 @@ export default async function PayRentPage({
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {cardFeePayer === 'tenant'
-                    ? `Includes a 2.9% + $0.30 processing fee (${formatCents(cardTotalCents - lease.monthly_rent_cents)}). Clears immediately. Apple Pay and Cash App available at checkout.`
+                    ? `Includes a 2.9% + $0.30 processing fee (${formatCents(cardTotalCents - baseDueCents)}). Clears immediately. Apple Pay and Cash App available at checkout.`
                     : 'No fee for you. Clears immediately. Apple Pay and Cash App available at checkout.'}
                 </p>
                 <PayButton

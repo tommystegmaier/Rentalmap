@@ -65,13 +65,31 @@ export async function POST(request: Request) {
   const achFeePayer = (landlord?.ach_fee_payer as 'landlord' | 'tenant' | undefined) ?? 'landlord';
   const cardFeePayer = (landlord?.card_fee_payer as 'landlord' | 'tenant' | undefined) ?? 'tenant';
 
+  // Outstanding late fees are collected alongside rent so the tenant settles
+  // everything they owe in one payment.
+  const { data: outstandingFees } = await admin
+    .from('late_fee_charges')
+    .select('id, amount_cents')
+    .eq('lease_id', lease_id)
+    .eq('waived', false)
+    .eq('paid', false);
+
+  const lateFeeIds = (outstandingFees ?? []).map((f) => f.id);
+  const lateFeesCents = (outstandingFees ?? []).reduce(
+    (s, f) => s + (f.amount_cents ?? 0),
+    0,
+  );
+
   const isCard = method === 'card';
   const rentCents = lease.monthly_rent_cents;
+  // Processing fees are grossed up on rent + late fees so the landlord nets
+  // the full amount owed.
+  const baseCents = rentCents + lateFeesCents;
   const ACH_FEE_CENTS = 80;
   const totalCharge = isCard
-    ? cardFeePayer === 'tenant' ? cardChargeCents(rentCents) : rentCents
-    : achFeePayer === 'tenant' ? rentCents + ACH_FEE_CENTS : rentCents;
-  const feeCents = totalCharge - rentCents;
+    ? cardFeePayer === 'tenant' ? cardChargeCents(baseCents) : baseCents
+    : achFeePayer === 'tenant' ? baseCents + ACH_FEE_CENTS : baseCents;
+  const feeCents = totalCharge - baseCents;
 
   const lineItems: Array<{
     price_data: {
@@ -90,6 +108,16 @@ export async function POST(request: Request) {
       quantity: 1,
     },
   ];
+  if (lateFeesCents > 0) {
+    lineItems.push({
+      price_data: {
+        currency: 'usd',
+        product_data: { name: 'Outstanding late fees' },
+        unit_amount: lateFeesCents,
+      },
+      quantity: 1,
+    });
+  }
   if (feeCents > 0) {
     lineItems.push({
       price_data: {
@@ -117,6 +145,11 @@ export async function POST(request: Request) {
         description: `Rent for ${props.address}`,
         transfer_data: { destination },
         on_behalf_of: destination,
+        // Mirror the late-fee ids onto the PaymentIntent so payment_intent.succeeded
+        // (which only carries PI metadata) can mark them paid on settlement.
+        metadata: {
+          late_fee_ids: lateFeeIds.join(','),
+        },
       },
       metadata: {
         type: 'rent',
@@ -124,6 +157,8 @@ export async function POST(request: Request) {
         expected_date,
         tenant_user_id: user.id,
         rent_cents: rentCents.toString(),
+        late_fees_cents: lateFeesCents.toString(),
+        late_fee_ids: lateFeeIds.join(','),
         fee_cents: feeCents.toString(),
         method,
       },
